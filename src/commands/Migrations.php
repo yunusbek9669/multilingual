@@ -11,16 +11,13 @@ class Migrations extends Controller
     {
         $migrationClassName = 'm' . gmdate('ymd_His') . '_create_multi_language_table';
 
-        $filePath = Yii::getAlias('@app/migrations/' . $migrationClassName . '.php');
-
-        // Migration faylini yaratish
-        $migrationFile = fopen($filePath, 'w');
-        if (!$migrationFile) {
-            echo "Migration file yaratishda xato!\n";
-            return;
+        $dir = Yii::getAlias('@app/migrations');
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
         }
 
-        // Migration kodini yozish
+        $filePath = $dir . '/' . $migrationClassName . '.php';
+
         $migrationCode = <<<PHP
 <?php
 
@@ -33,7 +30,6 @@ class {$migrationClassName} extends Migration
 {
     public function safeUp()
     {
-        // Create the multi_language table
         \$this->createTable('{{%multi_language}}', [
             'id' => \$this->primaryKey(),
             'name' => \$this->string(30),
@@ -49,7 +45,6 @@ class {$migrationClassName} extends Migration
             'updated_by' => \$this->integer(),
         ]);
 
-        // Create indexes and foreign keys
         \$this->createIndex('{{%idx-multi_language-status}}', '{{%multi_language}}', 'status');
         \$this->createIndex('{{%idx-multi_language-created_by}}', '{{%multi_language}}', 'created_by');
         \$this->createIndex('{{%idx-multi_language-updated_by}}', '{{%multi_language}}', 'updated_by');
@@ -57,7 +52,6 @@ class {$migrationClassName} extends Migration
 
     public function safeDown()
     {
-        // Drop foreign keys, indexes and table
         \$this->dropIndex('{{%idx-multi_language-status}}', '{{%multi_language}}');
         \$this->dropIndex('{{%idx-multi_language-created_by}}', '{{%multi_language}}');
         \$this->dropIndex('{{%idx-multi_language-updated_by}}', '{{%multi_language}}');
@@ -66,9 +60,11 @@ class {$migrationClassName} extends Migration
 }
 PHP;
 
-        fwrite($migrationFile, $migrationCode);
-        fclose($migrationFile);
+        if (file_put_contents($filePath, $migrationCode) === false) {
+            echo "Migration file yaratishda xato!\n";
+            return;
+        }
 
-        echo "Migration fayli yaratildi: {$migrationClassName}.php\n";
+        echo "Migration fayli yaratildi: {$filePath}\n";
     }
 }
