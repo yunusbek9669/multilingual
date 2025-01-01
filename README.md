@@ -44,7 +44,7 @@ php yii multilingual-migration/generate
 The part to be applied in the form page:
 
 ```php
-<?php echo \app\components\CommonLanguage\widgets\SetLanguageAttributes::widget([
+<?php echo \Yunusbek\Multilingual\widgets\SetLanguageAttributes::widget([
     'form' => $form,
     'model' => $model,
     'attribute' => 'attribute_name',
