@@ -4,7 +4,8 @@
     "type": "library",
     "license": "MIT",
     "require": {
-        "yiisoft/yii2": "^2.0"
+        "yiisoft/yii2": "^2.0",
+        "phpoffice/phpspreadsheet": "^3.5"
     },
     "autoload": {
         "psr-4": {
