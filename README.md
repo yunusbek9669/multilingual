@@ -6,7 +6,7 @@ A multilingual package for PHP projects
 Installation
 ------------
 
-The preferred way to install the Yii framework is through [composer](https://getcomposer.org/download/).
+This library works through the Yii2 framework.
 
 Either run
 
