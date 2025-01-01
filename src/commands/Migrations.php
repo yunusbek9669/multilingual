@@ -7,7 +7,7 @@ use yii\console\Controller;
 
 class Migrations extends Controller
 {
-    public function actionGenerateMultilingual()
+    public function actionGenerate()
     {
         $migrationClassName = 'm' . gmdate('ymd_His') . '_create_multi_language_table';
 
