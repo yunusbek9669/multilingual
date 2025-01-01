@@ -1,6 +1,6 @@
 <?php
 
-namespace Yunusbek\Multilingual\CommonLanguages\widgets;
+namespace Yunusbek\Multilingual\widgets;
 
 use Yii;
 use Exception;
@@ -8,7 +8,7 @@ use yii\base\Model;
 use yii\base\Widget;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
-use Yunusbek\Multilingual\CommonLanguages\models\LanguageService;
+use Yunusbek\Multilingual\models\LanguageService;
 
 class SetLanguageAttributes extends Widget
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Yunusbek\Multilingual\CommonLanguages\models;
+namespace Yunusbek\Multilingual\models;
 
 use Yii;
 use yii\db\ActiveQuery;

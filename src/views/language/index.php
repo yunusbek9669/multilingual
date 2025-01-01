@@ -1,8 +1,8 @@
 <?php
 
-use app\modules\manuals\models\ManualsLanguage;
+use Yunusbek\Multilingual\models\MultiLanguage;
 use yii\data\ActiveDataProvider;
-use kartik\grid\GridView;
+use yii\grid\GridView;
 use yii\helpers\Url;
 
 /* @var $this yii\web\View */
@@ -15,7 +15,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="d-none">
     <?php echo GridView::widget([
         'dataProvider' => new ActiveDataProvider([
-            'query' => $query = ManualsLanguage::find()
+            'query' => $query = MultiLanguage::find()
                 ->where(['status' => 0])
                 ->orderBy(['order_number' => SORT_ASC]),
         ])

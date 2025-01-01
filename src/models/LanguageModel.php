@@ -1,13 +1,10 @@
 <?php
-namespace Yunusbek\Multilingual\CommonLanguages\models;
+namespace Yunusbek\Multilingual\models;
 
-use app\modules\manuals\models\ManualsLanguage;
-use app\components\behaviors\CommonBehavior;
 use yii\behaviors\AttributeBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\BaseActiveRecord;
 use yii\web\UploadedFile;
-use app\models\BaseModel;
 use yii\db\ActiveRecord;
 use yii\db\ActiveQuery;
 use yii\db\Exception;
@@ -17,8 +14,7 @@ use Yii;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
- * Class BaseModel
- * @package app\models
+ * @package Yunusbek\Multilingual\models
  *
  * @property-write array $languageValue
  * @property-read array $uniqueAttributes
@@ -48,12 +44,14 @@ class LanguageModel extends ActiveRecord
                 ],
             ],
             [
-                'class' => CommonBehavior::class,
+                'class' => AttributeBehavior::class,
                 'attributes' => [
                     BaseActiveRecord::EVENT_BEFORE_INSERT => ['created_by', 'updated_by'],
                     BaseActiveRecord::EVENT_BEFORE_UPDATE => ['updated_by'],
                 ],
-
+                'value' => function () {
+                    return Yii::$app->user->id;
+                },
             ],
             [
                 'class' => AttributeBehavior::class,
@@ -61,9 +59,9 @@ class LanguageModel extends ActiveRecord
                     BaseActiveRecord::EVENT_BEFORE_INSERT => 'status',
                 ],
                 'value' => function () {
-                    return $this->status ?? BaseModel::STATUS_ACTIVE;
+                    return $this->status ?? 1;
                 },
-            ],
+            ]
         ];
     }
 
@@ -90,13 +88,13 @@ class LanguageModel extends ActiveRecord
             if (!empty($post))
             {
                 $response = $this->setLanguageValue($post);
-            } elseif (isset($this->status) && $this->status === BaseModel::STATUS_DELETED)
+            } elseif (isset($this->status) && $this->status === 4)
             {
                 $response = $this->deleteLanguageValue();
             }
         } catch (Exception $e)
         {
-            $response['message'] = BaseModel::modelErrorsToString($e);
+            $response['message'] = $e->getMessage();
             $response['status'] = false;
         }
 
@@ -248,7 +246,7 @@ class LanguageModel extends ActiveRecord
     }
 
     /** Exceldan tablitsaga import qilish */
-    public static function importFromExcel(ManualsLanguage $model): array
+    public static function importFromExcel(MultiLanguage $model): array
     {
         $response = [
             'status' => true,
@@ -328,11 +326,11 @@ class LanguageModel extends ActiveRecord
                     }
                 } catch (\Exception $e) {
                     $response['status'] = false;
-                    $response['message'] = BaseModel::modelErrorsToString($e);
+                    $response['message'] = $e->getMessage();
                 }
             } else {
                 $response['status'] = false;
-                $response['message'] = BaseModel::modelErrorsToString($model);
+                $response['message'] = $model->getErrors();
             }
         }
         return $response;

@@ -1,10 +1,9 @@
 <?php
 
-namespace Yunusbek\Multilingual\CommonLanguages\controllers;
+namespace Yunusbek\Multilingual\controllers;
 
-use Yunusbek\Multilingual\CommonLanguages\models\BaseLanguageQuery;
-use Yunusbek\Multilingual\CommonLanguages\models\LanguageModel;
-use app\models\BaseModel;
+use Yunusbek\Multilingual\models\BaseLanguageQuery;
+use Yunusbek\Multilingual\models\LanguageModel;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
@@ -34,7 +33,7 @@ class LanguageController extends Controller
     }
 
     /**
-     * Lists all ManualsLanguage models.
+     * Lists all MultiLanguage models.
      * @return string
      * @throws Exception
      */
@@ -56,7 +55,7 @@ class LanguageController extends Controller
     }
 
     /**
-     * Updates an existing ManualsLanguage model.
+     * Updates an existing MultiLanguage model.
      * If update is successful, the browser will be redirected to the 'view' page.
      * @param string $table_name
      * @param integer $table_iteration
@@ -84,10 +83,10 @@ class LanguageController extends Controller
                     }
                     if (!$model->save()) {
                         $response['status'] = false;
-                        $response['message'] = BaseModel::modelErrorsToString($model);
+                        $response['message'] = $model->getErrors();
                     }
                 } catch (\Exception $e) {
-                    $response['message'] = BaseModel::modelErrorsToString($e);
+                    $response['message'] = $e->getMessage();
                     $response['errors'] = $e->getTrace();
                     $response['status'] = false;
                 }
@@ -153,7 +152,7 @@ class LanguageController extends Controller
     }
 
     /**
-     * Finds the ManualsLanguage model based on its primary key value.
+     * Finds the MultiLanguage model based on its primary key value.
      * If the model is not found, a 404 HTTP exception will be thrown.
      * @param integer $id
      * @return array|ActiveRecord the loaded model

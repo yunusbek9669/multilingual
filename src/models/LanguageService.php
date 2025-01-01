@@ -1,8 +1,7 @@
 <?php
 
-namespace Yunusbek\Multilingual\CommonLanguages\models;
+namespace Yunusbek\Multilingual\models;
 
-use app\models\BaseModel;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
@@ -220,7 +219,7 @@ class LanguageService extends ActiveQuery
         /** Asosiy modellarning kerakli attributelarini olish */
         return $model::find()
             ->select($attributes)
-            ->where(['status' => BaseModel::STATUS_ACTIVE])
+            ->where(['status' => 1])
             ->asArray()
             ->orderBy(['id' => SORT_ASC])
             ->all();

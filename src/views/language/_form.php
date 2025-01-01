@@ -1,12 +1,13 @@
 <?php
 
-use kartik\form\ActiveForm;
+use yii\widgets\ActiveForm;
+use yii\db\ActiveRecord;
 use yii\helpers\Html;
 
 /* @var $this yii\web\View */
-/* @var $model app\modules\reference\models\ReferenceGender */
+/* @var $model ActiveRecord */
 /* @var $attributes array */
-/* @var $form kartik\form\ActiveForm */
+/* @var $form ActiveForm */
 $this->title = Yii::t('app', 'Tarjimalarni tahrirlash')
 ?>
 
@@ -16,7 +17,7 @@ $this->title = Yii::t('app', 'Tarjimalarni tahrirlash')
 
     <div class="row">
         <?php foreach ($attributes as $attribute): ?>
-            <?php echo \Yunusbek\Multilingual\CommonLanguages\widgets\SetLanguageAttributes::widget([
+            <?php echo \Yunusbek\Multilingual\widgets\SetLanguageAttributes::widget([
                 'form' => $form,
                 'model' => $model,
                 'attribute' => $attribute,

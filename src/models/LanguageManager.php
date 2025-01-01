@@ -1,9 +1,7 @@
 <?php
 
-namespace Yunusbek\Multilingual\CommonLanguages\models;
+namespace Yunusbek\Multilingual\models;
 
-use app\models\BaseModel;
-use app\modules\manuals\models\ManualsLanguage;
 use yii\helpers\ArrayHelper;
 
 class LanguageManager
@@ -22,7 +20,7 @@ class LanguageManager
 
     public static function getModelLanguages(): array|\yii\db\ActiveRecord|null
     {
-        $languageModel = ManualsLanguage::find()->where(['status' => BaseModel::STATUS_ACTIVE])->asArray()->all();
+        $languageModel = MultiLanguage::find()->where(['status' => 1])->asArray()->all();
         return ArrayHelper::map($languageModel, 'key', function ($model) {
             return [
                 'name' => $model['name'],

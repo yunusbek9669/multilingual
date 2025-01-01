@@ -1,6 +1,6 @@
 <?php
 
-namespace Yunusbek\Multilingual\CommonLanguages;
+namespace Yunusbek\Multilingual;
 
 /**
  * command module definition class
@@ -10,7 +10,7 @@ class Module extends \yii\base\Module
     /**
      * {@inheritdoc}
      */
-    public $controllerNamespace = 'Yunusbek\Multilingual\CommonLanguages\controllers';
+    public $controllerNamespace = 'Yunusbek\Multilingual\controllers';
 
     /**
      * {@inheritdoc}
