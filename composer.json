@@ -17,4 +17,6 @@
             "email": "inomovyunusbek@gmail.com"
         }
     ],
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
