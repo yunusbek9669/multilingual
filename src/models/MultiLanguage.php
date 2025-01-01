@@ -10,7 +10,7 @@ use yii\db\BaseActiveRecord;
 use yii\db\Exception;
 
 /**
- * This is the model class for table "manuals_language".
+ * This is the model class for table "multi_language".
  *
  * @property int $id
  * @property string|null $name
@@ -65,7 +65,7 @@ class MultiLanguage extends Model
      */
     public static function tableName()
     {
-        return 'manuals_language';
+        return 'multi_language';
     }
 
     /**
