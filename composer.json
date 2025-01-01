@@ -1,0 +1,21 @@
+{
+    "name": "yunusbek/multilingual",
+    "description": "A multilingual package for PHP projects",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "yiisoft/yii2": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Yunusbek\\Multilingual\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "yunusbek",
+            "email": "inomovyunusbek@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
