@@ -36,6 +36,7 @@ class {$migrationClassName} extends Migration
             'short_name' => \$this->string(5),
             'key' => \$this->string(5),
             'image' => \$this->string(50),
+            'import_excel' => \$this->string(50),
             'table' => \$this->string(50),
             'order_number' => \$this->integer(),
             'status' => \$this->integer(2),

@@ -67,8 +67,6 @@ class BaseLanguageList extends ActiveRecord
         return '{{%language_list}}';
     }
 
-    public $import_excel;
-
     /**
      * {@inheritdoc}
      */

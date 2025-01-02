@@ -60,10 +60,10 @@ class LanguageList extends BaseLanguageList
 }
 ````
 
-The models to be translated are inherited from the ```MultilingualModel``` model.
+The models to be translated are inherited from the ```Multilingual``` model.
 
 ```php
-class ReferenceModel extends MultilingualModel
+class ReferenceModel extends Multilingual
 {
     #...model settings.
 }
@@ -72,9 +72,13 @@ class ReferenceModel extends MultilingualModel
 The part to be applied in the form page:
 
 ```php
-<?php echo \Yunusbek\Multilingual\widgets\SetLanguageAttributes::widget([
-    'form' => $form,
-    'model' => $model,
-    'attribute' => 'attribute_name',
-]) ?>
+<?php $form = ActiveForm::begin(); ?>
+    #...
+    <?php echo \Yunusbek\Multilingual\widgets\SetLanguageAttributes::widget([
+        'form' => $form,
+        'model' => $model,
+        'attribute' => 'attribute_name',
+    ]) ?>
+    #...
+<?php ActiveForm::end(); ?>
 ```
