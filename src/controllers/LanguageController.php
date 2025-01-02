@@ -4,7 +4,7 @@ namespace Yunusbek\Multilingual\controllers;
 
 use yii\base\InvalidParamException;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
-use Yunusbek\Multilingual\models\Multilingual;
+use Yunusbek\Multilingual\models\Multilanguage;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
@@ -126,9 +126,9 @@ class LanguageController extends Controller
     public function actionExportToExcel(string $table_name = null, bool $is_all = false)
     {
         if ($is_all) {
-            $response = Multilingual::exportBasicToExcel();
+            $response = Multilanguage::exportBasicToExcel();
         } else {
-            $response = Multilingual::exportToExcel($table_name);
+            $response = Multilanguage::exportToExcel($table_name);
         }
         if (Yii::$app->request->isAjax) {
             return $response;
@@ -163,8 +163,8 @@ class LanguageController extends Controller
      */
     protected function findModel(string $table_name, int $id): array|ActiveRecord
     {
-        Multilingual::$tableName = $table_name;
-        $model = Multilingual::find()
+        Multilanguage::$tableName = $table_name;
+        $model = Multilanguage::find()
             ->from($table_name)
             ->where(['id' => $id])
             ->one();
