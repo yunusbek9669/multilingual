@@ -2,12 +2,12 @@
 
 namespace Yunusbek\Multilingual\models;
 
-use Yii;
-use yii\base\Model;
-use yii\behaviors\AttributeBehavior;
 use yii\behaviors\TimestampBehavior;
+use yii\behaviors\AttributeBehavior;
 use yii\db\BaseActiveRecord;
+use yii\db\ActiveRecord;
 use yii\db\Exception;
+use Yii;
 
 /**
  * This is the model class for table "multi_language".
@@ -26,7 +26,7 @@ use yii\db\Exception;
  * @property int|null $updated_at
  * @property int|null $updated_by
  */
-class MultiLanguage extends Model
+class MultiLanguage extends ActiveRecord
 {
     public function behaviors(): array
     {
