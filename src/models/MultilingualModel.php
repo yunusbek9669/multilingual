@@ -18,7 +18,7 @@ use Yii;
  *
  * @property-write array $languageValue
  */
-class LanguageModel extends ActiveRecord
+class MultilingualModel extends ActiveRecord
 {
 
     public static $tableName;
@@ -75,7 +75,7 @@ class LanguageModel extends ActiveRecord
     /**
      * @throws Exception
      */
-    public function afterSave($insert, $changedAttributes): void
+    public function afterSave($insert): void
     {
         $transaction = Yii::$app->db->beginTransaction();
         $response = [];
@@ -87,7 +87,7 @@ class LanguageModel extends ActiveRecord
             if (!empty($post))
             {
                 $response = $this->setLanguageValue($post);
-            } elseif (isset($this->status) && $this->status === 4)
+            } elseif (isset($this->status) && $this->status !== 1)
             {
                 $response = $this->deleteLanguageValue();
             }
@@ -103,7 +103,7 @@ class LanguageModel extends ActiveRecord
             $transaction->rollBack();
             Yii::$app->session->setFlash('error', $response['message']);
         }
-        parent::afterSave($insert, $changedAttributes);
+        parent::afterSave($insert);
     }
 
     /** Tarjimalarni qo‘shib qo‘yish
@@ -201,7 +201,7 @@ class LanguageModel extends ActiveRecord
      */
     public static function exportBasicToExcel(): bool|string
     {
-        $modelsExtended = LanguageService::getChildModels(LanguageModel::class);
+        $modelsExtended = LanguageService::getChildModels(MultilingualModel::class);
         $data = [];
         foreach ($modelsExtended as $model)
         {
@@ -245,7 +245,7 @@ class LanguageModel extends ActiveRecord
     }
 
     /** Exceldan tablitsaga import qilish */
-    public static function importFromExcel(MultiLanguage $model): array
+    public static function importFromExcel(BaseLanguageList $model): array
     {
         $response = [
             'status' => true,

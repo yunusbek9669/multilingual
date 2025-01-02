@@ -1,6 +1,6 @@
 <?php
 
-use Yunusbek\Multilingual\models\MultiLanguage;
+use Yunusbek\Multilingual\models\BaseLanguageList;
 use yii\data\ActiveDataProvider;
 use yii\grid\GridView;
 use yii\helpers\Url;
@@ -15,7 +15,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="d-none">
     <?php echo GridView::widget([
         'dataProvider' => new ActiveDataProvider([
-            'query' => $query = MultiLanguage::find()
+            'query' => $query = BaseLanguageList::find()
                 ->where(['status' => 0])
                 ->orderBy(['order_number' => SORT_ASC]),
         ])

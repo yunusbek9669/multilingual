@@ -2,15 +2,17 @@
 
 namespace Yunusbek\Multilingual\models;
 
+use yii\base\InvalidParamException;
 use yii\behaviors\TimestampBehavior;
 use yii\behaviors\AttributeBehavior;
 use yii\db\BaseActiveRecord;
+use yii\web\UploadedFile;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use Yii;
 
 /**
- * This is the model class for table "multi_language".
+ * This is the model class for table "language_list".
  *
  * @property int $id
  * @property string|null $name
@@ -26,7 +28,7 @@ use Yii;
  * @property int|null $updated_at
  * @property int|null $updated_by
  */
-class MultiLanguage extends ActiveRecord
+class BaseLanguageList extends ActiveRecord
 {
     public function behaviors(): array
     {
@@ -59,14 +61,8 @@ class MultiLanguage extends ActiveRecord
             ]
         ];
     }
+
     public $import_excel;
-    /**
-     * {@inheritdoc}
-     */
-    public static function tableName()
-    {
-        return 'multi_language';
-    }
 
     /**
      * {@inheritdoc}
@@ -74,12 +70,10 @@ class MultiLanguage extends ActiveRecord
     public function rules()
     {
         return [
-            [['order_number', 'status', 'created_at', 'created_by', 'updated_at', 'updated_by'], 'default', 'value' => null],
-            [['order_number', 'status', 'created_at', 'created_by', 'updated_at', 'updated_by'], 'integer'],
-            [['name'], 'string', 'max' => 30],
-            [['short_name', 'key'], 'string', 'max' => 5],
+            [['name'], 'string'],
+            [['short_name', 'key'], 'string'],
             [['import_excel'], 'file', 'skipOnEmpty' => true, 'extensions' => 'xlsx'],
-            [['image', 'table'], 'string', 'max' => 50],
+            [['image', 'table'], 'string'],
             [['table', 'key'], 'unique', 'filter' => function ($query) {
                 $query->andWhere(['and',
                     ['status' => 1],
@@ -90,59 +84,63 @@ class MultiLanguage extends ActiveRecord
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function attributeLabels()
-    {
-        return [
-            'id' => Yii::t('app', 'ID'),
-            'name' => Yii::t('app', 'Name'),
-            'short_name' => Yii::t('app', 'Short Name'),
-            'key' => Yii::t('app', 'Key'),
-            'image' => Yii::t('app', 'Image'),
-            'table' => Yii::t('app', 'Table'),
-            'order_number' => Yii::t('app', 'Order Number'),
-            'status' => Yii::t('app', 'Status'),
-            'created_at' => Yii::t('app', 'Created At'),
-            'created_by' => Yii::t('app', 'Created By'),
-            'updated_at' => Yii::t('app', 'Updated At'),
-            'updated_by' => Yii::t('app', 'Updated By'),
-        ];
-    }
-
-    /**
-     * @throws Exception
+     * @throws InvalidParamException
      */
     public function beforeSave($insert)
     {
+        $response = [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success'
+        ];
+        $this->table = 'lang_'.$this->key;
         if ($this->isNewRecord)
         {
             $order_number = self::find()
                 ->select(['order_number'])
-                ->where([
-                    'status' => 1
-                ])
-                ->asArray()
+                ->where(['status' => 1])
                 ->orderBy(['order_number' => SORT_DESC])
+                ->asArray()
                 ->limit(1)
                 ->one();
             $this->order_number = !empty($order_number) ? $order_number['order_number'] + 1 : 1;
+            if (!$this::isTableExists($this->table)) {
+                $response = BaseLanguageQuery::createLangTable($this->table);
+            }
+        } else {
+            $oldTableName = 'lang_' . $this->getOldAttribute('key');
+            if ($this->getOldAttribute('key') !== $this->key) {
+                $response = BaseLanguageQuery::updateLangTable($oldTableName, $this->table);
+            }
         }
-        $this->table = 'lang_'.$this->key;
+
+        $file = UploadedFile::getInstance($this, 'image');
+        if (!empty($file))
+        {
+            $dirPath = 'uploads/' . $this::tableName();
+            $fileNamePath = '/' . $dirPath . '/' . $this->table . "." . $file->extension;
+            $absolutePath = Yii::getAlias("@webroot{$fileNamePath}");
+
+            if (!is_dir($dirPath)) { mkdir($dirPath); }
+
+            if ($file->saveAs($absolutePath)) {
+                $this->image = $fileNamePath;
+            } else {
+                $response['status'] = false;
+                $response['message'] = 'Rasmni saqlashda xatolik';
+            }
+        }
+        if ($response['status']) {
+            $response = MultilingualModel::importFromExcel($this);
+        }
+        if (!$response['status']) {
+            Yii::$app->session->setFlash($response['code'], $response['message']);
+            return false;
+        }
         return parent::beforeSave($insert);
     }
 
-    public static function getTableList()
-    {
-        $tables = Yii::$app->db->schema->tableNames;
-        $list = [];
-        foreach ($tables as $table) {
-            $list[$table] = ucfirst(str_replace('_', ' ', $table));
-        }
-        return $list;
-    }
-
-    public static function isTableExists($tableName)
+    public static function isTableExists($tableName): bool
     {
         $schema = Yii::$app->db->schema;
         return in_array($tableName, $schema->getTableNames());

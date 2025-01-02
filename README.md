@@ -25,7 +25,7 @@ to the require section of your composer.json.
 Usage
 ------------
 
-Once the extension is installed, modify the application config/console.php as follows:
+Once the library is installed, add the following to your project settings:
 
 ```php
 'controllerMap' => [
@@ -35,16 +35,35 @@ Once the extension is installed, modify the application config/console.php as fo
 ],
 ```
 
-After you downloaded and configured multilingual, the next thing you need to do is updating your database schema by applying the migration:
+The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
 
 ```
 php yii multilingual-migration/generate
 ```
 
-The models to be translated are inherited from the LanguageModel model.
+Inheritance from the ```BaseLanguageList``` class and additional settings for the class created for the ```language_list``` table:
+
+````php
+class LanguageList extends BaseLanguageList
+{
+    public static function tableName()
+    {
+        return 'language_list';
+    }
+
+    public function rules()
+    {
+        return array_merge(parent::rules(), [
+            #...self rules of model
+        ]);
+    }
+}
+````
+
+The models to be translated are inherited from the ```MultilingualModel``` model.
 
 ```php
-class ReferenceModel extends LanguageModel
+class ReferenceModel extends MultilingualModel
 {
     #...model settings.
 }

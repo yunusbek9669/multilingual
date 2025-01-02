@@ -2,8 +2,9 @@
 
 namespace Yunusbek\Multilingual\controllers;
 
+use yii\base\InvalidParamException;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
-use Yunusbek\Multilingual\models\LanguageModel;
+use Yunusbek\Multilingual\models\MultilingualModel;
 use Yii;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
@@ -13,7 +14,7 @@ use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * LanguageController implements the CRUD actions for LanguageModel model.
+ * LanguageController implements the CRUD actions for MultilingualModel model.
  */
 class LanguageController extends Controller
 {
@@ -33,7 +34,7 @@ class LanguageController extends Controller
     }
 
     /**
-     * Lists all MultiLanguage models.
+     * Lists all BaseLanguageList models.
      * @return string
      * @throws Exception
      */
@@ -55,13 +56,13 @@ class LanguageController extends Controller
     }
 
     /**
-     * Updates an existing MultiLanguage model.
+     * Updates an existing BaseLanguageList model.
      * If update is successful, the browser will be redirected to the 'view' page.
      * @param string $table_name
      * @param integer $table_iteration
      * @return Response|array|string
      * @throws Exception
-     * @throws NotFoundHttpException
+     * @throws NotFoundHttpException|InvalidParamException
      */
     public function actionTranslate(string $table_name, int $table_iteration, array $attributes): Response|array|string
     {
@@ -74,11 +75,11 @@ class LanguageController extends Controller
             $response['status'] = true;
             $response['code'] = 'error';
             $response['message'] = Yii::t('app', 'Error');
-            $languageModel = $request->post((new \ReflectionClass($model))->getShortName());
+            $MultilingualModel = $request->post((new \ReflectionClass($model))->getShortName());
             if ($model->load($request->post())) {
                 $transaction = Yii::$app->db->beginTransaction();
                 try {
-                    foreach ($languageModel as $attribute => $value) {
+                    foreach ($MultilingualModel as $attribute => $value) {
                         $model->$attribute = $value;
                     }
                     if (!$model->save()) {
@@ -125,9 +126,9 @@ class LanguageController extends Controller
     public function actionExportToExcel(string $table_name = null, bool $is_all = false)
     {
         if ($is_all) {
-            $response = LanguageModel::exportBasicToExcel();
+            $response = MultilingualModel::exportBasicToExcel();
         } else {
-            $response = LanguageModel::exportToExcel($table_name);
+            $response = MultilingualModel::exportToExcel($table_name);
         }
         if (Yii::$app->request->isAjax) {
             return $response;
@@ -152,16 +153,18 @@ class LanguageController extends Controller
     }
 
     /**
-     * Finds the MultiLanguage model based on its primary key value.
+     * Finds the BaseLanguageList model based on its primary key value.
      * If the model is not found, a 404 HTTP exception will be thrown.
+     * @param string $table_name
      * @param integer $id
      * @return array|ActiveRecord the loaded model
-     * @throws NotFoundHttpException|Exception if the model cannot be found
+     * @throws Exception if the model cannot be found
+     * @throws NotFoundHttpException if the model cannot be found
      */
     protected function findModel(string $table_name, int $id): array|ActiveRecord
     {
-        LanguageModel::$tableName = $table_name;
-        $model = LanguageModel::find()
+        MultilingualModel::$tableName = $table_name;
+        $model = MultilingualModel::find()
             ->from($table_name)
             ->where(['id' => $id])
             ->one();

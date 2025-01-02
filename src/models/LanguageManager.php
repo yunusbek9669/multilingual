@@ -20,8 +20,8 @@ class LanguageManager
 
     public static function getModelLanguages(): array|\yii\db\ActiveRecord|null
     {
-        $languageModel = MultiLanguage::find()->where(['status' => 1])->asArray()->all();
-        return ArrayHelper::map($languageModel, 'key', function ($model) {
+        $MultilingualModel = BaseLanguageList::find()->where(['status' => 1])->asArray()->all();
+        return ArrayHelper::map($MultilingualModel, 'key', function ($model) {
             return [
                 'name' => $model['name'],
                 'short_name' => $model['short_name'],

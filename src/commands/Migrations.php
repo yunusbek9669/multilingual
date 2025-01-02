@@ -9,7 +9,7 @@ class Migrations extends Controller
 {
     public function actionGenerate()
     {
-        $migrationClassName = 'm' . gmdate('ymd_His') . '_create_multi_language_table';
+        $migrationClassName = 'm' . gmdate('ymd_His') . '_create_language_list_table';
 
         $dir = Yii::getAlias('@app/migrations');
         if (!is_dir($dir)) {
@@ -24,13 +24,13 @@ class Migrations extends Controller
 use yii\db\Migration;
 
 /**
- * Handles the creation of table `{{%multi_language}}`.
+ * Handles the creation of table `{{%language_list}}`.
  */
 class {$migrationClassName} extends Migration
 {
     public function safeUp()
     {
-        \$this->createTable('{{%multi_language}}', [
+        \$this->createTable('{{%language_list}}', [
             'id' => \$this->primaryKey(),
             'name' => \$this->string(30),
             'short_name' => \$this->string(5),
@@ -45,17 +45,17 @@ class {$migrationClassName} extends Migration
             'updated_by' => \$this->integer(),
         ]);
 
-        \$this->createIndex('{{%idx-multi_language-status}}', '{{%multi_language}}', 'status');
-        \$this->createIndex('{{%idx-multi_language-created_by}}', '{{%multi_language}}', 'created_by');
-        \$this->createIndex('{{%idx-multi_language-updated_by}}', '{{%multi_language}}', 'updated_by');
+        \$this->createIndex('{{%idx-language_list-status}}', '{{%language_list}}', 'status');
+        \$this->createIndex('{{%idx-language_list-created_by}}', '{{%language_list}}', 'created_by');
+        \$this->createIndex('{{%idx-language_list-updated_by}}', '{{%language_list}}', 'updated_by');
     }
 
     public function safeDown()
     {
-        \$this->dropIndex('{{%idx-multi_language-status}}', '{{%multi_language}}');
-        \$this->dropIndex('{{%idx-multi_language-created_by}}', '{{%multi_language}}');
-        \$this->dropIndex('{{%idx-multi_language-updated_by}}', '{{%multi_language}}');
-        \$this->dropTable('{{%multi_language}}');
+        \$this->dropIndex('{{%idx-language_list-status}}', '{{%language_list}}');
+        \$this->dropIndex('{{%idx-language_list-created_by}}', '{{%language_list}}');
+        \$this->dropIndex('{{%idx-language_list-updated_by}}', '{{%language_list}}');
+        \$this->dropTable('{{%language_list}}');
     }
 }
 PHP;
