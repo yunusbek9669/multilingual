@@ -18,7 +18,7 @@ use Yii;
  *
  * @property-write array $languageValue
  */
-class MultilingualModel extends ActiveRecord
+class Multilingual extends ActiveRecord
 {
 
     public static $tableName;
@@ -69,13 +69,13 @@ class MultilingualModel extends ActiveRecord
      */
     public static function find(): ActiveQuery|BaseLanguageQuery
     {
-        return (new BaseLanguageQuery(static::class))->joinWithLang();
+        return (new BaseLanguageQuery((array)static::class))->joinWithLang();
     }
 
     /**
      * @throws Exception
      */
-    public function afterSave($insert): void
+    public function afterSave($insert, $changedAttributes)
     {
         $transaction = Yii::$app->db->beginTransaction();
         $response = [];
@@ -103,7 +103,7 @@ class MultilingualModel extends ActiveRecord
             $transaction->rollBack();
             Yii::$app->session->setFlash('error', $response['message']);
         }
-        parent::afterSave($insert);
+        parent::afterSave($insert, $changedAttributes);
     }
 
     /** Tarjimalarni qo‘shib qo‘yish
@@ -201,7 +201,7 @@ class MultilingualModel extends ActiveRecord
      */
     public static function exportBasicToExcel(): bool|string
     {
-        $modelsExtended = LanguageService::getChildModels(MultilingualModel::class);
+        $modelsExtended = LanguageService::getChildModels(Multilingual::class);
         $data = [];
         foreach ($modelsExtended as $model)
         {

@@ -76,7 +76,7 @@ class BaseLanguageQuery extends ActiveQuery
      */
     public static function searchAllLanguage($params): array
     {
-        return LanguageService::getModelsData(MultilingualModel::class, $params);
+        return LanguageService::getModelsData(Multilingual::class, $params);
     }
 
     /**
