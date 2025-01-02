@@ -3,11 +3,11 @@
 namespace Yunusbek\Multilingual\models;
 
 use yii\base\InvalidParamException;
-use yii\base\Model;
 use yii\behaviors\TimestampBehavior;
 use yii\behaviors\AttributeBehavior;
 use yii\db\BaseActiveRecord;
 use yii\web\UploadedFile;
+use yii\db\ActiveRecord;
 use yii\db\Exception;
 use Yii;
 
@@ -28,7 +28,7 @@ use Yii;
  * @property int|null $updated_at
  * @property int|null $updated_by
  */
-class BaseLanguageList extends Model
+class BaseLanguageList extends ActiveRecord
 {
     public function behaviors(): array
     {
@@ -60,6 +60,11 @@ class BaseLanguageList extends Model
                 },
             ]
         ];
+    }
+
+    public static function tableName()
+    {
+        return '{{%language_list}}';
     }
 
     public $import_excel;
