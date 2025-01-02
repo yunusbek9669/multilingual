@@ -136,7 +136,7 @@ class BaseLanguageList extends ActiveRecord
             }
         }
         if ($response['status']) {
-            $response = Multilanguage::importFromExcel($this);
+            $response = MultiLanguage::importFromExcel($this);
         }
         if (!$response['status']) {
             Yii::$app->session->setFlash($response['code'], $response['message']);

@@ -18,7 +18,7 @@ use Yii;
  *
  * @property-write array $languageValue
  */
-class Multilanguage extends ActiveRecord
+class MultiLanguage extends ActiveRecord
 {
 
     public static $tableName;
@@ -201,7 +201,7 @@ class Multilanguage extends ActiveRecord
      */
     public static function exportBasicToExcel(): bool|string
     {
-        $modelsExtended = LanguageService::getChildModels(Multilanguage::class);
+        $modelsExtended = LanguageService::getChildModels(MultiLanguage::class);
         $data = [];
         foreach ($modelsExtended as $model)
         {
