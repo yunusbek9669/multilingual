@@ -14,7 +14,7 @@ use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * LanguageController implements the CRUD actions for MultilingualModel model.
+ * LanguageController implements the CRUD actions for Multilingual model.
  */
 class LanguageController extends Controller
 {
@@ -75,11 +75,11 @@ class LanguageController extends Controller
             $response['status'] = true;
             $response['code'] = 'error';
             $response['message'] = Yii::t('app', 'Error');
-            $MultilingualModel = $request->post((new \ReflectionClass($model))->getShortName());
+            $Multilingual = $request->post((new \ReflectionClass($model))->getShortName());
             if ($model->load($request->post())) {
                 $transaction = Yii::$app->db->beginTransaction();
                 try {
-                    foreach ($MultilingualModel as $attribute => $value) {
+                    foreach ($Multilingual as $attribute => $value) {
                         $model->$attribute = $value;
                     }
                     if (!$model->save()) {
