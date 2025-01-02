@@ -29,9 +29,9 @@ Once the extension is installed, modify the application config/console.php as fo
 
 ```php
 'controllerMap' => [
-    ...
+    #...
     'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations',
-    ...
+    #...
 ],
 ```
 
@@ -39,6 +39,15 @@ After you downloaded and configured multilingual, the next thing you need to do 
 
 ```
 php yii multilingual-migration/generate
+```
+
+The models to be translated are inherited from the LanguageModel model.
+
+```php
+class ReferenceModel extends LanguageModel
+{
+    #...model settings.
+}
 ```
 
 The part to be applied in the form page:

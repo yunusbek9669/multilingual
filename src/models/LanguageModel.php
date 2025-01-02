@@ -1,6 +1,7 @@
 <?php
 namespace Yunusbek\Multilingual\models;
 
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use yii\behaviors\AttributeBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\BaseActiveRecord;
@@ -11,13 +12,11 @@ use yii\db\Exception;
 use yii\db\Query;
 use Yii;
 
-use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
  * @package Yunusbek\Multilingual\models
  *
  * @property-write array $languageValue
- * @property-read array $uniqueAttributes
  */
 class LanguageModel extends ActiveRecord
 {
