@@ -58,7 +58,7 @@ class Multilingual extends ActiveRecord
                     BaseActiveRecord::EVENT_BEFORE_INSERT => 'status',
                 ],
                 'value' => function () {
-                    return $this->status ?? 1;
+                    return $this->hasAttribute('status') ? ($this->status ?? 1) : null;
                 },
             ]
         ];
