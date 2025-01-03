@@ -54,10 +54,10 @@ class {$migrationClassName} extends Migration
             'id' => 1,
             'name' => null, # Type the full name of the current language.
             'short_name' => null, # Type a short name for the current language.
-            'key' => \Yii::$app->language ?? null, # Enter the short code representing the current language. Based on the international standard ISO 639-1 language codes. For example: uz, en, ru.
+            'key' => null, # Enter the short code representing the current language. Based on the international standard ISO 639-1 language codes. For example: uz, en, ru.
             'image' => null, # Enter the path to the flag image for the current language.
-            'import_excel' => '', # Should be empty for now
-            'table' => 'lang_'.\Yii::$app->language, # Enter the name of the table that stores translations for the current language, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern)
+            'import_excel' => null, # Should be empty for now
+            'table' => null, # Enter the name of the table that stores translations for the current language, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern)
             'order_number' => 1,
             'status' => 1,
             'created_by' => 1,
