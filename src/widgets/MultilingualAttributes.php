@@ -109,7 +109,9 @@ class MultilingualAttributes extends Widget
             ]);
             $output .= '</div></div>';
         }
-
+        $this->view->registerJs("
+            yii.validation.addAttribute($('#" . Html::getInputId($model, $attribute) . "'), " . json_encode($model->getActiveValidators($attribute)) . ");
+        ");;
         return $output;
     }
 }
