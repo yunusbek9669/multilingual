@@ -75,10 +75,9 @@ The part to be applied in the form page:
 <?php $form = ActiveForm::begin(); ?>
     #...
     <?php echo \Yunusbek\Multilingual\widgets\MultilingualAttributes::widget([
+        'form' => $form,
         'model' => $model,
-        'attribute' => 'attribute_name',
-        # or
-        'attribute' => ['attribute_name', 'second_attribute_name'],
+        'attribute' => 'attribute_name' # or add multiple like ['attribute_name', 'second_attribute_name'],
     ]) ?>
     #...
 <?php ActiveForm::end(); ?>
