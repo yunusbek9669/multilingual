@@ -10,7 +10,7 @@ This library works through the Yii2 framework.
 
 Either run
 
-```
+```sh
 composer require yunusbek/multilingual:dev-main
 ```
 
@@ -50,7 +50,7 @@ Once the library is installed, add the following to your project settings:
 
 The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
 
-```
+```sh
 php yii multilingual-migration/generate
 ```
 
@@ -132,5 +132,6 @@ This is a translated Excel file for the language that needs to be added.
 
 ![This is a translated Excel file for the language that needs to be added.](dist/img/excel1.jpg)
 
-When a new language is added, the above translated excel file is downloaded to the ```import_excel``` attribute in the ```language_list``` table.
-Result: all translations for the newly added language are saved, automatically saved from the Excel file to the new ```lang_*``` table.
+> When adding a new language, you can save the path of the translated excel file above to the ```import_excel``` attribute in the ```language_list``` table.
+> 
+> Result: all translations for the newly added language will be saved, automatically saved from the Excel file to the new ```lang_*``` table.
