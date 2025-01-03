@@ -17,7 +17,7 @@ $this->title = Yii::t('app', 'Tarjimalarni tahrirlash')
 
     <div class="row">
         <?php foreach ($attributes as $attribute): ?>
-            <?php echo \Yunusbek\Multilingual\widgets\SetLanguageAttributes::widget([
+            <?php echo \Yunusbek\Multilingual\widgets\MultilingualAttributes::widget([
                 'form' => $form,
                 'model' => $model,
                 'attribute' => $attribute,

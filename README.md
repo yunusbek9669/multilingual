@@ -74,10 +74,11 @@ The part to be applied in the form page:
 ```php
 <?php $form = ActiveForm::begin(); ?>
     #...
-    <?php echo \Yunusbek\Multilingual\widgets\SetLanguageAttributes::widget([
-        'form' => $form,
+    <?php echo \Yunusbek\Multilingual\widgets\MultilingualAttributes::widget([
         'model' => $model,
         'attribute' => 'attribute_name',
+        # or
+        'attribute' => ['attribute_name', 'second_attribute_name'],
     ]) ?>
     #...
 <?php ActiveForm::end(); ?>
