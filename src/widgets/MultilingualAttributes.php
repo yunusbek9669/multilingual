@@ -7,14 +7,13 @@ use Exception;
 use yii\base\Widget;
 use yii\helpers\Html;
 use yii\db\ActiveRecord;
-use yii\web\YiiAsset;
+use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\models\LanguageService;
 
 class MultilingualAttributes extends Widget
 {
-    /**
-     * @var ActiveRecord the model associated with this widget
-     */
+    public ActiveForm $form;
+
     public ActiveRecord $model;
 
     public string|array $attribute;
@@ -25,8 +24,10 @@ class MultilingualAttributes extends Widget
      * @inheritdoc
      * @throws Exception
      */
-    public function run()
+    public function run(): string
     {
+        $form = $this->form;
+
         $model = $this->model;
 
         $attribute = $this->attribute;
@@ -38,6 +39,7 @@ class MultilingualAttributes extends Widget
         $params = [
             'tableSchema' => $tableSchema,
             'model' => $model,
+            'form' => $form,
             'col' => $col
         ];
 
@@ -61,6 +63,7 @@ class MultilingualAttributes extends Widget
     public function setAttribute(array $params): string
     {
         /** @var ActiveRecord $model */
+        $form = $params['form'];
         $model = $params['model'];
         $attribute = $params['attribute'];
         $columnType = $params['tableSchema']->columns[$attribute]->type;
@@ -82,20 +85,11 @@ class MultilingualAttributes extends Widget
         }
         $label = $model->getAttributeLabel($attribute);
         $defaultLabel = $label.' ('.$defaultLanguage['name'].')';
-        $validation = json_encode($model->getActiveValidators($attribute));
-        $inputId = Html::getInputId($model, $attribute);
-        $field = 'field-'.$inputId;
-        $options = ['class' => 'form-control', 'placeholder' => $defaultLabel." 🖊", 'data-validation' => $validation];
+        $options = ['placeholder' => $defaultLabel." 🖊"];
         if (!empty($defaultValue)) {
             $options = array_merge($options, ['value' => $defaultValue]);
         }
-        $output = '<div class="col-'.$params['col'].'">'.
-                '<div class="form-group highlight-addon '.$field.' required">'.
-                    '<label class="form-label has-star" for="'.$inputId.'">'.$label.'</label>'.
-                    Html::activeTextInput($model, $attribute, $options).
-                    '<div class="help-block"></div>'.
-                '</div>'.
-            '</div>';
+        $output = '<div class="col-'.$params['col'].'">'.$form->field($model, $attribute)->textInput($options)->label($defaultLabel).'</div>';
         foreach (LanguageService::setCustomAttributes($model, $attribute) as $key => $value)
         {
             preg_match('/lang_(\w+)/', $key, $matches);
@@ -112,21 +106,6 @@ class MultilingualAttributes extends Widget
             ]);
             $output .= '</div></div>';
         }
-        $js = <<<JS
-                "use strict";
-                $('form').yiiActiveForm('add', {
-                    id: $inputId,
-                    name: $attribute,
-                    container: '.$field',
-                    input: '#$inputId',
-                    error: '.$field .help-block',
-                    validate: function (attribute, value, messages, deferred, form) {
-                        yii.validation.required(value, messages, {message: 'Bu maydonni to‘ldirish shart!'});
-                    }
-                });
-                $('form').yiiActiveForm('destroy').yiiActiveForm();
-            JS;
-        $this->getView()->registerJs($js);
         return $output;
     }
 }
