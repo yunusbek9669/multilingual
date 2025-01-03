@@ -67,7 +67,6 @@ class MultilingualAttributes extends Widget
             throw new Exception('The value of attribute - "'.$attribute.'" must be of type string.');
         }
 
-
         $defaultValue = (new yii\db\Query())
             ->from($model::tableName())
             ->select($attribute)
@@ -83,11 +82,15 @@ class MultilingualAttributes extends Widget
         $label = $model->getAttributeLabel($attribute);
         $modelName = basename(get_class($model));
         $defaultLabel = $label.' ('.$defaultLanguage['name'].')';
+        $options = ['class' => 'form-control', 'placeholder' => $defaultLabel." 🖊", 'data-validation' => json_encode($model->getActiveValidators($attribute))];
+        if (!empty($defaultValue)) {
+            $options = array_merge($options, ['value' => $defaultValue]);
+        }
         $output = '<div class="col-'.$params['col'].'">'.
                 '<div class="form-group highlight-addon field-'.strtolower($modelName).'-'.$attribute.' required">'.
-                    '<label class="has-star" for="'.strtolower($modelName).'-'.$attribute.'">'.$label.'</label>'.
-                    Html::activeTextInput($model, $attribute, ['class' => 'form-control', 'placeholder' => $defaultLabel." 🖊", 'value' => $defaultValue ?? '']).
-                    '<div class="help-block invalid-feedback"></div>'.
+                    '<label class="form-label has-star" for="'.Html::getInputId($model, $attribute).'">'.$label.'</label>'.
+                    Html::activeTextInput($model, $attribute, $options).
+                    '<div class="help-block"></div>'.
                 '</div>'.
             '</div>';
         foreach (LanguageService::setCustomAttributes($model, $attribute) as $key => $value)
