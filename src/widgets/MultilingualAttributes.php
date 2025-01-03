@@ -7,6 +7,7 @@ use Exception;
 use yii\base\Widget;
 use yii\helpers\Html;
 use yii\db\ActiveRecord;
+use yii\web\YiiAsset;
 use Yunusbek\Multilingual\models\LanguageService;
 
 class MultilingualAttributes extends Widget
@@ -80,15 +81,17 @@ class MultilingualAttributes extends Widget
             if ($lang['table'] === null) { $defaultLanguage = $lang; break; }
         }
         $label = $model->getAttributeLabel($attribute);
-        $modelName = basename(get_class($model));
         $defaultLabel = $label.' ('.$defaultLanguage['name'].')';
-        $options = ['class' => 'form-control', 'placeholder' => $defaultLabel." 🖊", 'data-validation' => json_encode($model->getActiveValidators($attribute))];
+        $validation = json_encode($model->getActiveValidators($attribute));
+        $inputId = Html::getInputId($model, $attribute);
+        $field = 'field-'.$inputId;
+        $options = ['class' => 'form-control', 'placeholder' => $defaultLabel." 🖊", 'data-validation' => $validation];
         if (!empty($defaultValue)) {
             $options = array_merge($options, ['value' => $defaultValue]);
         }
         $output = '<div class="col-'.$params['col'].'">'.
-                '<div class="form-group highlight-addon field-'.strtolower($modelName).'-'.$attribute.' required">'.
-                    '<label class="form-label has-star" for="'.Html::getInputId($model, $attribute).'">'.$label.'</label>'.
+                '<div class="form-group highlight-addon '.$field.' required">'.
+                    '<label class="form-label has-star" for="'.$inputId.'">'.$label.'</label>'.
                     Html::activeTextInput($model, $attribute, $options).
                     '<div class="help-block"></div>'.
                 '</div>'.
@@ -109,9 +112,21 @@ class MultilingualAttributes extends Widget
             ]);
             $output .= '</div></div>';
         }
-        $this->view->registerJs("
-            yii.validation.addAttribute($('#" . Html::getInputId($model, $attribute) . "'), " . json_encode($model->getActiveValidators($attribute)) . ");
-        ");;
+        $js = <<<JS
+                "use strict";
+                $('form').yiiActiveForm('add', {
+                    id: $inputId,
+                    name: $attribute,
+                    container: '.$field',
+                    input: '#$inputId',
+                    error: '.$field .help-block',
+                    validate: function (attribute, value, messages, deferred, form) {
+                        yii.validation.required(value, messages, {message: 'Bu maydonni to‘ldirish shart!'});
+                    }
+                });
+                $('form').yiiActiveForm('destroy').yiiActiveForm();
+            JS;
+        $this->getView()->registerJs($js);
         return $output;
     }
 }
