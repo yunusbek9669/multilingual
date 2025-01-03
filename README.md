@@ -40,6 +40,12 @@ Once the library is installed, add the following to your project settings:
         'class' => Yunusbek\Multilingual\Module::class,
     ],
 ]
+
+# for yii2 basic - config/web.php
+# for yii2 advanced - config/main.php
+'bootstrap' => ['log', function () {
+    Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language);
+}],
 ```
 
 The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
@@ -71,11 +77,6 @@ class LanguageList extends BaseLanguageList
 ````
 Then, generate CRUD for the completed model and add a new language.
 
-```Additional:``` Add the following button to the top of the created CRUD index page which will take you to the general translations page.
-
-````php
-echo Html::a('All translations', ['/multilingual/language/index'], ['class' => 'btn btn-primary', 'target' => '_blank']);
-````
 
 The models to be translated are inherited from the ```Multilingual``` model.
 
@@ -101,3 +102,35 @@ The part to be applied in the form page:
     #...
 <?php ActiveForm::end(); ?>
 ```
+
+Necessary additions
+===========================
+
+Useful buttons to install
+------------
+Add the following button to the top of the created CRUD index page which will take you to the general translations page.
+
+````php
+echo Html::a('All translations', ['/multilingual/language/index'], ['class' => 'btn btn-primary', 'target' => '_blank']);
+````
+
+and add the following button to the actions section of each language row, which will download an excel file of all translations for that language.
+
+````php
+echo Html::a('Download Excel', ['/multilingual/language/export-to-excel', 'table_name' => $model->table], ['class' => 'btn btn-primary']);
+````
+
+
+Instruction manual
+------------
+
+This is an Excel file downloaded from an existing language
+
+![This is an Excel file downloaded from an existing language](dist/img/excel1.jpg)
+
+This is a translated Excel file for the language that needs to be added.
+
+![This is a translated Excel file for the language that needs to be added.](dist/img/excel1.jpg)
+
+When a new language is added, the above translated excel file is downloaded to the ```import_excel``` attribute in the ```language_list``` table.
+Result: all translations for the newly added language are saved, automatically saved from the Excel file to the new ```lang_*``` table.
