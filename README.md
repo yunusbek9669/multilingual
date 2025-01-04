@@ -29,17 +29,34 @@ Once the library is installed, add the following to your project settings:
 
 ```php
 # Add the following code to controllerMap
-'controllerMap' => [
-    'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations',
-],
+[
+    #...
+    'controllerMap' => [
+        'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations',
+    ],
+    #...
+]
 
+# params.php
+[
+    #...
+    'language_list' => [
+        'en' => [
+            'name' => 'Default language', # Enter the current default language in your project.
+            'short_name' => 'Def', # Enter the current default language short name.
+            'image' => '/path/to/default/language/flag.jpg', # Enter the path to the current default language flag image. 
+            'active' => false,
+        ]
+    ],
+    #...
+]
 
 # for yii2 basic - config/web.php
 # for yii2 advanced - config/main.php
 [
     #...
     'bootstrap' => ['log', function () {
-        Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language);
+        Yii::$app->params['language_list'] = array_merge(Yii::$app->params['language_list'], \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language));
     }],
     #...
     'modules' => [
