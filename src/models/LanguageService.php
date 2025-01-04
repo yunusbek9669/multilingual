@@ -181,7 +181,7 @@ class LanguageService extends ActiveQuery
         {
             foreach ($languages as $language)
             {
-                if (self::checkTable($language['table']))
+                if (!empty($language['table']) && self::checkTable($language['table']))
                 {
                     $lang_table = (new yii\db\Query())
                         ->from($language['table'])

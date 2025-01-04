@@ -81,7 +81,7 @@ class MultilingualAttributes extends Widget
         $languages = Yii::$app->params['language_list'];
         $defaultLanguage = null;
         foreach ($languages as $lang) {
-            if ($lang['table'] === null) { $defaultLanguage = $lang; break; }
+            if (empty($lang['table'])) { $defaultLanguage = $lang; break; }
         }
         $label = $model->getAttributeLabel($attribute);
         $defaultLabel = $label.' ('.$defaultLanguage['name'].')';
