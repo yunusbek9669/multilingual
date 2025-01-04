@@ -33,6 +33,7 @@ class LanguageService extends ActiveQuery
         /** Extend olgan (Asosiy) modellar */
         $modelsExtended = self::getChildModels($extendModel);
         $languages = Yii::$app->params['language_list'];
+        $default_language = current(array_filter($languages, fn($lang) => empty($lang['table'])));
         if (empty($modelsExtended) || empty($languages)) {
             return [];
         }
@@ -43,7 +44,7 @@ class LanguageService extends ActiveQuery
                 'table_name' => Yii::t('app', 'Table Name'),
                 'attributes' => Yii::t('app', 'Attributes'),
                 'table_iteration' => Yii::t('app', 'Table Iteration'),
-                'language' => ['Asosiy Til' => 0]
+                'language' => []
             ]
         ];
 
@@ -92,7 +93,10 @@ class LanguageService extends ActiveQuery
                     foreach ($modelRow as $modelAttribute => $modelValue)
                     {
                         /** Asosiy modeldan olingan qiymatni qo‘shish */
-                        $formattedTranslate[$modelAttribute]['Asosiy Til'] = $modelValue;
+                        if (empty($modelValue)) {
+                            $result['header']['language'][$default_language['name']] += 1;
+                        }
+                        $formattedTranslate[$modelAttribute][$default_language['name']] = $modelValue;
 
                         if ($is_all)
                         {
@@ -232,9 +236,9 @@ class LanguageService extends ActiveQuery
         /** Tizimdagi tillar bo‘yicha siklga solish */
         foreach ($languages as $language)
         {
+            $result['language'][$language['name']] = 0;
             if (!empty($language['table']))
             {
-                $result['language'][$language['name']] = 0;
 
                 /** Dinamik tillar tablitsalarini ro‘yxatini shakllantirish */
                 if (self::checkTable($language['table']))

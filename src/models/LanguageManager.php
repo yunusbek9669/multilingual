@@ -32,27 +32,26 @@ class LanguageManager
         $hasActive = false;
         $key = Yii::$app->session->get($key);
         try {
-            if (!empty($key)) {
-                Yii::$app->language = $key;
-                $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->orderBy(['order_number' => SORT_ASC])->all();
-                $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
-                    return [
-                        'name' => $model['name'],
-                        'short_name' => $model['short_name'],
-                        'image' => $model['image'],
-                        'table' => $model['table'],
-                        'active' => $key === $model['key'],
-                    ];
-                });
-                foreach ($result as $item) {
-                    if (!empty($item['active'])) {
-                        $hasActive = true;
-                        break;
-                    }
+            if (empty($key)) {
+                $key = array_key_first(Yii::$app->params['language_list']);
+                Yii::$app->session->set($key, $key);
+            }
+            Yii::$app->language = $key;
+            $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->orderBy(['order_number' => SORT_ASC])->all();
+            $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
+                return [
+                    'name' => $model['name'],
+                    'short_name' => $model['short_name'],
+                    'image' => $model['image'],
+                    'table' => $model['table'],
+                    'active' => $key === $model['key'],
+                ];
+            });
+            foreach ($result as $item) {
+                if (!empty($item['active'])) {
+                    $hasActive = true;
+                    break;
                 }
-            } else {
-                $result = [];
-                Yii::$app->language = array_key_first(Yii::$app->params['language_list']);
             }
         } catch (Exception $e) {
             $result = [];

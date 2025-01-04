@@ -11,16 +11,9 @@ use yii\helpers\Url;
 
 $this->title = Yii::t('app', 'Translates');
 $this->params['breadcrumbs'][] = $this->title;
+$languages = Yii::$app->params['language_list'];
+$default_language = current(array_filter($languages, fn($lang) => empty($lang['table'])));
 ?>
-<div class="d-none">
-    <?php echo GridView::widget([
-        'dataProvider' => new ActiveDataProvider([
-            'query' => $query = BaseLanguageList::find()
-                ->where(['status' => 0])
-                ->orderBy(['order_number' => SORT_ASC]),
-        ])
-    ]); ?>
-</div>
 <div class="card card-custom manuals-language-index">
     <div class="card-body">
         <div class="card-header bg-white d-flex justify-content-between">
@@ -43,7 +36,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         <th><?php echo $translates['header']['attributes'] ?></th>
                         <?php if (!empty($translates)): ?>
                             <?php foreach ($translates['header']['language'] as $key => $not_translated): ?>
-                                <th><?php echo $key ?> <span class="badge badge-danger"><?php echo $not_translated ?></span></th>
+                                <th><?php echo $key.($default_language['name'] === $key ? ' <i class="fas fa-star text-warning"></i>' : '') ?> <span class="badge badge-danger"><?php echo $not_translated ?></span></th>
                             <?php endforeach; ?>
                         <?php endif; ?>
                         <th><?php echo Yii::t('app', 'Action') ?></th>
