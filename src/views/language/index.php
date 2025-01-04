@@ -21,7 +21,7 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
                 <?php echo  $this->title ?>
             </span>
             <div>
-                <a href="<?php echo Url::to(['/common-language/language/export-to-excel', 'is_all' => true]) ?>" class="btn btn-lg btn-primary font-weight-bolder mb-3"  data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo Yii::t('app','Asosiy tildan export qilish')?>">
+                <a href="<?php echo Url::to(['/multilingual/language/export-to-excel', 'is_all' => true]) ?>" class="btn btn-lg btn-primary font-weight-bolder mb-3"  data-bs-toggle="tooltip" data-bs-placement="top" title="<?php echo Yii::t('app','Asosiy tildan export qilish')?>">
                     <i class="fa fa-cog"></i>
                     <?php echo Yii::t('app', 'Export') ?>
                 </a>
