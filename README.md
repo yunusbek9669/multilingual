@@ -36,7 +36,17 @@ Once the library is installed, add the following to your project settings:
     ],
     #...
 ]
+```
 
+The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
+
+```sh
+php yii multilingual-migration/generate
+```
+
+The next important processing steps in the project settings.
+
+```php
 # params.php
 [
     #...
@@ -77,12 +87,6 @@ Once the library is installed, add the following to your project settings:
         Yii::$app->language = $lang;
         return $this->redirect(Yii::$app->request->referrer);
     }
-```
-
-The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
-
-```sh
-php yii multilingual-migration/generate
 ```
 
 Inheritance from the ```BaseLanguageList``` class and additional settings for the class created for the ```language_list``` table:
