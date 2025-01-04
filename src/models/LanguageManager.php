@@ -33,9 +33,8 @@ class LanguageManager
                     $default_lang['active'] = true;
                     Yii::$app->params['language_list'][$key] = $default_lang;
                 }
-                $result = Yii::$app->params['language_list'];
             }
-            return $result;
+            return array_merge(Yii::$app->params['language_list'], $result);
         } catch (Exception $e) {
             foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
                 $default_lang['active'] = true;
