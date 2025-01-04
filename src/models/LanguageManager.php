@@ -12,7 +12,7 @@ class LanguageManager
     {
         try {
             $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->all();
-            return ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
+            $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
                 return [
                     'name' => $model['name'],
                     'short_name' => $model['short_name'],
@@ -21,6 +21,14 @@ class LanguageManager
                     'active' => $key === $model['key'],
                 ];
             });
+            if (empty($result)) {
+                foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
+                    $default_lang['active'] = true;
+                    Yii::$app->params['language_list'][$key] = $default_lang;
+                }
+                $result = Yii::$app->params['language_list'];
+            }
+            return $result;
         } catch (Exception $e) {
             foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
                 $default_lang['active'] = true;
