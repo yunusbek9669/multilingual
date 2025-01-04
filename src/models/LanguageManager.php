@@ -21,7 +21,14 @@ class LanguageManager
                     'active' => $key === $model['key'],
                 ];
             });
-            if (empty($result)) {
+            $hasActive = false;
+            foreach ($result as $item) {
+                if (!empty($item['active'])) {
+                    $hasActive = true;
+                    break;
+                }
+            }
+            if (empty($result) || !$hasActive) {
                 foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
                     $default_lang['active'] = true;
                     Yii::$app->params['language_list'][$key] = $default_lang;
