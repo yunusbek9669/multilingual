@@ -85,11 +85,7 @@ class MultilingualAttributes extends Widget
         }
         $label = $model->getAttributeLabel($attribute);
         $defaultLabel = $label.' ('.$defaultLanguage['name'].')';
-        $options = ['placeholder' => $defaultLabel." 🖊"];
-        if (!empty($defaultValue)) {
-            $options = array_merge($options, ['value' => $defaultValue]);
-        }
-        $output = '<div class="col-'.$params['col'].'">'.$form->field($model, $attribute)->textInput($options)->label($defaultLabel).'</div>';
+        $output = '<div class="col-'.$params['col'].'">'.$form->field($model, $attribute)->textInput(['placeholder' => $defaultLabel." 🖊", 'value' => $defaultValue])->label($defaultLabel.' <i class="fas fa-star text-warning"></i>').'</div>';
         foreach (LanguageService::setCustomAttributes($model, $attribute) as $key => $value)
         {
             preg_match('/lang_(\w+)/', $key, $matches);
