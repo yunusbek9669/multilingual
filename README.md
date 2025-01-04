@@ -56,7 +56,7 @@ Once the library is installed, add the following to your project settings:
 [
     #...
     'bootstrap' => ['log', function () {
-        Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language);
+        Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages('lang'); # The "lang" parameter is a key to Yii::$app->session->set('lang', 'selected_language_key').
     }],
     #...
     'modules' => [
@@ -66,6 +66,17 @@ Once the library is installed, add the following to your project settings:
     ]
     #...
 ]
+```
+> Note: To save this ```Yii::$app->session->set('lang', 'selected_language_key');``` session, add the following action to ```BaseController```;
+> 
+
+```php
+    public function actionSelectLang($lang): Response
+    {
+        Yii::$app->session->set('lang', $lang);
+        Yii::$app->language = $lang;
+        return $this->redirect(Yii::$app->request->referrer);
+    }
 ```
 
 The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
