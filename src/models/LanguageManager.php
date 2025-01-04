@@ -31,11 +31,11 @@ class LanguageManager
         }
         $hasActive = false;
         $key = Yii::$app->session->get($key);
+        if (empty($key)) {
+            $key = array_key_first(Yii::$app->params['language_list']);
+            Yii::$app->session->set($key, $key);
+        }
         try {
-            if (empty($key)) {
-                $key = array_key_first(Yii::$app->params['language_list']);
-                Yii::$app->session->set($key, $key);
-            }
             Yii::$app->language = $key;
             $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->orderBy(['order_number' => SORT_ASC])->all();
             $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
