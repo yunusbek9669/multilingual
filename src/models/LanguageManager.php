@@ -10,8 +10,9 @@ class LanguageManager
 {
     public static function getAllLanguages(string $key): array|\yii\db\ActiveRecord|null
     {
+        $hasActive = false;
         try {
-            $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->all();
+            $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->orderBy(['order_number' => SORT_ASC])->all();
             $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
                 return [
                     'name' => $model['name'],
@@ -21,26 +22,22 @@ class LanguageManager
                     'active' => $key === $model['key'],
                 ];
             });
-            $hasActive = false;
             foreach ($result as $item) {
                 if (!empty($item['active'])) {
                     $hasActive = true;
                     break;
                 }
             }
-            if (empty($result) || !$hasActive) {
-                foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
-                    $default_lang['active'] = true;
-                    Yii::$app->params['language_list'][$key] = $default_lang;
-                }
-            }
-            return array_merge(Yii::$app->params['language_list'], $result);
         } catch (Exception $e) {
+            $result = [];
+        }
+
+        if (empty($result) || !$hasActive) {
             foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
                 $default_lang['active'] = true;
                 Yii::$app->params['language_list'][$key] = $default_lang;
             }
-            return Yii::$app->params['language_list'];
         }
+        return array_merge(Yii::$app->params['language_list'], $result);
     }
 }

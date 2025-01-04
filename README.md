@@ -56,7 +56,7 @@ Once the library is installed, add the following to your project settings:
 [
     #...
     'bootstrap' => ['log', function () {
-        Yii::$app->params['language_list'] = array_merge(Yii::$app->params['language_list'], \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language));
+        Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language);
     }],
     #...
     'modules' => [
