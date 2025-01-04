@@ -32,13 +32,13 @@ class {$migrationClassName} extends Migration
     {
         \$this->createTable('{{%language_list}}', [
             'id' => \$this->primaryKey(),
-            'name' => \$this->string(30)->notNull(),
-            'short_name' => \$this->string(5)->notNull(),
-            'key' => \$this->string(5)->notNull(),
-            'image' => \$this->string(50),
-            'import_excel' => \$this->string(50),
-            'table' => \$this->string(50)->notNull(),
-            'order_number' => \$this->integer(),
+            'name' => \$this->string(30)->notNull(), # Type the full name of the current language.
+            'short_name' => \$this->string(5)->notNull(), # Type a short name for the current language.
+            'key' => \$this->string(5)->notNull(), # Enter the short code representing the current language. Based on the international standard ISO 639-1 language codes. For example: uz, en, ru.
+            'image' => \$this->string(50), # Enter the path to the flag image for the current language.
+            'import_excel' => \$this->string(50), # Import an Excel file downloaded from an existing language and translated into a new language
+            'table' => \$this->string(50)->notNull(), # Enter the name of the table that stores translations for the current language, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern)
+            'order_number' => \$this->integer(), # This is intended to sort the list of languages.
             'status' => \$this->integer(2),
             'created_at' => \$this->bigInteger(),
             'created_by' => \$this->integer(),
@@ -49,23 +49,6 @@ class {$migrationClassName} extends Migration
         \$this->createIndex('{{%idx-language_list-status}}', '{{%language_list}}', 'status');
         \$this->createIndex('{{%idx-language_list-created_by}}', '{{%language_list}}', 'created_by');
         \$this->createIndex('{{%idx-language_list-updated_by}}', '{{%language_list}}', 'updated_by');
-        
-        \$this->upsert('language_list', [
-            'id' => 1,
-            'name' => null, # Type the full name of the current language.
-            'short_name' => null, # Type a short name for the current language.
-            'key' => null, # Enter the short code representing the current language. Based on the international standard ISO 639-1 language codes. For example: uz, en, ru.
-            'image' => null, # Enter the path to the flag image for the current language.
-            'import_excel' => null, # Should be empty for now
-            'table' => null, # Enter the name of the table that stores translations for the current language, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern)
-            'order_number' => 1,
-            'status' => 1,
-            'created_by' => 1,
-            'created_at' => time(),
-            'updated_by' => 1,
-            'updated_at' => time()
-        ]);
-        \$this->execute("SELECT setval('language_list_id_seq', max(id)) FROM language_list");
     }
 
     public function safeDown()

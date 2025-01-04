@@ -34,18 +34,21 @@ Once the library is installed, add the following to your project settings:
 ],
 
 
-# Add the following code to modules
-'modules' => [
-    'multilingual' => [
-        'class' => Yunusbek\Multilingual\Module::class,
-    ],
-]
-
 # for yii2 basic - config/web.php
 # for yii2 advanced - config/main.php
-'bootstrap' => ['log', function () {
-    Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language);
-}],
+[
+    #...
+    'bootstrap' => ['log', function () {
+        Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages(Yii::$app->language);
+    }],
+    #...
+    'modules' => [
+        'multilingual' => [
+            'class' => Yunusbek\Multilingual\Module::class,
+        ],
+    ]
+    #...
+]
 ```
 
 The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
