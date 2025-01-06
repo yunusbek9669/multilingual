@@ -154,7 +154,7 @@ class Multilingual extends ActiveRecord
         foreach ($data as $key => $value)
         {
             try {
-                $deleted = $db->createCommand()
+                $db->createCommand()
                     ->delete($key, [
                         'table_name' => $this::tableName(),
                         'table_iteration' => $this->id ?? null,
