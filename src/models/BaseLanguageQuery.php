@@ -92,14 +92,14 @@ class BaseLanguageQuery extends ActiveQuery
         ];
 
         try {
-
             $db->createCommand("
                 CREATE TABLE {$tableName} (
                     table_name VARCHAR(50) NOT NULL,
                     table_iteration INT NOT NULL,
                     value JSON NOT NULL,
+                    is_static BOOLEAN DEFAULT FALSE,
                     PRIMARY KEY (table_name, table_iteration)
-                );
+                ) PARTITION BY LIST (is_static);
             ")->execute();
 
             $db->createCommand("
@@ -116,12 +116,11 @@ class BaseLanguageQuery extends ActiveQuery
     }
 
     /**
-     * yangi lang_* table yaratish
+     * lang_* table nomini yangilash
      */
     public static function updateLangTable(string $oldTableName, string $tableName): array
     {
         $db = Yii::$app->db;
-        $transaction = $db->beginTransaction();
         $response = [
             'status' => true,
             'code' => 'success',
@@ -131,9 +130,7 @@ class BaseLanguageQuery extends ActiveQuery
             $db->createCommand("ALTER TABLE {$oldTableName} RENAME TO {$tableName}")->execute();
             $db->createCommand("ALTER INDEX idx_{$oldTableName}_table_name_iteration RENAME TO idx_{$tableName}_table_name_iteration")->execute();
 
-            $transaction->commit();
         } catch (\Throwable $e) {
-            $transaction->rollBack();
             $response['message'] = "Jadval yangilashda xato: " . $e->getMessage();
             $response['status'] = false;
             $response['code'] = 'error';

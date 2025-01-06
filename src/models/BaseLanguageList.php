@@ -148,40 +148,4 @@ class BaseLanguageList extends ActiveRecord
         $schema = Yii::$app->db->schema;
         return in_array($tableName, $schema->getTableNames());
     }
-
-    /**
-     * @throws Exception
-     */
-    public static function createLangTable(string $tableName): array
-    {
-        $response = [];
-        $response['status'] = true;
-        $response['message'] = 'success';
-        try {
-            Yii::$app->db->createCommand("CREATE TABLE {$tableName} (table_name VARCHAR(50), table_iteration INT, value JSON, PRIMARY KEY (table_name, table_iteration))")->execute();
-            Yii::$app->db->createCommand("CREATE INDEX idx_{$tableName}_table_iteration ON {$tableName} (table_iteration)")->execute();
-            Yii::$app->db->createCommand("CREATE INDEX idx_{$tableName}_table_name ON {$tableName} (table_name)")->execute();
-        } catch (\Exception $e) {
-            $response['message'] = $e->getMessage();
-        }
-        return $response;
-    }
-
-    /**
-     * @throws Exception
-     */
-    public static function updateLangTable(string $oldTableName, string $tableName): array
-    {
-        $response = [];
-        $response['status'] = true;
-        $response['message'] = 'success';
-        try {
-            Yii::$app->db->createCommand("ALTER TABLE {$oldTableName} RENAME TO {$tableName}")->execute();
-            Yii::$app->db->createCommand("ALTER INDEX idx_{$oldTableName}_table_iteration RENAME TO idx_{$tableName}_table_iteration")->execute();
-            Yii::$app->db->createCommand("ALTER INDEX idx_{$oldTableName}_table_name RENAME TO idx_{$tableName}_table_name")->execute();
-        } catch (\Exception $e) {
-            $response['message'] = $e->getMessage();
-        }
-        return $response;
-    }
 }
