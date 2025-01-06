@@ -2,6 +2,8 @@ multilingual
 ===========================
 
 Multilingual package for Yii2 projects
+> Note: This package translates dynamic data in the project's Database.
+>
 
 Installation
 ------------
