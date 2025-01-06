@@ -261,8 +261,8 @@ class LanguageService extends ActiveQuery
         $sheet = $spreadsheet->getActiveSheet();
 
         /** Asosiy ustunlar */
-        $letterList = ['A','B'];
-        $baseHeaders = ['table_name', 'table_iteration'];
+        $letterList = ['A','B','C','D'];
+        $baseHeaders = ['table_name', 'table_iteration', 'is_static', 'message'];
         $jsonKeys = [];
 
         /** Barcha JSON indekslarini aniqlash */
@@ -278,6 +278,7 @@ class LanguageService extends ActiveQuery
         $sheet->fromArray($headers, NULL, 'A1');
         $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
         $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
+        $sheet->getStyle("C1:D1")->getFont()->setBold(true)->setColor(new Color('777777'));
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
 
         /** Ma'lumotlarni qo'shish */
@@ -285,12 +286,15 @@ class LanguageService extends ActiveQuery
         foreach ($data as $row) {
             $sheet->setCellValue("A{$rowNumber}", $row['table_name']);
             $sheet->setCellValue("B{$rowNumber}", $row['table_iteration']);
+            $sheet->setCellValue("C{$rowNumber}", $row['is_static']);
+            $sheet->setCellValue("D{$rowNumber}", $row['message']);
 
             $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+            $sheet->getStyle("C{$rowNumber}:D{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
             /** JSON qiymatlarini mos ustunlarga qo'shish */
             $jsonData = json_decode($row['value'], true);
-            $colIndex = 2;
+            $colIndex = 4;
             foreach ($jsonKeys as $key) {
                 $colIndex++;
                 $colLetter = Coordinate::stringFromColumnIndex($colIndex); // A, B, C...
@@ -306,11 +310,12 @@ class LanguageService extends ActiveQuery
         }
 
         /** Asosiy ustunlarni (table_name, table_iteration, va JSON kalitlari) himoyalash */
-        $sheet->getStyle('A1:B' . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('C1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('A1:B1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('C1:D1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('E1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
 
         /** JSON qiymatlarini o'zgartirishga ruxsat berish */
-        $sheet->getStyle('C2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
+        $sheet->getStyle('E2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
 
         /** Himoyani yoqish */
         $spreadsheet->getActiveSheet()->getProtection()->setSheet(true);

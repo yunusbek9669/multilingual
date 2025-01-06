@@ -17,7 +17,7 @@ use Yii;
 /**
  * @package Yunusbek\Multilingual\models
  *
- * @property-write array $languageValue
+ * @property-write array $dynamicLanguageValue
  */
 class Multilingual extends ActiveRecord
 {
@@ -118,15 +118,18 @@ class Multilingual extends ActiveRecord
             'code' => 'success',
             'message' => 'success',
         ];
+        $table_name = $this::tableName();
         foreach ($post as $table => $data)
         {
             $upsert = $db->createCommand()
                 ->upsert($table, [
-                    'table_name' => $this::tableName(),
+                    'table_name' => $table_name,
                     'table_iteration' => $this->id ?? null,
+                    'is_static' => false,
+                    'value' => $data,
+                ], [
                     'value' => $data
-                ])
-                ->execute();
+                ])->execute();
 
             if ($upsert <= 0) {
                 $response['message'] = '"' . $table . '"ni yozish davomida xatolik';
@@ -189,10 +192,11 @@ class Multilingual extends ActiveRecord
                     ->upsert($table, [
                         'table_name' => $category,
                         'table_iteration' => 0,
-                        'message' => $message,
+                        'is_static' => true,
+                        'value' => $data,
+                    ], [
                         'value' => $data
-                    ])
-                    ->execute();
+                    ])->execute();
 
                 if ($upsert <= 0) {
                     $response['message'] = '"' . $table . '"ni yozish davomida xatolik';
@@ -301,9 +305,11 @@ class Multilingual extends ActiveRecord
                                         ->upsert($table, [
                                             'table_name' => $row[0],
                                             'table_iteration' => $row[1],
+                                            'is_static' => true,
+                                            'value' => $values,
+                                        ], [
                                             'value' => $values
-                                        ])
-                                        ->execute();
+                                        ])->execute();
 
                                     if ($upsert <= 0) {
                                         $json = json_encode($values);
