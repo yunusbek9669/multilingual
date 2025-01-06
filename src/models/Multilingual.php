@@ -153,18 +153,17 @@ class Multilingual extends ActiveRecord
         $data = LanguageService::setCustomAttributes($this);
         foreach ($data as $key => $value)
         {
-            $deleted = $db->createCommand()
-                ->delete($key, [
-                    'table_name' => $this::tableName(),
-                    'table_iteration' => $this->id ?? null,
-                ])
-                ->execute();
-
-            if ($deleted <= 0) {
-                $response['message'] = '"' . $key . '"ni o‘chirishda xatolik yoki yozuv topilmadi';
+            try {
+                $deleted = $db->createCommand()
+                    ->delete($key, [
+                        'table_name' => $this::tableName(),
+                        'table_iteration' => $this->id ?? null,
+                    ])
+                    ->execute();
+            } catch (\yii\db\Exception $e) {
+                $response['message'] = BaseLanguageQuery::modErrToStr($e);
                 $response['code'] = 'error';
                 $response['status'] = false;
-                break;
             }
         }
         return $response;
@@ -230,6 +229,8 @@ class Multilingual extends ActiveRecord
                     $data[] = [
                         'table_name' => $tableName,
                         'table_iteration' => $id,
+                        'is_static' => false,
+                        'message' => '',
                         'value' => json_encode($modelRow),
                     ];
                 }
@@ -287,7 +288,7 @@ class Multilingual extends ActiveRecord
 
                     if (!empty($data))
                     {
-                        $attributes = array_slice($data[0], 2);
+                        $attributes = array_slice($data[0], 4);
                         unset($data[0]);
                         if (!empty($data))
                         {
@@ -295,7 +296,7 @@ class Multilingual extends ActiveRecord
                             {
                                 if (isset($row[0], $row[1]))
                                 {
-                                    $filteredArray = array_slice($row, 2);
+                                    $filteredArray = array_slice($row, 4);
                                     $values = array_combine($attributes, $filteredArray);
                                     $values = array_filter($values, function($value) {
                                         return $value !== null;
@@ -305,7 +306,7 @@ class Multilingual extends ActiveRecord
                                         ->upsert($table, [
                                             'table_name' => $row[0],
                                             'table_iteration' => $row[1],
-                                            'is_static' => true,
+                                            'is_static' => strtolower($row[2]) === 'true',
                                             'value' => $values,
                                         ], [
                                             'value' => $values
