@@ -1,6 +1,6 @@
 {
     "name": "yunusbek/multilingual",
-    "description": "A multilingual package for PHP projects",
+    "description": "Multilingual package for Yii2 projects",
     "type": "library",
     "license": "MIT",
     "require": {

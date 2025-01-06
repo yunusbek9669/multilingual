@@ -11,13 +11,13 @@ Installation
 Either run
 
 ```sh
-composer require yunusbek/multilingual:dev-main
+composer require yunusbek/multilingual
 ```
 
 or add
 
 ```json
-"yunusbek/multilingual": "dev-main",
+"yunusbek/multilingual": "^1.0",
 ```
 
 to the require section of your composer.json.
