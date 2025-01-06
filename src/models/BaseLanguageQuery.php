@@ -97,6 +97,7 @@ class BaseLanguageQuery extends ActiveQuery
                     table_name VARCHAR(50) NOT NULL,
                     table_iteration INT NOT NULL,
                     value JSON NOT NULL,
+                    message VARCHAR(100),
                     is_static BOOLEAN DEFAULT FALSE,
                     PRIMARY KEY (table_name, table_iteration)
                 ) PARTITION BY LIST (is_static);
@@ -105,6 +106,16 @@ class BaseLanguageQuery extends ActiveQuery
             $db->createCommand("
                 CREATE INDEX idx_{$tableName}_table_name_iteration 
                 ON {$tableName} (table_name, table_iteration);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE static_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (TRUE);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE dynamic_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (FALSE);
             ")->execute();
         } catch (\Throwable $e) {
             $response['code'] = 'error';
@@ -117,6 +128,7 @@ class BaseLanguageQuery extends ActiveQuery
 
     /**
      * lang_* table nomini yangilash
+     * @throws Exception
      */
     public static function updateLangTable(string $oldTableName, string $tableName): array
     {
@@ -126,11 +138,46 @@ class BaseLanguageQuery extends ActiveQuery
             'code' => 'success',
             'message' => 'success'
         ];
+        $transaction = $db->beginTransaction();
         try {
-            $db->createCommand("ALTER TABLE {$oldTableName} RENAME TO {$tableName}")->execute();
-            $db->createCommand("ALTER INDEX idx_{$oldTableName}_table_name_iteration RENAME TO idx_{$tableName}_table_name_iteration")->execute();
+            $db->createCommand("
+                CREATE TABLE {$tableName} (
+                    table_name VARCHAR(50) NOT NULL,
+                    table_iteration INT NOT NULL,
+                    value JSON NOT NULL,
+                    message VARCHAR(100),
+                    is_static BOOLEAN DEFAULT FALSE,
+                    PRIMARY KEY (table_name, table_iteration)
+                ) PARTITION BY LIST (is_static);
+            ")->execute();
 
+            $db->createCommand("
+                INSERT INTO {$tableName} (table_name, table_iteration, value, is_static)
+                SELECT table_name, table_iteration, value, is_static 
+                FROM {$oldTableName};
+            ")->execute();
+
+            $db->createCommand("DROP INDEX IF EXISTS idx_{$oldTableName}_table_name_iteration")->execute();
+            $db->createCommand("DROP TABLE {$oldTableName}")->execute();
+
+            $db->createCommand("
+                CREATE INDEX idx_{$tableName}_table_name_iteration 
+                ON {$tableName} (table_name, table_iteration);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE static_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (TRUE);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE dynamic_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (FALSE);
+            ")->execute();
+
+            $transaction->commit();
         } catch (\Throwable $e) {
+            $transaction->rollBack();
             $response['message'] = "Jadval yangilashda xato: " . $e->getMessage();
             $response['status'] = false;
             $response['code'] = 'error';
