@@ -1,12 +1,10 @@
 multilingual
 ===========================
 
-A multilingual package for PHP projects
+Multilingual package for Yii2 projects
 
 Installation
 ------------
-
-This library works through the Yii2 framework.
 
 Either run
 
