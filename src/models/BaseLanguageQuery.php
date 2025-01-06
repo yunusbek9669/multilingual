@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\models;
 
 use Yii;
+use yii\base\Model;
 use yii\db\ActiveQuery;
 use yii\db\Exception;
 
@@ -96,10 +97,10 @@ class BaseLanguageQuery extends ActiveQuery
                 CREATE TABLE {$tableName} (
                     table_name VARCHAR(50) NOT NULL,
                     table_iteration INT NOT NULL,
-                    value JSON NOT NULL,
-                    message VARCHAR(100),
                     is_static BOOLEAN DEFAULT FALSE,
-                    PRIMARY KEY (table_name, table_iteration)
+                    message VARCHAR(100),
+                    value JSON NOT NULL,
+                    PRIMARY KEY (table_name, table_iteration, is_static)
                 ) PARTITION BY LIST (is_static);
             ")->execute();
 
@@ -120,7 +121,7 @@ class BaseLanguageQuery extends ActiveQuery
         } catch (\Throwable $e) {
             $response['code'] = 'error';
             $response['status'] = false;
-            $response['message'] = "Jadval yaratishda xato: " . $e->getMessage();
+            $response['message'] = "Jadval yaratishda xato: " . self::modErrToStr($e);
         }
 
         return $response;
@@ -144,21 +145,12 @@ class BaseLanguageQuery extends ActiveQuery
                 CREATE TABLE {$tableName} (
                     table_name VARCHAR(50) NOT NULL,
                     table_iteration INT NOT NULL,
-                    value JSON NOT NULL,
-                    message VARCHAR(100),
                     is_static BOOLEAN DEFAULT FALSE,
-                    PRIMARY KEY (table_name, table_iteration)
+                    message VARCHAR(100),
+                    value JSON NOT NULL,
+                    PRIMARY KEY (table_name, table_iteration, is_static)
                 ) PARTITION BY LIST (is_static);
             ")->execute();
-
-            $db->createCommand("
-                INSERT INTO {$tableName} (table_name, table_iteration, value, is_static)
-                SELECT table_name, table_iteration, value, is_static 
-                FROM {$oldTableName};
-            ")->execute();
-
-            $db->createCommand("DROP INDEX IF EXISTS idx_{$oldTableName}_table_name_iteration")->execute();
-            $db->createCommand("DROP TABLE {$oldTableName}")->execute();
 
             $db->createCommand("
                 CREATE INDEX idx_{$tableName}_table_name_iteration 
@@ -175,13 +167,40 @@ class BaseLanguageQuery extends ActiveQuery
                 FOR VALUES IN (FALSE);
             ")->execute();
 
+            $db->createCommand("
+                INSERT INTO {$tableName} (table_name, table_iteration, value, is_static)
+                SELECT table_name, table_iteration, value, is_static 
+                FROM {$oldTableName};
+            ")->execute();
+
+            $db->createCommand("DROP INDEX IF EXISTS idx_{$oldTableName}_table_name_iteration")->execute();
+            $db->createCommand("DROP TABLE {$oldTableName}")->execute();
+
             $transaction->commit();
         } catch (\Throwable $e) {
             $transaction->rollBack();
-            $response['message'] = "Jadval yangilashda xato: " . $e->getMessage();
+            $response['message'] = "Jadvalni yangilashda xato: " . self::modErrToStr($e);
             $response['status'] = false;
             $response['code'] = 'error';
         }
         return $response;
+    }
+
+
+    public static function modErrToStr($model): string
+    {
+        if (!$model instanceof Model)
+        {
+            $explode = explode("\n", trim($model->getMessage()));
+            return $explode[0] ?? $model;
+        }
+        $errors = $model->getErrors();
+        $string = "";
+        foreach ($errors as $error)
+        {
+            $string = $error[0] . " " . PHP_EOL . $string;
+        }
+
+        return $string;
     }
 }

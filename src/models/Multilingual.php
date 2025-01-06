@@ -2,6 +2,7 @@
 namespace Yunusbek\Multilingual\models;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use yii\base\InvalidParamException;
 use yii\behaviors\AttributeBehavior;
 use yii\behaviors\TimestampBehavior;
 use yii\db\BaseActiveRecord;
@@ -86,7 +87,7 @@ class Multilingual extends ActiveRecord
             $post = Yii::$app->request->post('Language');
             if (!empty($post))
             {
-                $response = $this->setLanguageValue($post);
+                $response = $this->setDynamicLanguageValue($post);
             } elseif (isset($this->status) && $this->status !== 1)
             {
                 $response = $this->deleteLanguageValue();
@@ -109,48 +110,29 @@ class Multilingual extends ActiveRecord
     /** Tarjimalarni qo‘shib qo‘yish
      * @throws Exception
      */
-    public function setLanguageValue(array $post = []): array
+    public function setDynamicLanguageValue(array $post = []): array
     {
-        $response = [];
-        $response['status'] = true;
-        $response['message'] = 'success';
+        $db = Yii::$app->db;
+        $response = [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success',
+        ];
         foreach ($post as $table => $data)
         {
-            $exists = (new Query())
-                ->from($table)
-                ->where(condition: [
+            $upsert = $db->createCommand()
+                ->upsert($table, [
                     'table_name' => $this::tableName(),
-                    'table_iteration' => $this->id,
+                    'table_iteration' => $this->id ?? null,
+                    'value' => $data
                 ])
-                ->exists();
+                ->execute();
 
-            if ($exists) {
-                $updated = Yii::$app->db->createCommand()
-                    ->update($table, ['value' => $data], [
-                        'table_name' => $this::tableName(),
-                        'table_iteration' => $this->id,
-                    ])
-                    ->execute();
-
-                if ($updated <= 0) {
-                    $response['message'] = '"' . $table . '"ni yangilashda xatolik';
-                    $response['status'] = false;
-                    break;
-                }
-            } else {
-                $inserted = Yii::$app->db->createCommand()
-                    ->insert($table, [
-                        'table_name' => $this::tableName(),
-                        'table_iteration' => $this->id,
-                        'value' => $data
-                    ])
-                    ->execute();
-
-                if ($inserted <= 0) {
-                    $response['message'] = '"' . $table . '"ni saqlashda xatolik';
-                    $response['status'] = false;
-                    break;
-                }
+            if ($upsert <= 0) {
+                $response['message'] = '"' . $table . '"ni yozish davomida xatolik';
+                $response['code'] = 'error';
+                $response['status'] = false;
+                break;
             }
         }
         return $response;
@@ -161,38 +143,66 @@ class Multilingual extends ActiveRecord
      */
     public function deleteLanguageValue(): array
     {
+        $db = Yii::$app->db;
         $response = [];
         $response['status'] = true;
         $response['message'] = 'success';
         $data = LanguageService::setCustomAttributes($this);
         foreach ($data as $key => $value)
         {
-            if ($key !== 'lang_default')
+            $deleted = $db->createCommand()
+                ->delete($key, [
+                    'table_name' => $this::tableName(),
+                    'table_iteration' => $this->id ?? null,
+                ])
+                ->execute();
+
+            if ($deleted <= 0) {
+                $response['message'] = '"' . $key . '"ni o‘chirishda xatolik yoki yozuv topilmadi';
+                $response['code'] = 'error';
+                $response['status'] = false;
+                break;
+            }
+        }
+        return $response;
+    }
+
+    /** Static ma'lumotlarni tarjima qilish
+     * @throws \Exception
+     */
+    public static function setStaticLanguageValue($category, $message): array
+    {
+        $db = Yii::$app->db;
+        $data = [];
+        $response = [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success'
+        ];
+        $languages = Yii::$app->params['language_list'];
+        foreach ($languages as $language)
+        {
+            if (!empty($language['table']))
             {
-                $exists = (new Query())
-                    ->from($key)
-                    ->where(condition: [
-                        'table_name' => $this::tableName(),
-                        'table_iteration' => $this->id,
+                $table = $language['table'];
+                $upsert = $db->createCommand()
+                    ->upsert($table, [
+                        'table_name' => $category,
+                        'table_iteration' => 0,
+                        'message' => $message,
+                        'value' => $data
                     ])
-                    ->exists();
+                    ->execute();
 
-                if ($exists) {
-                    $deleted = Yii::$app->db->createCommand()
-                        ->delete($key, [
-                            'table_name' => $this::tableName(),
-                            'table_iteration' => $this->id,
-                        ])
-                        ->execute();
-
-                    if ($deleted <= 0) {
-                        $response['message'] = '"' . $key . '"ni o‘chirishda xatolik';
-                        $response['status'] = false;
-                        break;
-                    }
+                if ($upsert <= 0) {
+                    $response['message'] = '"' . $table . '"ni yozish davomida xatolik';
+                    $response['code'] = 'error';
+                    $response['status'] = false;
+                    break;
                 }
             }
         }
+
         return $response;
     }
 
@@ -234,7 +244,6 @@ class Multilingual extends ActiveRecord
      */
     public static function exportToExcel($tableName): bool|string
     {
-        // PostgreSQLdan ma'lumotlarni olish
         $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName}")->queryAll();
 
         if (empty($data)) {
@@ -244,9 +253,12 @@ class Multilingual extends ActiveRecord
         return LanguageService::exportToExcelData($data, "{$tableName}.xlsx");
     }
 
-    /** Exceldan tablitsaga import qilish */
+    /** Exceldan tablitsaga import qilish
+     * @throws Exception|InvalidParamException
+     */
     public static function importFromExcel(BaseLanguageList $model): array
     {
+        $db = Yii::$app->db;
         $response = [
             'status' => true,
             'code' => 'success',
@@ -254,7 +266,10 @@ class Multilingual extends ActiveRecord
         ];
         $excel_file = UploadedFile::getInstance($model, 'import_excel');
         if ($excel_file) {
-            if ($model->validate()) {
+            if ($model->validate())
+            {
+                $table = $model->table;
+                $transaction = $db->beginTransaction();
                 try {
                     if (!is_dir('uploads/import_language')) { mkdir('uploads/import_language'); }
                     $filePath = 'uploads/import_language/' . $excel_file->name;
@@ -281,54 +296,36 @@ class Multilingual extends ActiveRecord
                                     $values = array_filter($values, function($value) {
                                         return $value !== null;
                                     });
-                                    $exists = (new Query())
-                                        ->from($model->table)
-                                        ->where([
+
+                                    $upsert = $db->createCommand()
+                                        ->upsert($table, [
                                             'table_name' => $row[0],
-                                            'table_iteration' => $row[1]
+                                            'table_iteration' => $row[1],
+                                            'value' => $values
                                         ])
-                                        ->one();
+                                        ->execute();
 
-                                    if ($exists) {
-                                        $updated = Yii::$app->db->createCommand()
-                                            ->update($model->table,
-                                                ['value' => $values],
-                                                ['table_name' => $row[0], 'table_iteration' => $row[1]]
-                                            )
-                                            ->execute();
-
-                                        if ($updated <= 0) {
-                                            $json = json_encode($values);
-                                            $response['status'] = false;
-                                            $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
-                                            break;
-                                        }
-                                    } else {
-                                        $inserted = Yii::$app->db->createCommand()
-                                            ->insert($model->table, [
-                                                'table_name' => $row[0],
-                                                'table_iteration' => $row[1],
-                                                'value' => $values,
-                                            ])
-                                            ->execute();
-
-                                        if ($inserted <= 0) {
-                                            $json = json_encode($values);
-                                            $response['status'] = false;
-                                            $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
-                                            break;
-                                        }
+                                    if ($upsert <= 0) {
+                                        $json = json_encode($values);
+                                        $response['status'] = false;
+                                        $response['code'] = 'error';
+                                        $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
+                                        break;
                                     }
                                 }
                             }
                         }
                     }
-                } catch (\Exception $e) {
+                    $transaction->commit();
+                } catch (Exception $e) {
                     $response['status'] = false;
+                    $response['code'] = 'error';
                     $response['message'] = $e->getMessage();
+                    $transaction->rollBack();
                 }
             } else {
                 $response['status'] = false;
+                $response['code'] = 'error';
                 $response['message'] = $model->getErrors();
             }
         }

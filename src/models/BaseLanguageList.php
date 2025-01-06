@@ -88,6 +88,7 @@ class BaseLanguageList extends ActiveRecord
 
     /**
      * @throws InvalidParamException
+     * @throws Exception
      */
     public function beforeSave($insert)
     {
@@ -137,7 +138,7 @@ class BaseLanguageList extends ActiveRecord
             $response = Multilingual::importFromExcel($this);
         }
         if (!$response['status']) {
-            Yii::$app->session->setFlash($response['code'], $response['message']);
+            $this->addError($response['code'], $response['message']);
             return false;
         }
         return parent::beforeSave($insert);

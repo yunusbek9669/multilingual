@@ -11,7 +11,7 @@ class LanguageManager
     /**
      * @throws Exception
      */
-    public static function getAllLanguages(string $key): array|\yii\db\ActiveRecord|null
+    public static function getAllLanguages(string $session_key): array|\yii\db\ActiveRecord|null
     {
         if (empty(Yii::$app->params['language_list'])) {
             throw new Exception(<<<MESSAGE
@@ -30,10 +30,10 @@ class LanguageManager
             );
         }
         $hasActive = false;
-        $key = Yii::$app->session->get($key);
+        $key = Yii::$app->session->get($session_key);
         if (empty($key)) {
             $key = array_key_first(Yii::$app->params['language_list']);
-            Yii::$app->session->set($key, $key);
+            Yii::$app->session->set($session_key, $key);
         }
         try {
             Yii::$app->language = $key;
@@ -58,9 +58,12 @@ class LanguageManager
         }
 
         if (empty($result) || !$hasActive) {
-            foreach (Yii::$app->params['language_list'] as $key => $default_lang) {
+            foreach (Yii::$app->params['language_list'] as $def_key => $default_lang) {
                 $default_lang['active'] = true;
-                Yii::$app->params['language_list'][$key] = $default_lang;
+                Yii::$app->language = $def_key;
+                Yii::$app->session->set($session_key, $def_key);
+                Yii::$app->params['language_list'][$def_key] = $default_lang;
+                break;
             }
         }
         return array_merge(Yii::$app->params['language_list'], $result);
