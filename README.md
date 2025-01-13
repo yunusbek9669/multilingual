@@ -111,7 +111,9 @@ class LanguageList extends BaseLanguageList
 }
 ````
 Then, generate CRUD for the completed model and add a new language.
-
+>All added dynamic languages are stored as an array in the ```Yii::$app->params['language_list']``` variable. You can extract languages from this variable to use them in the navbar.
+> 
+>![All added dynamic languages.](dist/img/language_list.jpg)
 
 The models to be translated are inherited from the ```Multilingual``` model.
 
@@ -137,9 +139,17 @@ The part to be applied in the form page:
     #...
 <?php ActiveForm::end(); ?>
 ```
+> All added languages will automatically be displayed on the form page. From here you can type in the translation of all your newly added languages.
+>1) Default language;
+>2) Newly added language;
+>
+>![All added languages will be displayed on the form page.](dist/img/form.jpg)
+
 
 Necessary additions
 ===========================
+
+>Not only can you translate new languages one by one on the form page, but you can also do it by translating a single Excel file in bulk.
 
 Useful buttons to install
 ------------
@@ -165,8 +175,14 @@ This is an Excel file downloaded from an existing language
 
 This is a translated Excel file for the language that needs to be added.
 
-![This is a translated Excel file for the language that needs to be added.](dist/img/excel1.jpg)
+![This is a translated Excel file for the language that needs to be added.](dist/img/excel2.jpg)
 
 > When adding a new language, you can save the path of the translated excel file above to the ```import_excel``` attribute in the ```language_list``` table.
 > 
 > Result: all translations for the newly added language will be saved, automatically saved from the Excel file to the new ```lang_*``` table.
+>
+
+Result:
+------------
+
+![This is a translated Excel file for the language that needs to be added.](dist/img/result.jpg)
