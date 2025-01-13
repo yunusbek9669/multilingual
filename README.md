@@ -143,7 +143,7 @@ The part to be applied in the form page:
 >1) Default language;
 >2) Newly added language;
 >
->![All added languages will be displayed on the form page.](dist/img/form.jpg)
+>![All added languages will be displayed on the form page.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/form.jpg)
 
 
 Necessary additions
@@ -171,11 +171,11 @@ Instruction manual
 
 This is an Excel file downloaded from an existing language
 
-![This is an Excel file downloaded from an existing language](dist/img/excel1.jpg)
+![This is an Excel file downloaded from an existing language](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/excel1.jpg)
 
 This is a translated Excel file for the language that needs to be added.
 
-![This is a translated Excel file for the language that needs to be added.](dist/img/excel2.jpg)
+![This is a translated Excel file for the language that needs to be added.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/excel2.jpg)
 
 > When adding a new language, you can save the path of the translated excel file above to the ```import_excel``` attribute in the ```language_list``` table.
 > 
@@ -185,4 +185,4 @@ This is a translated Excel file for the language that needs to be added.
 Result:
 ------------
 
-![This is a translated Excel file for the language that needs to be added.](dist/img/result.jpg)
+![This is a translated Excel file for the language that needs to be added.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result.jpg)
