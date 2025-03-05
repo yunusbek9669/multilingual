@@ -111,7 +111,8 @@ class LanguageList extends BaseLanguageList
 }
 ````
 Then, generate CRUD for the completed model and add a new language.
->All added dynamic languages are stored as an array in the ```Yii::$app->params['language_list']``` variable. You can extract languages from this variable to use them in the navbar.
+>All added dynamic languages are stored as an array in the ```Yii::$app->params['language_list']``` variable. You can extract languages from this variable to use them in the navbar,
+>and you get the current language from the ```Yii::$app->params['active_language']``` variable.
 > 
 >![All added dynamic languages.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/language_list.jpg)
 

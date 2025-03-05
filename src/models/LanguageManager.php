@@ -66,6 +66,10 @@ class LanguageManager
                 break;
             }
         }
-        return array_merge(Yii::$app->params['language_list'], $result);
+
+        $language_list = array_merge(Yii::$app->params['language_list'], $result);
+        $filtered_languages = array_filter($language_list, fn($lang) => !empty($lang['active']));
+        Yii::$app->params['active_language'] = reset($filtered_languages);
+        return $language_list;
     }
 }
