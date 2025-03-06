@@ -32,7 +32,7 @@ Once the library is installed, add the following to your project settings:
 [
     #...
     'controllerMap' => [
-        'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations',
+        'multilingual-migration' => \Yunusbek\Multilingual\commands\Migrations::class,
     ],
     #...
 ]
@@ -73,6 +73,18 @@ The next important processing steps in the project settings.
         'multilingual' => [
             'class' => Yunusbek\Multilingual\Module::class,
         ],
+    ]
+    #...
+    'components' => [
+        #...
+        'i18n' => [
+            'translations' => [
+                'app*' => [
+                    'class' => \Yunusbek\Multilingual\models\DbMessageSource::class,
+                ],
+            ],
+        ],
+        #...
     ]
     #...
 ]

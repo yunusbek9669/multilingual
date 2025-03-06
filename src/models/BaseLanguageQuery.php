@@ -98,7 +98,6 @@ class BaseLanguageQuery extends ActiveQuery
                     table_name VARCHAR(50) NOT NULL,
                     table_iteration INT NOT NULL,
                     is_static BOOLEAN DEFAULT FALSE,
-                    message VARCHAR(100),
                     value JSON NOT NULL,
                     PRIMARY KEY (table_name, table_iteration, is_static)
                 ) PARTITION BY LIST (is_static);

@@ -306,7 +306,7 @@ class Multilingual extends ActiveRecord
                                         ->upsert($table, [
                                             'table_name' => $row[0],
                                             'table_iteration' => $row[1],
-                                            'is_static' => strtolower($row[2]) === 'true',
+                                            'is_static' => strtolower($row[2]) === 'true' || strtolower($row[2]) === '1',
                                             'value' => $values,
                                         ], [
                                             'value' => $values

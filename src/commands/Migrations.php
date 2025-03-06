@@ -62,10 +62,10 @@ class {$migrationClassName} extends Migration
 PHP;
 
         if (file_put_contents($filePath, $migrationCode) === false) {
-            echo "Migration file yaratishda xato!\n";
+            echo "An error occurred while creating the migration file!\n";
             return;
         }
 
-        echo "Migration fayli yaratildi: {$filePath}\n";
+        echo "Migration file created successfully. {$filePath}\n";
     }
 }
