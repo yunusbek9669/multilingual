@@ -261,47 +261,70 @@ class LanguageService extends ActiveQuery
         $sheet = $spreadsheet->getActiveSheet();
 
         /** Asosiy ustunlar */
-        $letterList = ['A','B','C','D'];
-        $baseHeaders = ['table_name', 'table_iteration', 'is_static', 'message'];
-        $jsonKeys = [];
+        $letterList = ['A','B','C'];
+        $baseHeaders = ['is_static', 'table_name', 'table_iteration'];
+        $dynamicJsonKeys = [];
+        $staticJsonKeys = [];
 
         /** Barcha JSON indekslarini aniqlash */
         foreach ($data as $row) {
             $jsonData = json_decode($row['value'], true);
-            if (is_array($jsonData)) {
-                $jsonKeys = array_unique(array_merge($jsonKeys, array_keys($jsonData)));
+            if ($row['is_static']) {
+                if (is_array($jsonData)) {
+                    $staticJsonKeys = array_unique(array_merge($staticJsonKeys, array_keys($jsonData)));
+                }
+            } else {
+                if (is_array($jsonData)) {
+                    $dynamicJsonKeys = array_unique(array_merge($dynamicJsonKeys, array_keys($jsonData)));
+                }
             }
         }
 
         /** Barcha sarlavhalar: asosiy ustunlar + JSON indekslari */
-        $headers = array_merge($baseHeaders, $jsonKeys);
+        $headers = array_merge($baseHeaders, $dynamicJsonKeys);
         $sheet->fromArray($headers, NULL, 'A1');
         $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
         $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
-        $sheet->getStyle("C1:D1")->getFont()->setBold(true)->setColor(new Color('777777'));
+        $sheet->getStyle("C1")->getFont()->setBold(true)->setColor(new Color('777777'));
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
 
         /** Ma'lumotlarni qo'shish */
         $rowNumber = 2;
         foreach ($data as $row) {
-            $sheet->setCellValue("A{$rowNumber}", $row['table_name']);
-            $sheet->setCellValue("B{$rowNumber}", $row['table_iteration']);
-            $sheet->setCellValue("C{$rowNumber}", $row['is_static']);
-            $sheet->setCellValue("D{$rowNumber}", $row['message']);
-
             $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-            $sheet->getStyle("C{$rowNumber}:D{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+            $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-            /** JSON qiymatlarini mos ustunlarga qo'shish */
-            $jsonData = json_decode($row['value'], true);
-            $colIndex = 4;
-            foreach ($jsonKeys as $key) {
-                $colIndex++;
-                $colLetter = Coordinate::stringFromColumnIndex($colIndex); // A, B, C...
-                $letterList = array_merge($letterList, [$colLetter]);
-                $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$key] ?? '');
+            $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
+            $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
+            if ($row['is_static']) {
+                /** JSON qiymatlarini alohida qatorda chiqarish */
+                $jsonData = json_decode($row['value'], true);
+                foreach ($staticJsonKeys as $key) {
+                    $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+                    $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+
+                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
+                    $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
+                    $sheet->setCellValue("C{$rowNumber}", $key);
+
+                    $colLetter = Coordinate::stringFromColumnIndex(4); // A, B, C...
+                    $letterList = array_merge($letterList, [$colLetter]);
+                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$key] ?? '');
+                    $rowNumber++;
+                }
+            } else {
+                $sheet->setCellValue("C{$rowNumber}", $row['table_iteration']);
+                /** JSON qiymatlarini mos ustunlarga qo'shish */
+                $jsonData = json_decode($row['value'], true);
+                $colIndex = 3;
+                foreach ($dynamicJsonKeys as $key) {
+                    $colIndex++;
+                    $colLetter = Coordinate::stringFromColumnIndex($colIndex); // A, B, C...
+                    $letterList = array_merge($letterList, [$colLetter]);
+                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$key] ?? '');
+                }
+                $rowNumber++;
             }
-            $rowNumber++;
         }
 
         /** Ustunlarning kengligini avtomatik sozlash */
@@ -311,11 +334,11 @@ class LanguageService extends ActiveQuery
 
         /** Asosiy ustunlarni (table_name, table_iteration, va JSON kalitlari) himoyalash */
         $sheet->getStyle('A1:B1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('C1:D1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('E1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
 
         /** JSON qiymatlarini o'zgartirishga ruxsat berish */
-        $sheet->getStyle('E2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
+        $sheet->getStyle('D2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
 
         /** Himoyani yoqish */
         $spreadsheet->getActiveSheet()->getProtection()->setSheet(true);

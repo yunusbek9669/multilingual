@@ -227,10 +227,9 @@ class Multilingual extends ActiveRecord
                     $id = $modelRow['id'];
                     unset($modelRow['id']);
                     $data[] = [
+                        'is_static' => false,
                         'table_name' => $tableName,
                         'table_iteration' => $id,
-                        'is_static' => false,
-                        'message' => '',
                         'value' => json_encode($modelRow),
                     ];
                 }
@@ -288,41 +287,71 @@ class Multilingual extends ActiveRecord
 
                     if (!empty($data))
                     {
-                        $attributes = array_slice($data[0], 4);
+                        $attributes = array_slice($data[0], 3);
                         unset($data[0]);
                         if (!empty($data))
                         {
-                            foreach ($data as $row)
+                            /** static tarjimalr uchun */
+                            $static = [];
+                            foreach ($data as $row) {
+                                if ($row[0] == '1') {
+                                    $static[$row[1]][$row[2]] = $row[3];
+                                }
+                            }
+                            foreach ($static as $category => $values)
                             {
-                                if (isset($row[0], $row[1]))
-                                {
-                                    $filteredArray = array_slice($row, 4);
-                                    $values = array_combine($attributes, $filteredArray);
-                                    $values = array_filter($values, function($value) {
-                                        return $value !== null;
-                                    });
+                                $upsert = $db->createCommand()
+                                    ->upsert($table, [
+                                        'is_static' => true,
+                                        'table_name' => $category,
+                                        'table_iteration' => -1,
+                                        'value' => $values,
+                                    ], [
+                                        'value' => $values
+                                    ])->execute();
 
-                                    $upsert = $db->createCommand()
-                                        ->upsert($table, [
-                                            'table_name' => $row[0],
-                                            'table_iteration' => $row[1],
-                                            'is_static' => strtolower($row[2]) === 'true' || strtolower($row[2]) === '1',
-                                            'value' => $values,
-                                        ], [
-                                            'value' => $values
-                                        ])->execute();
+                                if ($upsert <= 0) {
+                                    $json = json_encode($values);
+                                    $response['status'] = false;
+                                    $response['code'] = 'error';
+                                    $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
+                                    break;
+                                }
+                            }
 
-                                    if ($upsert <= 0) {
-                                        $json = json_encode($values);
-                                        $response['status'] = false;
-                                        $response['code'] = 'error';
-                                        $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
-                                        break;
-                                    }
+                            /** dynamic tarjimalr uchun */
+                            $dynamic = [];
+                            $dynamic = array_filter($data, function ($item) {
+                                return $item[0] === '0';
+                            });
+                            foreach ($dynamic as $row)
+                            {
+                                $filteredArray = array_slice($row, 3);
+                                $values = array_combine($attributes, $filteredArray);
+                                $values = array_filter($values, function($value) {
+                                    return $value !== null;
+                                });
+                                $upsert = $db->createCommand()
+                                    ->upsert($table, [
+                                        'is_static' => false,
+                                        'table_name' => $row[1],
+                                        'table_iteration' => (int)$row[2],
+                                        'value' => $values,
+                                    ], [
+                                        'value' => $values
+                                    ])->execute();
+
+                                if ($upsert <= 0) {
+                                    $json = json_encode($values);
+                                    $response['status'] = false;
+                                    $response['code'] = 'error';
+                                    $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
+                                    break;
                                 }
                             }
                         }
                     }
+                    Yii::$app->cache->flush();
                     $transaction->commit();
                 } catch (Exception $e) {
                     $response['status'] = false;
