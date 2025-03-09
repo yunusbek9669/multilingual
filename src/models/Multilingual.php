@@ -107,6 +107,15 @@ class Multilingual extends ActiveRecord
         parent::afterSave($insert, $changedAttributes);
     }
 
+    public function afterDelete()
+    {
+        $response = $this->deleteLanguageValue();
+        if ($response['status']) {
+            Yii::error("deleteLanguageValue() failed: " . json_encode($this->attributes), ' ' . $response['message'], __METHOD__);
+        }
+        parent::afterDelete();
+    }
+
     /** Tarjimalarni qo‘shib qo‘yish
      * @throws Exception
      */
