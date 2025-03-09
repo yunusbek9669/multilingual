@@ -257,21 +257,25 @@ class LanguageService extends ActiveQuery
     /** Ma‘lumotlarni excelga export qilish */
     public static function exportToExcelData($data, $fileName): bool|string
     {
+        $is_static = false;
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
         /** Asosiy ustunlar */
-        $letterList = ['A','B','C'];
+        $basicList = ['A','B','C'];
+        $letterList = $basicList;
         $baseHeaders = ['is_static', 'table_name', 'table_iteration'];
         $dynamicJsonKeys = [];
         $staticJsonKeys = [];
 
         /** Barcha JSON indekslarini aniqlash */
         foreach ($data as $row) {
+            $is_static = $row['is_static'];
             $jsonData = json_decode($row['value'], true);
             if ($row['is_static']) {
+                $staticJsonKeys[$row['table_name']] = [];
                 if (is_array($jsonData)) {
-                    $staticJsonKeys = array_unique(array_merge($staticJsonKeys, array_keys($jsonData)));
+                    $staticJsonKeys[$row['table_name']] = array_unique(array_merge($staticJsonKeys[$row['table_name']], array_keys($jsonData)));
                 }
             } else {
                 if (is_array($jsonData)) {
@@ -284,9 +288,26 @@ class LanguageService extends ActiveQuery
         $headers = array_merge($baseHeaders, $dynamicJsonKeys);
         $sheet->fromArray($headers, NULL, 'A1');
         $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
+        $sheet->getColumnDimension('A')->setAutoSize(false);
+        $sheet->getColumnDimension('B')->setAutoSize(true);
+        $sheet->getColumnDimension('A')->setWidth(9);
+        if ($is_static) {
+            $sheet->getColumnDimension('C')->setAutoSize(true);
+            $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+            $sheet->getStyle('D1')->getFont()->setBold(true);
+            $sheet->setCellValue("D1", "translate here");
+        } else {
+            $sheet->getColumnDimension('C')->setAutoSize(false);
+            $sheet->getColumnDimension('C')->setWidth(15);
+        }
         $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
         $sheet->getStyle("C1")->getFont()->setBold(true)->setColor(new Color('777777'));
         $sheet->getStyle($headerRange)->getFont()->setBold(true);
+
+        /** Asosiy ustunlarni (table_name, table_iteration, va JSON kalitlari) himoyalash */
+        $sheet->getStyle('A1:B1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
 
         /** Ma'lumotlarni qo'shish */
         $rowNumber = 2;
@@ -299,17 +320,17 @@ class LanguageService extends ActiveQuery
             if ($row['is_static']) {
                 /** JSON qiymatlarini alohida qatorda chiqarish */
                 $jsonData = json_decode($row['value'], true);
-                foreach ($staticJsonKeys as $key) {
+                foreach ($staticJsonKeys[$row['table_name']] as $value) {
                     $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                     $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
                     $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
                     $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
-                    $sheet->setCellValue("C{$rowNumber}", $key);
+                    $sheet->setCellValue("C{$rowNumber}", $value);
 
                     $colLetter = Coordinate::stringFromColumnIndex(4); // A, B, C...
                     $letterList = array_merge($letterList, [$colLetter]);
-                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$key] ?? '');
+                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$value] ?? '');
                     $rowNumber++;
                 }
             } else {
@@ -328,14 +349,9 @@ class LanguageService extends ActiveQuery
         }
 
         /** Ustunlarning kengligini avtomatik sozlash */
-        foreach (array_unique($letterList) as $columnID) {
+        foreach (array_diff_key(array_unique($letterList), $basicList) as $columnID) {
             $sheet->getColumnDimension($columnID)->setAutoSize(true);
         }
-
-        /** Asosiy ustunlarni (table_name, table_iteration, va JSON kalitlari) himoyalash */
-        $sheet->getStyle('A1:B1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
 
         /** JSON qiymatlarini o'zgartirishga ruxsat berish */
         $sheet->getStyle('D2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);

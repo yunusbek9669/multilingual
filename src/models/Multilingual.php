@@ -198,16 +198,16 @@ class Multilingual extends ActiveRecord
                 $table = $language['table'];
                 $upsert = $db->createCommand()
                     ->upsert($table, [
+                        'is_static' => true,
                         'table_name' => $category,
                         'table_iteration' => 0,
-                        'is_static' => true,
                         'value' => $data,
                     ], [
                         'value' => $data
                     ])->execute();
 
                 if ($upsert <= 0) {
-                    $response['message'] = '"' . $table . '"ni yozish davomida xatolik';
+                    $response['message'] = 'Error while writing "' . $table . '" table';
                     $response['code'] = 'error';
                     $response['status'] = false;
                     break;
@@ -255,9 +255,11 @@ class Multilingual extends ActiveRecord
     /** Tablitsadan excelga export qilish
      * @throws \Exception
      */
-    public static function exportToExcel($tableName): bool|string
+    public static function exportToExcel($tableName, bool $is_static = true): bool|string
     {
-        $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName}")->queryAll();
+        $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName} WHERE is_static = :is_static")
+            ->bindValue(':is_static', $is_static ? true : false, \PDO::PARAM_BOOL)
+            ->queryAll();
 
         if (empty($data)) {
             throw new \Exception("Jadvalda ma'lumot topilmadi.");
@@ -313,7 +315,7 @@ class Multilingual extends ActiveRecord
                                     ->upsert($table, [
                                         'is_static' => true,
                                         'table_name' => $category,
-                                        'table_iteration' => -1,
+                                        'table_iteration' => 0,
                                         'value' => $values,
                                     ], [
                                         'value' => $values

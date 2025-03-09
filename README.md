@@ -176,7 +176,8 @@ echo Html::a('All translations', ['/multilingual/language/index'], ['class' => '
 and add the following button to the actions section of each language row, which will download an excel file of all translations for that language.
 
 ````php
-echo Html::a('<img src="'. $model->image .'" height="16"> '.Yii::t('app', 'Export Excel'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table], ['class'=> 'btn btn-info', 'data-pjax' => '0'])
+echo Html::a(Yii::t('app', 'Export i18n'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => true], ['class'=> 'btn btn-info', 'data-pjax' => '0'])
+echo Html::a(Yii::t('app', 'Export Columns'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => false], ['class'=> 'btn btn-info', 'data-pjax' => '0'])
 ````
 
 
