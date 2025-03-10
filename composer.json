@@ -26,8 +26,8 @@
         }
     },
     "scripts": {
-        "ml-extract-i18n": "php yii multilingual-message/extract @app/vendor/yunusbek/multilingual/src/commands/i18n.php",
-        "ml-extract-attributes": "php yii multilingual-message/extract @app/vendor/yunusbek/multilingual/src/commands/attributes.php",
+        "ml-extract-i18n": "php yii multilingual-message/extract @vendor/yunusbek/multilingual/src/commands/i18n.php",
+        "ml-extract-attributes": "php yii multilingual-message/extract @vendor/yunusbek/multilingual/src/commands/attributes.php",
         "ml-migration": "Yunusbek\\Multilingual\\commands\\Migrations::class"
     }
 }
