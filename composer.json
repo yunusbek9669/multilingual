@@ -12,6 +12,11 @@
             "Yunusbek\\Multilingual\\": "src/"
         }
     },
+    "extra": {
+        "yii2-extension": {
+            "bootstrap": "Yunusbek\\Multilingual\\Bootstrap"
+        }
+    },
     "authors": [
         {
             "name": "yunusbek",
