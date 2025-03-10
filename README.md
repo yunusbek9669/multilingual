@@ -32,8 +32,8 @@ Once the library is installed, add the following to your project settings:
 [
     #...
     'controllerMap' => [
-        'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations::class',
-        'multilingual-extract' => 'Yunusbek\Multilingual\commands\Messages::class',
+        'ml-migration' => 'Yunusbek\Multilingual\commands\Migrations',
+        'ml-extract' => 'Yunusbek\Multilingual\commands\Messages',
     ],
     #...
 ]
@@ -42,9 +42,7 @@ Once the library is installed, add the following to your project settings:
 The next thing you need to do is updating your database schema by applying the migration of table ```language_list```:
 
 ```sh
-php yii multilingual-migration/generate
-php yii multilingual-extract @vendor/yunusbek/multilingual/src/config/i18n.php
-php yii multilingual-extract @vendor/yunusbek/multilingual/src/config/attributes.php
+php yii ml-migration
 ```
 
 The next important processing steps in the project settings.
@@ -74,7 +72,7 @@ The next important processing steps in the project settings.
     #...
     'modules' => [
         'multilingual' => [
-            'class' => Yunusbek\Multilingual\Module::class,
+            'class' => 'Yunusbek\Multilingual\Module',
         ],
     ]
     #...
@@ -83,7 +81,7 @@ The next important processing steps in the project settings.
         'i18n' => [
             'translations' => [
                 'app*' => [
-                    'class' => 'Yunusbek\Multilingual\models\DbMessageSource::class',
+                    'class' => 'Yunusbek\Multilingual\models\DbMessageSource',
                 ],
             ],
         ],
@@ -150,6 +148,7 @@ The part to be applied in the form page:
     <?php echo \Yunusbek\Multilingual\widgets\MultilingualAttributes::widget([
         'form' => $form,
         'model' => $model,
+        'table_name' => 'model_table_name', # set the model table name to output model attributes to the lang_* table.
         'attribute' => 'attribute_name', # or add multiple like ['attribute_name', 'second_attribute_name']
     ]) ?>
     #...
@@ -161,6 +160,13 @@ The part to be applied in the form page:
 >
 >![All added languages will be displayed on the form page.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/form.jpg)
 
+
+Run the following commands to extract the attributes of the models and the static information of the project to the ```lang_*``` table.:
+
+```sh
+php yii ml-extract/i18n
+php yii ml-extract/attributes
+```
 
 Necessary additions
 ===========================

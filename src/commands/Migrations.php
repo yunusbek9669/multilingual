@@ -7,6 +7,11 @@ use yii\console\Controller;
 
 class Migrations extends Controller
 {
+    public function getDefaultAction()
+    {
+        return 'generate';
+    }
+
     public function actionGenerate()
     {
         $migrationClassName = 'm' . gmdate('ymd_His') . '_create_language_list_table';

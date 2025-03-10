@@ -274,7 +274,7 @@ EOD;
      * this file and then customize it for your needs.
      * @throws Exception on failure.
      */
-    public function actionExtract($configFile = null)
+    public function actionI18n($configFile = '@vendor/yunusbek/multilingual/src/config/i18n.php')
     {
         $this->initConfig($configFile);
 
@@ -283,27 +283,56 @@ EOD;
         /** @var Connection $db */
         $db = Instance::ensure($this->config['db'], Connection::className());
 
-        if ($this->config['is_static']) {
-            $messages = [];
-            foreach ($files as $file) {
-                $messages = array_merge_recursive($messages, $this->extractMessages($file, $this->config['translator']));
-            }
-        } else {
-            $attributes = [];
-            foreach ($files as $file) {
-                $extracted = $this->extractMessages($file, $this->config['translator']);
-                $attributes = array_merge_recursive($attributes, $extracted);
-            }
+        $messages = [];
+        foreach ($files as $file) {
+            $messages = array_merge_recursive($messages, $this->extractMessages($file, $this->config['translator']));
+        }
 
-            foreach ($this->config['languages'] as $language) {
-                $langTable = "{{%lang_$language}}";
-                $this->saveAttributesToDb(
-                    $attributes,
-                    $db,
-                    $langTable,
-                    $this->config['removeUnused']
-                );
-            }
+        foreach ($this->config['languages'] as $language) {
+            $langTable = "{{%lang_$language}}";
+            $this->saveMessagesToDb(
+                $messages,
+                $db,
+                $langTable,
+                $this->config['removeUnused']
+            );
+        }
+    }
+
+    /**
+     * Extracts messages to be translated from source code.
+     *
+     * This command will search through source code files and extract
+     * messages that need to be translated in different languages.
+     *
+     * @param string|null $configFile the path or alias of the configuration file.
+     * You may use the "yii message/config" command to generate
+     * this file and then customize it for your needs.
+     * @throws Exception on failure.
+     */
+    public function actionAttributes($configFile = '@vendor/yunusbek/multilingual/src/config/attributes.php')
+    {
+        $this->initConfig($configFile);
+
+        $files = FileHelper::findFiles(realpath($this->config['sourcePath']), $this->config);
+
+        /** @var Connection $db */
+        $db = Instance::ensure($this->config['db'], Connection::className());
+
+        $attributes = [];
+        foreach ($files as $file) {
+            $extracted = $this->extractMessages($file, $this->config['translator']);
+            $attributes = array_merge_recursive($attributes, $extracted);
+        }
+
+        foreach ($this->config['languages'] as $language) {
+            $langTable = "{{%lang_$language}}";
+            $this->saveAttributesToDb(
+                $attributes,
+                $db,
+                $langTable,
+                $this->config['removeUnused']
+            );
         }
     }
 
@@ -417,7 +446,7 @@ EOD;
             }
         }
 
-        $this->stdout('Inserting new messages...');
+        $this->stdout('Inserting new attributes...');
         $insertCount = 0;
 
         $execute = false;
@@ -461,7 +490,7 @@ EOD;
             $this->stdout("Nothing to save.\n");
         }
 
-        $this->stdout($removeUnused ? 'Deleting obsoleted messages...' : 'Updating obsoleted messages...');
+        $this->stdout($removeUnused ? 'Deleting obsoleted attributes...' : 'Updating obsoleted attributes...');
     }
 
     /**
@@ -474,21 +503,22 @@ EOD;
      */
     protected function extractMessages($fileName, $translator)
     {
-        $this->stdout('Extracting messages from ');
-        $this->stdout($fileName, Console::FG_CYAN);
-        $this->stdout("...\n");
-
         $subject = file_get_contents($fileName);
         $messages = [];
         $tokens = token_get_all($subject);
         if ($this->config['is_static']) {
+            $this->stdout('Extracting messages from ');
+            $this->stdout($fileName, Console::FG_CYAN);
+            $this->stdout("...\n");
             foreach ((array) $translator as $currentTranslator) {
                 $translatorTokens = token_get_all('<?php ' . $currentTranslator);
                 array_shift($translatorTokens);
                 $messages = array_merge_recursive($messages, $this->extractMessagesFromTokens($tokens, $translatorTokens));
             }
         } else {
-
+            $this->stdout('Extracting attributes from ');
+            $this->stdout($fileName, Console::FG_CYAN);
+            $this->stdout("...\n");
             foreach ((array) $translator as $currentTranslator) {
                 $translatorTokens = token_get_all('<?php ' . $currentTranslator);
                 array_shift($translatorTokens);
