@@ -34,7 +34,7 @@ use Yunusbek\Multilingual\models\BaseLanguageList;
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @since 2.0
  */
-class Messages extends \yii\console\Controller
+class MessagesController extends \yii\console\Controller
 {
     /**
      * @var string controller default action ID.
@@ -256,6 +256,11 @@ EOD;
 
         $this->stdout("Configuration file template created at '{$filePath}'.\n\n", Console::FG_GREEN);
         return ExitCode::OK;
+    }
+
+    public function getDefaultAction()
+    {
+        return 'extract';
     }
 
     /**
