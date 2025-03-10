@@ -33,6 +33,7 @@ Once the library is installed, add the following to your project settings:
     #...
     'controllerMap' => [
         'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations::class',
+        'multilingual-extract' => 'Yunusbek\Multilingual\commands\Messages::class',
     ],
     #...
 ]
@@ -42,6 +43,8 @@ The next thing you need to do is updating your database schema by applying the m
 
 ```sh
 php yii multilingual-migration/generate
+php yii multilingual-extract @vendor/yunusbek/multilingual/src/config/i18n.php
+php yii multilingual-extract @vendor/yunusbek/multilingual/src/config/attributes.php
 ```
 
 The next important processing steps in the project settings.

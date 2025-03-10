@@ -10,11 +10,11 @@ class Bootstrap implements BootstrapInterface
         if ($app instanceof \yii\console\Application) {
             $app->controllerMap = array_merge($app->controllerMap, [
                 'ml-extract-i18n' => [
-                    'class' => 'Yunusbek\Multilingual\commands\MessagesController',
+                    'class' => \Yunusbek\Multilingual\commands\Messages::class,
                     'configFile' => '@vendor/yunusbek/multilingual/src/config/i18n.php',
                 ],
                 'ml-extract-attributes' => [
-                    'class' => 'Yunusbek\Multilingual\commands\MessagesController',
+                    'class' => \Yunusbek\Multilingual\commands\Messages::class,
                     'configFile' => '@vendor/yunusbek/multilingual/src/config/attributes.php',
                 ],
             ]);

@@ -34,7 +34,7 @@ use Yunusbek\Multilingual\models\BaseLanguageList;
  * @author Qiang Xue <qiang.xue@gmail.com>
  * @since 2.0
  */
-class MessagesController extends \yii\console\Controller
+class Messages extends \yii\console\Controller
 {
     /**
      * @var string controller default action ID.
