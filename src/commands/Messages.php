@@ -12,6 +12,7 @@ use yii\helpers\Console;
 use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
 use yii\i18n\GettextPoFile;
+use Yunusbek\Multilingual\models\BaseLanguageList;
 
 /**
  * Extracts messages to be translated from source files.
@@ -341,6 +342,7 @@ EOD;
         $this->stdout('Inserting new messages...');
         $insertCount = 0;
 
+        $execute = false;
         try {
             Yii::$app->cache->delete($langTable);
             foreach ($new as $category => $msgs) {
@@ -359,6 +361,7 @@ EOD;
                         'value' => $values
                     ])->execute();
                 if (!$execute) {
+                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($values).' failed', Console::FG_RED);
                     break;
                 }
             }
@@ -369,8 +372,11 @@ EOD;
         } catch (\yii\db\Exception $e) {
             $this->stderr($e->getMessage() . "\n");
         }
-
-        $this->stdout($insertCount ? "{$insertCount} saved.\n" : "Nothing to save.\n");
+        if ($insertCount && $execute) {
+            $this->stderr("\n"."{$insertCount} items inserted successfully.\n", Console::FG_GREEN);
+        } else {
+            $this->stdout("Nothing to save.\n");
+        }
 
         $this->stdout($removeUnused ? 'Deleting obsoleted messages...' : 'Updating obsoleted messages...');
     }
@@ -395,41 +401,46 @@ EOD;
             }
         }
 
-        $new = [];
         $obsolete = [];
-        $newValues = [];
+        $new = [];
 
         foreach ($attributes as $category => $msgs) {
             $msgs = array_unique($msgs);
             $obsolete[$category] = $msgs;
             if (empty($currentValues[$category])) {
-                $newValues[$category][-1] = array_fill_keys($obsolete[$category], null);
+                $new[$category][0] = array_fill_keys($obsolete[$category], null);
             }
         }
-        var_dump($newValues);die;
 
         $this->stdout('Inserting new messages...');
         $insertCount = 0;
 
+        $execute = false;
         try {
             Yii::$app->cache->delete($langTable);
             foreach ($new as $category => $msgs) {
-                $values = [];
-                foreach ($msgs as $msg) {
-                    $insertCount++;
-                }
-                $values = array_merge($currentValues[$category] ?? [], $msgs);
-                $execute = $db->createCommand()
-                    ->upsert($langTable, [
-                        'is_static' => false,
-                        'table_name' => $category,
-                        'table_iteration' => 0,
-                        'value' => $values,
-                    ], [
-                        'value' => $values
-                    ])->execute();
-                if (!$execute) {
-                    break;
+                if (BaseLanguageList::isTableExists($category)){
+                    $values = [];
+                    foreach ($msgs as $msg) {
+                        $insertCount++;
+                    }
+                    $values = $new[$category][0];
+                    $execute = $db->createCommand()
+                        ->upsert($langTable, [
+                            'is_static' => false,
+                            'table_name' => $category,
+                            'table_iteration' => 0,
+                            'value' => $values,
+                        ], [
+                            'value' => $values
+                        ])->execute();
+                    if (!$execute) {
+                        $this->stderr("\n".'"'.$langTable.'" '.json_encode($values).' failed', Console::FG_RED);
+                        break;
+                    }
+                } else {
+                    $this->stderr("\n".'"'.$category.'"', Console::FG_RED);
+                    $this->stderr(" table doesn't exist"."\n", Console::FG_YELLOW);
                 }
             }
             Yii::$app->cache->getOrSet($langTable, function () use ($currentValues)
@@ -437,10 +448,13 @@ EOD;
                 return $currentValues;
             }, 3600 * 2);
         } catch (\yii\db\Exception $e) {
-            $this->stderr($e->getMessage() . "\n");
+            $this->stderr($e->getMessage() . "\n", Console::FG_RED);
         }
-
-        $this->stdout($insertCount ? "{$insertCount} saved.\n" : "Nothing to save.\n");
+        if ($insertCount && $execute) {
+            $this->stderr("\n"."{$insertCount} items inserted successfully.\n", Console::FG_GREEN);
+        } else {
+            $this->stdout("Nothing to save.\n");
+        }
 
         $this->stdout($removeUnused ? 'Deleting obsoleted messages...' : 'Updating obsoleted messages...');
     }
@@ -469,19 +483,11 @@ EOD;
                 $messages = array_merge_recursive($messages, $this->extractMessagesFromTokens($tokens, $translatorTokens));
             }
         } else {
-            // TABLE_NAME sharhini izlash (agar runtime da generatsiya qilingan bo'lsa, fayl tarkibida bo'lmaydi)
-            preg_match('/<!-- TABLE_NAME: (.+?) -->/', $subject, $matches);
-            $defaultTableName = $matches[1] ?? null;
 
             foreach ((array) $translator as $currentTranslator) {
                 $translatorTokens = token_get_all('<?php ' . $currentTranslator);
                 array_shift($translatorTokens);
                 $extracted = $this->extractAttributesFromTokens($tokens, $translatorTokens);
-                if (empty($extracted)) {
-                    $this->stdout("Hech qanday attribute topilmadi: $fileName\n", Console::FG_YELLOW);
-                } else {
-                    $this->stdout("Topilgan attribute'lar: " . implode(', ', array_merge(...array_values($extracted))) . "\n", Console::FG_GREEN);
-                }
                 $messages = array_merge_recursive($messages, $extracted);
             }
         }
@@ -508,7 +514,7 @@ EOD;
         foreach ($tokens as $tokenIndex => $token) {
             // finding out translator call
             if ($matchedTokensCount < $translatorTokensCount) {
-                if ($this->tokensEqual($token, $translatorTokens[$matchedTokensCount])) {
+                if ($this->tokensEqualM($token, $translatorTokens[$matchedTokensCount])) {
                     $matchedTokensCount++;
                 } else {
                     $matchedTokensCount = 0;
@@ -517,7 +523,7 @@ EOD;
                 // translator found
 
                 // end of function call
-                if ($this->tokensEqual(')', $token)) {
+                if ($this->tokensEqualM(')', $token)) {
                     $pendingParenthesisCount--;
 
                     if ($pendingParenthesisCount === 0) {
@@ -556,7 +562,7 @@ EOD;
                     } else {
                         $buffer[] = $token;
                     }
-                } elseif ($this->tokensEqual('(', $token)) {
+                } elseif ($this->tokensEqualM('(', $token)) {
                     // count beginning of function call, skipping translator beginning
 
                     // If we are not yet inside the translator, make sure that it's beginning of the real translator.
@@ -605,9 +611,9 @@ EOD;
             }
 
             if ($inWidgetCall) {
-                if ($this->tokensEqual('(', $token)) {
+                if ($this->tokensEqualA('(', $token)) {
                     $parenthesisCount++;
-                } elseif ($this->tokensEqual(')', $token)) {
+                } elseif ($this->tokensEqualA(')', $token)) {
                     $parenthesisCount--;
                     if ($parenthesisCount === 0) {
                         $attributes = array_merge_recursive($attributes, $this->parseAttributesFromBuffer($buffer));
@@ -640,7 +646,7 @@ EOD;
                 while ($i < count($buffer) && isset($buffer[$i][0]) && $buffer[$i][0] === T_WHITESPACE) {
                     $i++;
                 }
-                if ($i < count($buffer) && $this->tokensEqual('=>', $buffer[$i])) {
+                if ($i < count($buffer) && $this->tokensEqualA('=>', $buffer[$i])) {
                     $i++;
                     while ($i < count($buffer) && isset($buffer[$i][0]) && $buffer[$i][0] === T_WHITESPACE) {
                         $i++;
@@ -659,7 +665,7 @@ EOD;
                 while ($i < count($buffer) && isset($buffer[$i][0]) && $buffer[$i][0] === T_WHITESPACE) {
                     $i++;
                 }
-                if ($i < count($buffer) && $this->tokensEqual('=>', $buffer[$i])) {
+                if ($i < count($buffer) && $this->tokensEqualA('=>', $buffer[$i])) {
                     $i++;
                     while ($i < count($buffer) && isset($buffer[$i][0]) && $buffer[$i][0] === T_WHITESPACE) {
                         $i++;
@@ -669,7 +675,7 @@ EOD;
                     } elseif (isset($buffer[$i][0]) && $buffer[$i][0] === T_VARIABLE &&
                         isset($buffer[$i + 1][0]) && $buffer[$i + 1][0] === T_DOUBLE_COLON &&
                         isset($buffer[$i + 2][0]) && $buffer[$i + 2][0] === T_STRING && $buffer[$i + 2][1] === 'tableName') {
-                        $tableName = $defaultTableName ?? ($modelVar ? "$modelVar::tableName()" : 'dynamic_table_name');
+                        $tableName = $modelVar ? "$modelVar::tableName()" : 'dynamic_table_name';
                         $i += 3;
                     }
                     $isTableNameKey = false;
@@ -683,7 +689,7 @@ EOD;
                 while ($i < count($buffer) && isset($buffer[$i][0]) && $buffer[$i][0] === T_WHITESPACE) {
                     $i++;
                 }
-                if ($i < count($buffer) && $this->tokensEqual('=>', $buffer[$i])) {
+                if ($i < count($buffer) && $this->tokensEqualA('=>', $buffer[$i])) {
                     $i++;
                     while ($i < count($buffer) && isset($buffer[$i][0]) && $buffer[$i][0] === T_WHITESPACE) {
                         $i++;
@@ -695,9 +701,9 @@ EOD;
                         } else {
                             $attributes['default'][] = $value;
                         }
-                    } elseif ($this->tokensEqual('[', $buffer[$i])) {
+                    } elseif ($this->tokensEqualA('[', $buffer[$i])) {
                         $i++;
-                        while ($i < count($buffer) && !$this->tokensEqual(']', $buffer[$i])) {
+                        while ($i < count($buffer) && !$this->tokensEqualA(']', $buffer[$i])) {
                             if (isset($buffer[$i][0]) && $buffer[$i][0] === T_CONSTANT_ENCAPSED_STRING) {
                                 $value = trim($buffer[$i][1], "'\"");
                                 if ($tableName) {
@@ -717,7 +723,7 @@ EOD;
         return $attributes;
     }
 
-    protected function tokensEqual($expected, $token)
+    protected function tokensEqualA($expected, $token)
     {
         if ($expected === '=>' && is_array($token) && $token[0] === T_DOUBLE_ARROW) {
             return true;
@@ -734,17 +740,17 @@ EOD;
      * @return bool
      * @since 2.0.1
      */
-//    protected function tokensEqual($a, $b)
-//    {
-//        if (is_string($a) && is_string($b)) {
-//            return $a === $b;
-//        }
-//        if (isset($a[0], $a[1], $b[0], $b[1])) {
-//            return $a[0] === $b[0] && $a[1] == $b[1];
-//        }
-//
-//        return false;
-//    }
+    protected function tokensEqualM($a, $b)
+    {
+        if (is_string($a) && is_string($b)) {
+            return $a === $b;
+        }
+        if (isset($a[0], $a[1], $b[0], $b[1])) {
+            return $a[0] === $b[0] && $a[1] == $b[1];
+        }
+
+        return false;
+    }
 
     /**
      * Finds out a line of the first non-char PHP token found.

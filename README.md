@@ -33,7 +33,6 @@ Once the library is installed, add the following to your project settings:
     #...
     'controllerMap' => [
         'multilingual-migration' => 'Yunusbek\Multilingual\commands\Migrations::class',
-        'multilingual-message' => 'Yunusbek\Multilingual\commands\Messages::class',
     ],
     #...
 ]
