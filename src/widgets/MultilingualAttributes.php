@@ -15,6 +15,7 @@ class MultilingualAttributes extends Widget
     public ActiveForm $form;
 
     public ActiveRecord $model;
+    public string $table_name;
 
     public string|array $attribute;
 
