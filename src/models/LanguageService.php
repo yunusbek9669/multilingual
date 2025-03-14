@@ -26,114 +26,88 @@ class LanguageService extends ActiveQuery
      * Umumiy extend olgan modellarning ma’lumotlari
      * @throws Exception
      */
-    public static function getModelsData(string $extendModel, array $params): array
+    public static function getModelsData(array $params): array
     {
-        $is_all = isset($params['is_all']) && $params['is_all'];
-
-        /** Extend olgan (Asosiy) modellar */
-        $modelsExtended = self::getChildModels($extendModel);
         $languages = Yii::$app->params['language_list'];
         $default_language = current(array_filter($languages, fn($lang) => empty($lang['table'])));
-        if (empty($modelsExtended) || empty($languages)) {
+        if (count($languages) === 1) {
             return [];
         }
 
-        $langTables = [];
+        $tableResult = self::getLangTables($languages);
+        $translate_list = array_fill_keys(array_keys($tableResult['language']), null);
+
+        /** Asosiy tilni ro‘yxatga qo‘shish */
+        foreach ($languages as $language) {
+            if (!isset($language['table'])) {
+                foreach ($tableResult['table_iterations'] as $table_name => $table_iterations) {
+                    $table_id_list = array_keys($table_iterations);
+                    if (!(count($table_id_list) === 1 && array_key_first($table_id_list) === 0) && self::checkTable($table_name)) {
+                        $flat = call_user_func_array('array_merge', $table_iterations);
+                        $result = array_merge(array_keys(array_flip($flat)), ['id']);
+                        $modelResult = (new Query())
+                            ->select($result)
+                            ->from($table_name)
+                            ->where(['in', 'id', $table_id_list])
+                            ->all();
+                        if (!empty($modelResult)) {
+                            foreach ($modelResult as $model) {
+                                $id = $model['id'];
+                                unset($model['id']);
+                                $tableResult['langTables'][$language['name']][] = [
+                                    'table_name' => $table_name,
+                                    'table_iteration' => $id,
+                                    'value' => json_encode($model),
+                                ];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         $result = [
             'header' => [
                 'table_name' => Yii::t('app', 'Table Name'),
                 'attributes' => Yii::t('app', 'Attributes'),
                 'table_iteration' => Yii::t('app', 'Table Iteration'),
-                'language' => []
+                'language' => $tableResult['language']
             ]
         ];
 
-        if ($is_all)
-        {
-            /** Dinamik tillar tablitsalarini ro‘yxatini shakllantirish */
-            $tableResult = self::getLangTables($languages);
-            $langTables = $tableResult['langTables'];
-            $result['header']['language'] = array_merge($result['header']['language'], $tableResult['language']);
-        }
-
         $body = [];
-        /** Asosiy modellar sikli */
-        foreach ($modelsExtended as $model)
+        /** body shakllantirish */
+        foreach ($tableResult['langTables'] as $key => $table)
         {
-            /** Asosiy modellarning kerakli attributelari yig‘ilgan holdagi ro‘yxati */
-            $modelData = self::getTranslateAbleData($model);
-
-            if (!empty($modelData))
+            if (!empty($table))
             {
-                $tableName = $model::tableName();
-
-                /** Asosiy modellarning ma‘lumotlar qatorlari bo‘yicha siklga solish */
-                foreach ($modelData as $modelRow)
+                /** lang_* jadvallarining qatorlari bo‘yicha siklga solish */
+                foreach ($table as $tableRow)
                 {
-                    $formattedTranslate = [];
-                    /** @example $formattedTranslate = [
-                     *      'attribute1' => [
-                     *          'language1' => 'value1',...
-                     *      ],...
-                     * ]
-                     */
-
-
                     $is_full = true;
                     /** Ro‘yxatni shakllantirish */
-                    $id = $modelRow['id'];
-                    $unique_name = $tableName.'_'.$id;
-                    $body[$unique_name] = [
-                        'table_name' => $tableName,
-                        'table_iteration' => $id,
-                    ];
+                    $tableValue = json_decode($tableRow['value'], true);
+                    $unique_name = $tableRow['table_name'].'_'.$tableRow['table_iteration'];
+                    unset($tableRow['is_static']);
+                    unset($tableRow['value']);
+                    $body[$unique_name]['table_name'] = $tableRow['table_name'];
+                    $body[$unique_name]['table_iteration'] = $tableRow['table_iteration'];
 
-                    unset($modelRow['id']);
-                    /** Asosiy modellarning qatorlar attributelari bo‘yicha siklga solish */
-                    foreach ($modelRow as $modelAttribute => $modelValue)
+                    /** lang_* jadvallarining value:json ustuni bo‘yicha siklga solish */
+                    foreach ($tableValue as $attribute => $value)
                     {
+                        if (empty($body[$unique_name]['translate'][$attribute])) {
+                            $body[$unique_name]['translate'][$attribute] = $translate_list;
+                        }
                         /** Asosiy modeldan olingan qiymatni qo‘shish */
-                        if (empty($modelValue)) {
-                            $result['header']['language'][$default_language['name']] += 1;
+                        if (empty($value)) {
+                            $result['header']['language'][$key] += 1;
+                            $is_full = false;
                         }
-                        $formattedTranslate[$modelAttribute][$default_language['name']] = $modelValue;
+                        $body[$unique_name]['translate'][$attribute][$key] = $value;
 
-                        if ($is_all)
-                        {
-                            /** Tizimdagi tillar bo‘yicha siklga solish */
-                            foreach ($languages as $language)
-                            {
-                                if (!empty($language['table']))
-                                {
-                                    $lang_name = $language['name'];
-                                    $value_found = false;
-
-                                    if (!empty($langTables))
-                                    {
-                                        foreach ($langTables[$lang_name] ?? [] as $langRow)
-                                        {
-                                            if ($langRow['table_name'] === $tableName && $langRow['table_iteration'] == $id)
-                                            {
-                                                $decoded_values = json_decode($langRow['value'], true);
-                                                if (!empty($decoded_values[$modelAttribute])) {
-                                                    $formattedTranslate[$modelAttribute][$lang_name] = $decoded_values[$modelAttribute];
-                                                    $value_found = true;
-                                                }
-                                            }
-                                        }
-
-                                        if (!$value_found) {
-                                            $result['header']['language'][$lang_name] += 1;
-                                            $is_full = false;
-                                            $formattedTranslate[$modelAttribute][$lang_name] = null;
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
                     $body[$unique_name]['is_full'] = $is_full;
-                    $body[$unique_name]['translate'] = $formattedTranslate;
                 }
             }
         }
@@ -141,40 +115,6 @@ class LanguageService extends ActiveQuery
 
         return $result;
     }
-
-    /**
-     * Umumiy extend olgan modellar ro‘yxati
-     */
-    public static function getChildModels(string $extendModel): array
-    {
-        $models = [];
-        $modules = Yii::$app->getModules();
-
-        foreach ($modules as $moduleName => $moduleConfig)
-        {
-            $modulePath = Yii::getAlias('@app/modules/' . $moduleName);
-
-            $modelsPath = $modulePath . '/models';
-            if (is_dir($modelsPath))
-            {
-                foreach (scandir($modelsPath) as $file)
-                {
-                    if (strpos($file, '.php') !== false)
-                    {
-                        $modelName = pathinfo($file, PATHINFO_FILENAME);
-                        $className = 'app\\modules\\' . $moduleName . '\\models\\' . $modelName;
-
-                        if (class_exists($className) && is_subclass_of($className, $extendModel)) {
-                            $models[] = $className;
-                        }
-                    }
-                }
-            }
-        }
-
-        return $models;
-    }
-
 
     /** lang_* tablitsalarini chaqirib olish (Create, Update) */
     public static function setCustomAttributes($model, string $attribute = null): array
@@ -230,23 +170,32 @@ class LanguageService extends ActiveQuery
     }
 
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar */
-    public static function getLangTables(array $languages): array
+    public static function getLangTables(array $languages, bool $is_static = false): array
     {
         $result = [];
+        $grouped = [];
         /** Tizimdagi tillar bo‘yicha siklga solish */
         foreach ($languages as $language)
         {
             $result['language'][$language['name']] = 0;
             if (!empty($language['table']))
             {
-
                 /** Dinamik tillar tablitsalarini ro‘yxatini shakllantirish */
                 if (self::checkTable($language['table']))
                 {
                     $result['langTables'][$language['name']] = (new Query())
+                        ->select(['table_name', 'table_iteration', 'value'])
                         ->from($language['table'])
+                        ->where(['is_static' => $is_static])
                         ->orderBy(['table_name' => SORT_ASC, 'table_iteration' => SORT_ASC])
                         ->all();
+
+                    if (empty($grouped)) {
+                        foreach ($result['langTables'][$language['name']] as $item) {
+                            $grouped[$item['table_name']][$item['table_iteration']] = array_keys(json_decode($item['value'], true));
+                        }
+                    }
+                    $result['table_iterations'] = $grouped;
                 }
             }
         }

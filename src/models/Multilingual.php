@@ -218,48 +218,13 @@ class Multilingual extends ActiveRecord
         return $response;
     }
 
-    /** Barcha extend olgan tablitsalardan excelga export qilish
-     * @throws \Exception
-     */
-    public static function exportBasicToExcel(): bool|string
-    {
-        $modelsExtended = LanguageService::getChildModels(Multilingual::class);
-        $data = [];
-        foreach ($modelsExtended as $model)
-        {
-            $tableName = $model::tableName();
-            $modelData = LanguageService::getTranslateAbleData($model);
-            if (!empty($modelData))
-            {
-                foreach ($modelData as $modelRow)
-                {
-                    $id = $modelRow['id'];
-                    unset($modelRow['id']);
-                    $data[] = [
-                        'is_static' => false,
-                        'table_name' => $tableName,
-                        'table_iteration' => $id,
-                        'value' => json_encode($modelRow),
-                    ];
-                }
-            }
-        }
-
-        if (empty($data)) {
-            throw new \Exception("Jadvalda ma'lumot topilmadi.");
-        }
-
-        return LanguageService::exportToExcelData($data, "all.xlsx");
-    }
-
     /** Tablitsadan excelga export qilish
      * @throws \Exception
      */
     public static function exportToExcel($tableName, bool $is_static = true): bool|string
     {
-        $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName} WHERE is_static = :is_static")
-            ->bindValue(':is_static', $is_static ? true : false, \PDO::PARAM_BOOL)
-            ->queryAll();
+        $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName} WHERE is_static = :is_static" . ($is_static ? '' : ' AND table_iteration != 0'))
+            ->bindValue(':is_static', $is_static, \PDO::PARAM_BOOL)->queryAll();
 
         if (empty($data)) {
             throw new \Exception("Jadvalda ma'lumot topilmadi.");

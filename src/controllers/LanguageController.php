@@ -123,13 +123,9 @@ class LanguageController extends Controller
     /**
      * @throws \Exception
      */
-    public function actionExportToExcel(string $table_name = null, bool $is_all = false, bool $is_static = false)
+    public function actionExportToExcel(string $table_name = null, bool $is_static = false)
     {
-        if ($is_all) {
-            $response = Multilingual::exportBasicToExcel();
-        } else {
-            $response = Multilingual::exportToExcel($table_name, $is_static);
-        }
+        $response = Multilingual::exportToExcel($table_name, $is_static);
         if (Yii::$app->request->isAjax) {
             return $response;
         } else {
