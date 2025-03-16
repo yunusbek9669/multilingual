@@ -29,7 +29,6 @@ class LanguageService extends ActiveQuery
     public static function getModelsData(array $params): array
     {
         $languages = Yii::$app->params['language_list'];
-        $default_language = current(array_filter($languages, fn($lang) => empty($lang['table'])));
         if (count($languages) === 1) {
             return [];
         }

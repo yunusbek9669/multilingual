@@ -178,14 +178,14 @@ Useful buttons to install
 Add the following button to the top of the created CRUD index page which will take you to the general translations page.
 
 ````php
-echo Html::a('All translations', ['/multilingual/language/index'], ['class' => 'btn btn-primary', 'target' => '_blank']);
+echo Html::a('All translations', ['/multilingual/language/index']);
 ````
 
 and add the following button to the actions section of each language row, which will download an excel file of all translations for that language.
 
 ````php
-echo Html::a(Yii::t('app', 'Export i18n'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => true], ['class'=> 'btn btn-info', 'data-pjax' => '0'])
-echo Html::a(Yii::t('app', 'Export Columns'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => false], ['class'=> 'btn btn-info', 'data-pjax' => '0'])
+echo Html::a(Yii::t('app', 'Export i18n'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => true])
+echo Html::a(Yii::t('app', 'Export Columns'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => false])
 ````
 
 
