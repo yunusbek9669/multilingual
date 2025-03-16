@@ -641,8 +641,21 @@ EOD;
         $parenthesisCount = 0;
 
         foreach ($tokens as $token) {
-            if (is_array($token) && $token[0] === T_NAME_FULLY_QUALIFIED && $token[1] === '\Yunusbek\Multilingual\widgets\MultilingualAttributes') {
-                $inWidgetCall = true;
+            if (is_array($token) && ($token[0] === T_NAME_FULLY_QUALIFIED || $token[0] === T_STRING)) {
+                switch ($token[1]) {
+                    case '\Yunusbek\Multilingual\widgets\MultilingualAttributes':
+                        $inWidgetCall = true;
+                        break;
+                    case 'Multilingual\widgets\MultilingualAttributes':
+                        $inWidgetCall = true;
+                        break;
+                    case 'widgets\MultilingualAttributes':
+                        $inWidgetCall = true;
+                        break;
+                    case 'MultilingualAttributes':
+                        $inWidgetCall = true;
+                        break;
+                }
             }
 
             if ($inWidgetCall) {
@@ -651,7 +664,8 @@ EOD;
                 } elseif ($this->tokensEqualA(')', $token)) {
                     $parenthesisCount--;
                     if ($parenthesisCount === 0) {
-                        $attributes = array_merge_recursive($attributes, $this->parseAttributesFromBuffer($buffer));
+                        $formBuffer = $this->parseAttributesFromBuffer($buffer);
+                        $attributes = array_merge_recursive($attributes, $formBuffer);
                         $buffer = [];
                         $inWidgetCall = false;
                     }
@@ -734,7 +748,12 @@ EOD;
                         if ($tableName) {
                             $attributes[$tableName][] = $value;
                         } else {
-                            $attributes['default'][] = $value;
+                            $this->stderr("Attribute ", Console::FG_YELLOW);
+                            $this->stderr('"table_name" ', Console::FG_RED);
+                            $this->stderr("not found in ", Console::FG_YELLOW);
+                            $this->stderr("MultilingualAttributes::", Console::FG_GREY);
+                            $this->stderr("widget", Console::FG_CYAN);
+                            die($this->stderr("().\n", Console::FG_GREY));
                         }
                     } elseif ($this->tokensEqualA('[', $buffer[$i])) {
                         $i++;
@@ -744,7 +763,12 @@ EOD;
                                 if ($tableName) {
                                     $attributes[$tableName][] = $value;
                                 } else {
-                                    $attributes['default'][] = $value;
+                                    $this->stderr("Attribute ", Console::FG_YELLOW);
+                                    $this->stderr('"table_name" ', Console::FG_RED);
+                                    $this->stderr("not found in ", Console::FG_YELLOW);
+                                    $this->stderr("MultilingualAttributes::", Console::FG_GREY);
+                                    $this->stderr("widget", Console::FG_CYAN);
+                                    die($this->stderr("().\n", Console::FG_GREY));
                                 }
                             }
                             $i++;
