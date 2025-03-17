@@ -74,7 +74,7 @@ class LanguageController extends Controller
             $response = [];
             $response['status'] = true;
             $response['code'] = 'error';
-            $response['message'] = Yii::t('app', 'Error');
+            $response['message'] = Yii::t('multilingual', 'Error');
             $Multilingual = $request->post((new \ReflectionClass($model))->getShortName());
             if ($model->load($request->post())) {
                 $transaction = Yii::$app->db->beginTransaction();
@@ -94,7 +94,7 @@ class LanguageController extends Controller
                 if ($response['status']) {
                     $response['status'] = true;
                     $response['code'] = 'success';
-                    $response['message'] = Yii::t('app', 'Saved Successfully');
+                    $response['message'] = Yii::t('multilingual', 'Saved Successfully');
                     $transaction->commit();
                 } else {
                     $response['code'] = 'error';
@@ -168,6 +168,6 @@ class LanguageController extends Controller
             return $model;
         }
 
-        throw new NotFoundHttpException(Yii::t('app', 'The requested page does not exist.'));
+        throw new NotFoundHttpException(Yii::t('multilingual', 'The requested page does not exist.'));
     }
 }

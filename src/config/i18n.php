@@ -3,7 +3,7 @@
 use yii\db\Query;
 
 return [
-    'sourcePath' => '@app/',
+    'sourcePath' => ['@app/','@vendor/yunusbek/multilingual/src/'],
     'languages' => array_column((new Query())->select(['key'])->from('{{%language_list}}')->all(), 'key'),
     'translator' => 'Yii::t',
     'sort' => false,

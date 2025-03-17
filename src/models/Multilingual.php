@@ -81,7 +81,7 @@ class Multilingual extends ActiveRecord
         $transaction = Yii::$app->db->beginTransaction();
         $response = [];
         $response['status'] = true;
-        $response['message'] = Yii::t('app', 'Error');
+        $response['message'] = Yii::t('multilingual', 'Error');
         try
         {
             $post = Yii::$app->request->post('Language');

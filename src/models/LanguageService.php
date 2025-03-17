@@ -67,9 +67,9 @@ class LanguageService extends ActiveQuery
 
         $result = [
             'header' => [
-                'table_name' => Yii::t('app', 'Table Name'),
-                'attributes' => Yii::t('app', 'Attributes'),
-                'table_iteration' => Yii::t('app', 'Table Iteration'),
+                'table_name' => Yii::t('multilingual', 'Table Name'),
+                'attributes' => Yii::t('multilingual', 'Attributes'),
+                'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
                 'language' => $tableResult['language']
             ]
         ];

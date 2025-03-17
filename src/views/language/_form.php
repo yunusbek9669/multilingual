@@ -8,7 +8,7 @@ use yii\helpers\Html;
 /* @var $model ActiveRecord */
 /* @var $attributes array */
 /* @var $form ActiveForm */
-$this->title = Yii::t('app', 'Tarjimalarni tahrirlash')
+$this->title = Yii::t('multilingual', 'Tarjimalarni tahrirlash')
 ?>
 
 <div class="reference-gender-form">
@@ -26,7 +26,7 @@ $this->title = Yii::t('app', 'Tarjimalarni tahrirlash')
     </div>
     <hr class="my-4">
     <div class="form-group">
-        <?php echo Html::submitButton('<i class="fas fa-save"></i> '.Yii::t('app', 'Save'), ['class' => 'btn btn-lg btn-block btn-outline-primary shadow-lg shadow-primary font-weight-bolder text-uppercase waves-effect']) ?>
+        <?php echo Html::submitButton('<i class="fas fa-save"></i> '.Yii::t('multilingual', 'Save'), ['class' => 'btn btn-lg btn-block btn-outline-primary shadow-lg shadow-primary font-weight-bolder text-uppercase waves-effect']) ?>
     </div>
 
     <?php ActiveForm::end(); ?>

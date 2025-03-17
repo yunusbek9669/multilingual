@@ -9,7 +9,7 @@ use yii\helpers\Url;
 /* @var $searchParams array */
 /* @var $translates array */
 
-$this->title = Yii::t('app', 'Translates');
+$this->title = Yii::t('multilingual', 'Translates');
 $this->params['breadcrumbs'][] = $this->title;
 $languages = Yii::$app->params['language_list'];
 $default_language = current(array_filter($languages, fn($lang) => empty($lang['table'])));
@@ -33,7 +33,7 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
                                 <th><?php echo $key.($default_language['name'] === $key ? ' <i class="fas fa-star text-warning"></i>' : '') ?> <span class="badge badge-danger"><?php echo $not_translated ?></span></th>
                             <?php endforeach; ?>
                         <?php endif; ?>
-                        <th><?php echo Yii::t('app', 'Action') ?></th>
+                        <th><?php echo Yii::t('multilingual', 'Action') ?></th>
                     </tr>
                     </thead>
                     <tbody>

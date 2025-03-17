@@ -278,15 +278,25 @@ EOD;
     {
         $this->initConfig($configFile);
 
-        $files = FileHelper::findFiles(realpath($this->config['sourcePath']), $this->config);
+        if (is_array($this->config['sourcePath'])) {
+            $files = array_merge(...array_map(function ($path) {
+                return FileHelper::findFiles(realpath($path), $this->config);
+            }, $this->config['sourcePath']));
+
+            $messages = [];
+            array_walk($files, function ($file) use (&$messages) {
+                $messages = array_merge_recursive($messages, $this->extractMessages($file, $this->config['translator']));
+            });
+        } else {
+            $files = FileHelper::findFiles(realpath($this->config['sourcePath']), $this->config);
+            $messages = [];
+            foreach ($files as $file) {
+                $messages = array_merge_recursive($messages, $this->extractMessages($file, $this->config['translator']));
+            }
+        }
 
         /** @var Connection $db */
         $db = Instance::ensure($this->config['db'], Connection::className());
-
-        $messages = [];
-        foreach ($files as $file) {
-            $messages = array_merge_recursive($messages, $this->extractMessages($file, $this->config['translator']));
-        }
 
         foreach ($this->config['languages'] as $language) {
             $langTable = "{{%lang_$language}}";
@@ -361,16 +371,16 @@ EOD;
 
         foreach ($messages as $category => $msgs) {
             $msgs = array_unique($msgs);
-            $obsolete[$category] = [];
             if (isset($currentMessages[$category])) {
                 $new[$category] = array_diff($msgs, $currentMessages[$category]);
                 // obsolete messages per category
-                $obsolete[$category] += array_diff($currentMessages[$category], $msgs);
+                $obsolete[$category] = array_diff($msgs, $currentMessages[$category]);
             } else {
                 $new[$category] = $msgs;
             }
+
             $new[$category] = array_fill_keys($new[$category], '');
-            $currentValues[$category] = array_diff_key($currentValues[$category], array_flip($obsolete[$category]));
+            $currentValues[$category] = array_diff_key($currentValues[$category] ?? [], array_flip($obsolete[$category]));
         }
 
         $this->stdout('Inserting new messages...');
@@ -412,7 +422,7 @@ EOD;
             $this->stdout("Nothing to save.\n");
         }
 
-        $this->stdout($removeUnused ? 'Deleting obsoleted messages...' : 'Updating obsoleted messages...');
+//        $this->stdout($removeUnused ? 'Deleting obsoleted messages...' : 'Updating obsoleted messages...');
     }
 
     /**
@@ -913,15 +923,26 @@ EOD;
             $configFileContent,
             $this->getPassedOptionValues()
         );
-        $this->config['sourcePath'] = Yii::getAlias($this->config['sourcePath']);
+        if (is_array($this->config['sourcePath'])){
+            foreach ($this->config['sourcePath'] as $key => $sourcePath) {
+                $this->config['sourcePath'][$key] = Yii::getAlias($sourcePath);
+                if (!isset($this->config['sourcePath'][$key], $this->config['languages'])) {
+                    throw new Exception('The configuration file must specify "sourcePath" and "languages".');
+                }
+                if (!is_dir($this->config['sourcePath'][$key])) {
+                    throw new Exception("The source path {$this->config['sourcePath'][$key]} is not a valid directory.");
+                }
+            }
+        } else {
+            $this->config['sourcePath'] = Yii::getAlias($this->config['sourcePath']);
+            if (!isset($this->config['sourcePath'], $this->config['languages'])) {
+                throw new Exception('The configuration file must specify "sourcePath" and "languages".');
+            }
+            if (!is_dir($this->config['sourcePath'])) {
+                throw new Exception("The source path {$this->config['sourcePath']} is not a valid directory.");
+            }
+        }
         $this->config['messagePath'] = Yii::getAlias($this->config['messagePath']);
-
-        if (!isset($this->config['sourcePath'], $this->config['languages'])) {
-            throw new Exception('The configuration file must specify "sourcePath" and "languages".');
-        }
-        if (!is_dir($this->config['sourcePath'])) {
-            throw new Exception("The source path {$this->config['sourcePath']} is not a valid directory.");
-        }
         if (empty($this->config['format']) || !in_array($this->config['format'], ['php', 'po', 'pot', 'db'])) {
             throw new Exception('Format should be either "php", "po", "pot" or "db".');
         }
