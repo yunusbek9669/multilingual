@@ -348,8 +348,8 @@ EOD;
     {
         $currentValues = [];
         $currentMessages = [];
-        $rows = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => true])->from($langTable)->all($db);
-        foreach ($rows as $row) {
+        $langTbalesData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => true])->from($langTable)->all($db);
+        foreach ($langTbalesData as $row) {
             foreach (json_decode($row['value']) as $key => $item) {
                 $currentMessages[$row['table_name']][] = $key;
                 $currentValues[$row['table_name']][$key] = $item;
@@ -423,74 +423,128 @@ EOD;
      * @param string $langTable
      * @param bool $removeUnused
      */
-    protected function saveAttributesToDb($attributes, $db, $langTable, $removeUnused)
+    protected function saveAttributesToDb($translateTables, $db, $langTable, $removeUnused)
     {
-        $currentValues = [];
-        $currentMessages = [];
-        $rows = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false])->from($langTable)->all($db);
-        foreach ($rows as $row) {
-            foreach (json_decode($row['value']) as $key => $item) {
-                $currentMessages[$row['table_name']][$row['table_iteration']] = $key;
-                $currentValues[$row['table_name']][$row['table_iteration']] = [$key => $item];
-            }
-        }
+        $this->stdout("Inserting new attributes to the ");
+        $this->stdout('"'.$langTable.'" ', Console::FG_YELLOW);
+        $this->stdout("table...\n");
 
-        $obsolete = [];
-        $new = [];
-
-        foreach ($attributes as $category => $msgs) {
-            $msgs = array_unique($msgs);
-            $obsolete[$category] = $msgs;
-            if (empty($currentValues[$category])) {
-                $new[$category][0] = array_fill_keys($obsolete[$category], null);
-            }
-        }
-
-        $this->stdout('Inserting new attributes...');
-        $insertCount = 0;
-
-        $execute = false;
+        $insertCount = [];
+        $updateColumnCount = ['add' => [], 'delete' => []];
+        $deleteCount = [];
+        $obsoleteCount = [];
+        $execute = true;
         try {
-            Yii::$app->cache->delete($langTable);
-            foreach ($new as $category => $msgs) {
-                if (BaseLanguageList::isTableExists($category)){
-                    $values = [];
-                    foreach ($msgs as $msg) {
-                        $insertCount++;
-                    }
-                    $values = $new[$category][0];
-                    $execute = $db->createCommand()
-                        ->upsert($langTable, [
-                            'is_static' => false,
-                            'table_name' => $category,
-                            'table_iteration' => 0,
-                            'value' => $values,
-                        ], [
-                            'value' => $values
-                        ])->execute();
-                    if (!$execute) {
-                        $this->stderr("\n".'"'.$langTable.'" '.json_encode($values).' failed', Console::FG_RED);
-                        break;
+            foreach ($translateTables as $table_name => $attributes) {
+                $obsoleteLangTableData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false, 'table_name' => $table_name])->from($langTable)->all($db);
+                if (BaseLanguageList::isTableExists($table_name)) {
+                    $translateTable = (new Query())->select(array_merge(['id'], $attributes))->from($table_name)->all($db);
+                    if (!empty($translateTable)) {
+                        $insCount = 0;
+                        $addColumnCount = 0;
+                        $deleteColumnCount = 0;
+                        foreach ($translateTable as $key => $row) {
+                            if (empty($this->findByTableIteration($obsoleteLangTableData, $row['id']))) {
+                                $values = array_fill_keys($attributes, '');
+                                $execute = $db->createCommand()->insert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $values])->execute();
+                                if (!$execute) {
+                                    $this->stderr('"'.$langTable.'" '.json_encode($values)." failed\n", Console::FG_RED);
+                                    break 2;
+                                } else {
+                                    $insCount++;
+                                }
+                            } else {
+                                $currentLangValues = [];
+                                if (isset($obsoleteLangTableData[$key])) { $currentLangValues = json_decode($obsoleteLangTableData[$key]['value'], true); }
+                                if (array_keys($currentLangValues) !== $attributes) {
+                                    $langValues = array_merge(array_fill_keys($attributes, null), $currentLangValues);
+                                    $langValues = array_intersect_key($langValues, array_flip($attributes));
+                                    $execute = $db->createCommand()->upsert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $langValues], ['value' => $langValues])->execute();
+                                    if (!$execute) {
+                                        $this->stderr('"'.$langTable.'" '.json_encode($langValues)." failed\n", Console::FG_RED);
+                                        break 2;
+                                    } else {
+                                        if (count($attributes) > count($currentLangValues)) {
+                                            $addColumnCount++;
+                                        } else {
+                                            $deleteColumnCount++;
+                                        }
+                                    }
+                                }
+                            }
+                            if ($insCount > 0) { $insertCount[$table_name] = $insCount; }
+                            if ($addColumnCount > 0) { $updateColumnCount['add'][$table_name] = $addColumnCount; }
+                            if ($deleteColumnCount > 0) { $updateColumnCount['delete'][$table_name] = $deleteColumnCount; }
+                        }
+                    } else {
+                        $affectedRows = $db->createCommand()
+                            ->delete($langTable, [
+                                'is_static' => false,
+                                'table_name' => $table_name,
+                            ])
+                            ->execute();
+                        if ($affectedRows > 0) {
+                            $deleteCount[$table_name] = $affectedRows;
+                        }
                     }
                 } else {
-                    $this->stderr("\n".'"'.$category.'"', Console::FG_RED);
+                    $this->stderr("\n".'"'.$table_name.'"', Console::FG_RED);
                     $this->stderr(" table doesn't exist"."\n", Console::FG_YELLOW);
+                    break;
                 }
             }
-            Yii::$app->cache->getOrSet($langTable, function () use ($currentValues)
-            {
-                return $currentValues;
-            }, 3600 * 2);
+            $obsoleteTableNames = (new Query())->select(['table_name'])->distinct()->where(['is_static' => false])->andWhere(['not in', 'table_name', array_keys($translateTables)])->from($langTable)->column($db);
+            foreach ($obsoleteTableNames as $tableName) {
+                $obsoleteLangTableData = $db->createCommand()
+                    ->delete($langTable, [
+                        'is_static' => false,
+                        'table_name' => $tableName,
+                    ])
+                    ->execute();
+                if ($obsoleteLangTableData > 0) {
+                    $obsoleteCount[$tableName] = $obsoleteLangTableData;
+                }
+            }
         } catch (\yii\db\Exception $e) {
             $this->stderr($e->getMessage() . "\n", Console::FG_RED);
         }
-        if ($insertCount && $execute) {
-            $this->stderr("\n"."{$insertCount} items inserted successfully.\n", Console::FG_GREEN);
+        if ((!empty($insertCount) || !empty($updateColumnCount)) && $execute) {
+            foreach ($insertCount as $table_name => $count) {
+                $this->stderr("Inserted $count rows to ", Console::FG_GREEN);
+                $this->stderr("\"$table_name\" ", Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("category successfully.\n", Console::FG_GREEN);
+            }
+            foreach ($updateColumnCount['add'] as $table_name => $count) {
+                $this->stderr("Added $count items to ", Console::FG_GREEN);
+                $this->stderr("\"value\" ", Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("attribute from ", Console::FG_GREEN);
+                $this->stderr("\"$table_name\" ", Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("category successfully.\n", Console::FG_GREEN);
+            }
+            foreach ($updateColumnCount['delete'] as $table_name => $count) {
+                $this->stderr("Deleted $count items to ", Console::FG_GREEN);
+                $this->stderr("\"value\" ", Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("attribute from ", Console::FG_GREEN);
+                $this->stderr("\"$table_name\" ", Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("category successfully.\n", Console::FG_GREEN);
+            }
         } else {
             $this->stdout("Nothing to save.\n");
         }
-
-        $this->stdout($removeUnused ? 'Deleting obsoleted attributes...' : 'Updating obsoleted attributes...');
+        if (!empty($deleteCount)) {
+            foreach ($deleteCount as $table_name => $item) {
+                $this->stderr("Deleted rows for ", Console::FG_YELLOW);
+                $this->stderr("\"$table_name\"", Console::FG_CYAN, Console::ITALIC);
+                $this->stderr(" category: $item.\n", Console::FG_YELLOW);
+            }
+        }
+        if (!empty($obsoleteCount)) {
+            foreach ($obsoleteCount as $table_name => $item) {
+                $this->stderr("Deleted obsolete ", Console::FG_YELLOW);
+                $this->stderr("\"$table_name\"", Console::FG_CYAN, Console::ITALIC);
+                $this->stderr(" category with $item rows.\n", Console::FG_YELLOW);
+            }
+        }
     }
 
     /**
@@ -809,6 +863,15 @@ EOD;
         }
 
         return false;
+    }
+
+    protected function findByTableIteration($array, $iteration) {
+        foreach ($array as $item) {
+            if ($item['table_iteration'] === $iteration) {
+                return $item;
+            }
+        }
+        return null;
     }
 
     /**
