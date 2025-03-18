@@ -48,20 +48,6 @@ php yii ml-migration
 The next important processing steps in the project settings.
 
 ```php
-# params.php
-[
-    #...
-    'language_list' => [
-        'en' => [
-            'name' => 'Default language', # Enter the current default language in your project.
-            'short_name' => 'Def', # Enter the current default language short name.
-            'image' => '/path/to/default/language/flag.jpg', # Enter the path to the current default language flag image. 
-            'active' => false,
-        ]
-    ],
-    #...
-]
-
 # for yii2 basic - config/web.php
 # for yii2 advanced - config/main.php
 [
@@ -112,8 +98,28 @@ class LanguageList extends BaseLanguageList
 }
 ````
 Then, generate CRUD for the completed model and add a new language.
+
+Add this array to the ```params.php``` file
+```php
+# params.php
+[
+    #...
+    'language_list' => [
+        'en' => [
+            'name' => 'Default language', # Enter the current default language in your project.
+            'short_name' => 'Def', # Enter the current default language short name.
+            'image' => '/path/to/default/language/flag.jpg', # Enter the path to the current default language flag image. 
+            'active' => false,
+        ],
+        // The list of dynamically added languages is visible from the continuation of this array.
+    ],
+    #...
+]
+```
 >All added dynamic languages are stored as an array in the ```Yii::$app->params['language_list']``` variable. You can extract languages from this variable to use them in the navbar,
 >and you get the current language from the ```Yii::$app->params['active_language']``` variable.
+> 
+> Link the address ```Url::to(['/multilingual/language/select-lang', 'lang' => $key])``` to each language so that the language selected from the list of languages formed in the header section is implemented in the system. Where ```$key``` is the associative key of the ```Yii::$app->params['language_list']``` array
 > 
 >![All added dynamic languages.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/language_list.jpg)
 
