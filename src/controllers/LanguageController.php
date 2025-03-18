@@ -149,6 +149,17 @@ class LanguageController extends Controller
     }
 
     /**
+     * @param $lang
+     * @return yii\web\Response
+     */
+    public function actionSelectLang($lang): Response
+    {
+        Yii::$app->session->set('lang', $lang);
+        Yii::$app->language = $lang;
+        return $this->redirect(Yii::$app->request->referrer);
+    }
+
+    /**
      * Finds the BaseLanguageList model based on its primary key value.
      * If the model is not found, a 404 HTTP exception will be thrown.
      * @param string $table_name

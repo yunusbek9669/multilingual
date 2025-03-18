@@ -366,35 +366,61 @@ EOD;
             }
         }
 
-        $new = [];
-        $obsolete = [];
-
-        foreach ($messages as $category => $msgs) {
-            $msgs = array_unique($msgs);
-            if (isset($currentMessages[$category])) {
-                $new[$category] = array_diff($msgs, $currentMessages[$category]);
-                // obsolete messages per category
-                $obsolete[$category] = array_diff($msgs, $currentMessages[$category]);
-            } else {
-                $new[$category] = $msgs;
-            }
-
-            $new[$category] = array_fill_keys($new[$category], '');
-            $currentValues[$category] = array_diff_key($currentValues[$category] ?? [], array_flip($obsolete[$category]));
-        }
-
-        $this->stdout('Inserting new messages...');
-        $insertCount = 0;
+        $this->stdout("\nInserting new messages to the ");
+        $this->stdout('"'.$langTable.'" ', Console::FG_YELLOW);
+        $this->stdout("table... ");
 
         $execute = false;
         try {
             Yii::$app->cache->delete($langTable);
-            foreach ($new as $category => $msgs) {
-                $values = [];
-                foreach ($msgs as $msg) {
-                    $insertCount++;
+
+            /** delete obsolete categories */
+            $obsoleteCount = [];
+            $obsoleteCategories = array_diff(array_keys($currentMessages), array_keys($messages));
+            foreach ($obsoleteCategories as $obsoleteCategory) {
+                $obsoleteCategoryData = $db->createCommand()
+                    ->delete($langTable, [
+                        'is_static' => true,
+                        'table_name' => $obsoleteCategory,
+                    ])
+                    ->execute();
+                if ($obsoleteCategoryData > 0) {
+                    $obsoleteCount[$obsoleteCategory] = count($currentMessages[$obsoleteCategory]);
+                    unset($currentMessages[$obsoleteCategory]);
                 }
-                $values = array_merge($currentValues[$category] ?? [], $msgs);
+            }
+
+
+            $new = [];
+            $obsolete = [];
+            $insertCount = [];
+            $obsaCount = [];
+            foreach ($messages as $category => $msgs) {
+                $msgs = array_unique($msgs);
+                if (isset($currentMessages[$category])) {
+                    /** insert news messages */
+                    $new[$category] = array_fill_keys(array_diff($msgs, $currentMessages[$category]), '');
+
+                    /** delete obsolete messages */
+                    $obsolete[$category] = array_diff($currentMessages[$category], $msgs);
+                    $obsCount = count($obsolete[$category]);
+                    if ($obsCount > 0) {
+                        $obsoleteCount[$category] = $obsCount;
+                    }
+                    foreach ($obsolete[$category] as $obmsg) {
+                        unset($currentValues[$category][$obmsg]);
+                    }
+                } else {
+                    /** insert news categories */
+                    $new[$category] = array_fill_keys($msgs, '');
+                }
+                $insCount = count($new[$category]);
+                if ($insCount > 0) {
+                    $insertCount[$category] = $insCount;
+                }
+
+                /** save changes */
+                $values = array_merge($currentValues[$category] ?? [], $new[$category]);
                 $execute = $db->createCommand()
                     ->upsert($langTable, [
                         'is_static' => true,
@@ -405,7 +431,7 @@ EOD;
                         'value' => $values
                     ])->execute();
                 if (!$execute) {
-                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($values).' failed', Console::FG_RED);
+                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($values)." failed\n", Console::FG_RED);
                     break;
                 }
             }
@@ -414,15 +440,23 @@ EOD;
                 return $currentValues;
             }, 3600 * 2);
         } catch (\yii\db\Exception $e) {
-            $this->stderr($e->getMessage() . "\n");
+            $this->stderr("\n".$e->getMessage() . "\n");
         }
-        if ($insertCount && $execute) {
-            $this->stderr("\n"."{$insertCount} items inserted successfully.\n", Console::FG_GREEN);
+        if (($insertCount || $obsoleteCount) && $execute) {
+            foreach ($insertCount as $category => $count) {
+                $this->stderr("\n{$count} items successfully inserted to ", Console::FG_GREEN);
+                $this->stderr('"'.$category.'" ', Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("categor.", Console::FG_GREEN);
+            }
+            foreach ($obsoleteCount as $category => $count) {
+                $this->stderr("\n{$count} items successfully deleted from ", Console::FG_GREEN);
+                $this->stderr('"'.$category.'" ', Console::FG_YELLOW, Console::ITALIC);
+                $this->stderr("category.", Console::FG_GREEN);
+            }
+            $this->stdout("\n");
         } else {
             $this->stdout("Nothing to save.\n");
         }
-
-//        $this->stdout($removeUnused ? 'Deleting obsoleted messages...' : 'Updating obsoleted messages...');
     }
 
     /**

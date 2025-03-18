@@ -66,9 +66,7 @@ The next important processing steps in the project settings.
 # for yii2 advanced - config/main.php
 [
     #...
-    'bootstrap' => ['log', function () {
-        Yii::$app->params['language_list'] = \Yunusbek\Multilingual\models\LanguageManager::getAllLanguages('lang'); # The "lang" parameter is a key to Yii::$app->session->set('lang', 'selected_language_key').
-    }],
+    'bootstrap' => ['log', 'Yunusbek\Multilingual\components\MultilingualBootstrap'],
     #...
     'modules' => [
         'multilingual' => [
@@ -79,9 +77,10 @@ The next important processing steps in the project settings.
     'components' => [
         #...
         'i18n' => [
+            'class' => 'Yunusbek\Multilingual\components\MultilingualI18N',
             'translations' => [
                 'app*' => [
-                    'class' => 'Yunusbek\Multilingual\models\DbMessageSource',
+                    'class' => 'Yunusbek\Multilingual\models\DbMessageSource', // You should apply this class to other categories as well.
                 ],
             ],
         ],
@@ -89,17 +88,6 @@ The next important processing steps in the project settings.
     ]
     #...
 ]
-```
-> Note: To save this ```Yii::$app->session->set('lang', 'selected_language_key');``` session, add the following action to ```BaseController```;
-> 
-
-```php
-    public function actionSelectLang($lang): Response
-    {
-        Yii::$app->session->set('lang', $lang);
-        Yii::$app->language = $lang;
-        return $this->redirect(Yii::$app->request->referrer);
-    }
 ```
 
 Inheritance from the ```BaseLanguageList``` class and additional settings for the class created for the ```language_list``` table:
@@ -178,14 +166,14 @@ Useful buttons to install
 Add the following button to the top of the created CRUD index page which will take you to the general translations page.
 
 ````php
-echo Html::a('All translations', ['/multilingual/language/index']);
+echo Html::a(Yii::t('multilingual', 'All translations'), ['/multilingual/language/index']);
 ````
 
 and add the following button to the actions section of each language row, which will download an excel file of all translations for that language.
 
 ````php
-echo Html::a(Yii::t('app', 'Export i18n'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => true])
-echo Html::a(Yii::t('app', 'Export Columns'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => false])
+echo Html::a(Yii::t('multilingual', 'Export i18n'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => true], ['data-pjax' => '0'])
+echo Html::a(Yii::t('multilingual', 'Export Columns'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => false], ['data-pjax' => '0'])
 ````
 
 
