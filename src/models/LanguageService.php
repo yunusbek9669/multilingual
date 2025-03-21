@@ -286,11 +286,19 @@ class LanguageService extends ActiveQuery
         $spreadsheet->getActiveSheet()->getProtection()->setSheet(true);
 
         /** Faylni saqlash */
-        $writer = new Xlsx($spreadsheet);if (!is_dir('uploads/languages')) { mkdir('uploads/languages'); }
-        $filePath = Yii::getAlias("@webroot/uploads/languages/{$fileName}");
-        $fileUrl = Yii::getAlias("@web/uploads/languages/{$fileName}");
-        $writer->save($filePath);
+        $writer = new Xlsx($spreadsheet);
+        $baseDir = Yii::getAlias('@webroot/uploads');
+        $directory = "$baseDir/languages";
 
+        if (!is_dir($baseDir)) {
+            mkdir($baseDir, 0777, true);
+        }
+        if (!is_dir($directory)) {
+            mkdir($directory, 0777, true);
+        }
+
+        $filePath = "$directory/{$fileName}";
+        $fileUrl = Yii::getAlias("@web/uploads/languages/{$fileName}");
         $writer->save($filePath);
 
         return json_encode(['success' => true, 'fileUrl' => $fileUrl]);
