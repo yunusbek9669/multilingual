@@ -7,10 +7,7 @@ use yii\console\Controller;
 
 class Migrations extends Controller
 {
-    public function getDefaultAction()
-    {
-        return 'generate';
-    }
+    public $defaultAction = 'generate';
 
     public function actionGenerate()
     {
@@ -43,24 +40,14 @@ class {$migrationClassName} extends Migration
             'image' => \$this->string(50), # Enter the path to the flag image for the current language.
             'import_excel' => \$this->string(50), # Import an Excel file downloaded from an existing language and translated into a new language
             'table' => \$this->string(50)->notNull(), # Enter the name of the table that stores translations for the current language, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern)
-            'order_number' => \$this->integer(), # This is intended to sort the list of languages.
-            'status' => \$this->integer(2),
-            'created_at' => \$this->bigInteger(),
-            'created_by' => \$this->integer(),
-            'updated_at' => \$this->bigInteger(),
-            'updated_by' => \$this->integer(),
         ]);
 
-        \$this->createIndex('{{%idx-language_list-status}}', '{{%language_list}}', 'status');
-        \$this->createIndex('{{%idx-language_list-created_by}}', '{{%language_list}}', 'created_by');
-        \$this->createIndex('{{%idx-language_list-updated_by}}', '{{%language_list}}', 'updated_by');
+        \$this->createIndex('{{%idx-language_list-key}}', '{{%language_list}}', 'key');
     }
 
     public function safeDown()
     {
-        \$this->dropIndex('{{%idx-language_list-status}}', '{{%language_list}}');
-        \$this->dropIndex('{{%idx-language_list-created_by}}', '{{%language_list}}');
-        \$this->dropIndex('{{%idx-language_list-updated_by}}', '{{%language_list}}');
+        \$this->dropIndex('{{%idx-language_list-key}}', '{{%language_list}}');
         \$this->dropTable('{{%language_list}}');
     }
 }

@@ -21,47 +21,9 @@ use Yii;
  * @property string|null $image
  * @property string|null $table
  * @property string|null $import_excel
- * @property int|null $order_number
- * @property int|null $status
- * @property int|null $created_at
- * @property int|null $created_by
- * @property int|null $updated_at
- * @property int|null $updated_by
  */
 class BaseLanguageList extends ActiveRecord
 {
-    public function behaviors(): array
-    {
-        return [
-            [
-                'class' => TimestampBehavior::class,
-                'attributes' => [
-                    BaseActiveRecord::EVENT_BEFORE_INSERT => ['created_at', 'updated_at'],
-                    BaseActiveRecord::EVENT_BEFORE_UPDATE => ['updated_at'],
-                ],
-            ],
-            [
-                'class' => AttributeBehavior::class,
-                'attributes' => [
-                    BaseActiveRecord::EVENT_BEFORE_INSERT => ['created_by', 'updated_by'],
-                    BaseActiveRecord::EVENT_BEFORE_UPDATE => ['updated_by'],
-                ],
-                'value' => function () {
-                    return Yii::$app->user->id;
-                },
-            ],
-            [
-                'class' => AttributeBehavior::class,
-                'attributes' => [
-                    BaseActiveRecord::EVENT_BEFORE_INSERT => 'status',
-                ],
-                'value' => function () {
-                    return $this->status ?? 1;
-                },
-            ]
-        ];
-    }
-
     public static function tableName()
     {
         return '{{%language_list}}';
@@ -78,10 +40,7 @@ class BaseLanguageList extends ActiveRecord
             [['import_excel'], 'file', 'skipOnEmpty' => true, 'extensions' => 'xlsx'],
             [['image', 'table'], 'string'],
             [['table', 'key'], 'unique', 'filter' => function ($query) {
-                $query->andWhere(['and',
-                    ['status' => 1],
-                    ['not', ['id' => $this->id]]
-                ]);
+                $query->andWhere(['not', ['id' => $this->id]]);
             }],
         ];
     }
@@ -100,14 +59,6 @@ class BaseLanguageList extends ActiveRecord
         $this->table = 'lang_'.$this->key;
         if ($this->isNewRecord)
         {
-            $order_number = self::find()
-                ->select(['order_number'])
-                ->where(['status' => 1])
-                ->orderBy(['order_number' => SORT_DESC])
-                ->asArray()
-                ->limit(1)
-                ->one();
-            $this->order_number = !empty($order_number) ? $order_number['order_number'] + 1 : 1;
             if (!$this::isTableExists($this->table)) {
                 $response = BaseLanguageQuery::createLangTable($this->table);
             }
@@ -131,7 +82,7 @@ class BaseLanguageList extends ActiveRecord
                 $this->image = $fileNamePath;
             } else {
                 $response['status'] = false;
-                $response['message'] = 'Rasmni saqlashda xatolik';
+                $response['message'] = Yii::t('multilingual', 'Error saving image');
             }
         }
         if ($response['status']) {

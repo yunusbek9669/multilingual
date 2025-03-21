@@ -146,28 +146,6 @@ class LanguageService extends ActiveQuery
         return $attributes;
     }
 
-    /** Tarjima qilinadigan modellarning kerakli attributelari yig‘ilgan holdagi ro‘yxatini olish */
-    public static function getTranslateAbleData($model)
-    {
-        /** kerakli ustunlarni yig‘ish */
-        $attributes = [];
-        $current_table = $model::tableName();
-        $columns = Yii::$app->db->getTableSchema($current_table)->columns;
-        foreach ($columns as $columnName => $column) {
-            if ($columnName === 'id' || in_array($column->type, ['string', 'text', 'safe'])) {
-                $attributes[] = $columnName;
-            }
-        }
-
-        /** Asosiy modellarning kerakli attributelarini olish */
-        return $model::find()
-            ->select($attributes)
-            ->where(['status' => 1])
-            ->asArray()
-            ->orderBy(['id' => SORT_ASC])
-            ->all();
-    }
-
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar */
     public static function getLangTables(array $languages, bool $is_static = false): array
     {

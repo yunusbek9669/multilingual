@@ -141,7 +141,7 @@ class Multilingual extends ActiveRecord
                 ])->execute();
 
             if ($upsert <= 0) {
-                $response['message'] = '"' . $table . '"ni yozish davomida xatolik';
+                $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
                 $response['code'] = 'error';
                 $response['status'] = false;
                 break;
@@ -207,7 +207,7 @@ class Multilingual extends ActiveRecord
                     ])->execute();
 
                 if ($upsert <= 0) {
-                    $response['message'] = 'Error while writing "' . $table . '" table';
+                    $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
                     $response['code'] = 'error';
                     $response['status'] = false;
                     break;
@@ -227,7 +227,7 @@ class Multilingual extends ActiveRecord
             ->bindValue(':is_static', $is_static, \PDO::PARAM_BOOL)->queryAll();
 
         if (empty($data)) {
-            throw new \Exception("Jadvalda ma'lumot topilmadi.");
+            throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
         }
 
         return LanguageService::exportToExcelData($data, "{$tableName}.xlsx");
@@ -290,7 +290,7 @@ class Multilingual extends ActiveRecord
                                     $json = json_encode($values);
                                     $response['status'] = false;
                                     $response['code'] = 'error';
-                                    $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
+                                    $response['message'] = Yii::t('multilingual', '"Error saving {category}, {json}"', ['category' => $category, 'json' => $json]);
                                     break;
                                 }
                             }
@@ -321,7 +321,7 @@ class Multilingual extends ActiveRecord
                                     $json = json_encode($values);
                                     $response['status'] = false;
                                     $response['code'] = 'error';
-                                    $response['message'] = "«{$row[0]}, {$row[1]}, {$json}»ni saqlashda xatolik";
+                                    $response['message'] = Yii::t('multilingual', '"Error saving {category}, {json}"', ['category' => $row[1], 'json' => $json]);
                                     break;
                                 }
                             }

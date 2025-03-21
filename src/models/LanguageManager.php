@@ -37,7 +37,7 @@ class LanguageManager
         }
         try {
             Yii::$app->language = $key;
-            $Multilingual = BaseLanguageList::find()->where(['status' => 1])->asArray()->orderBy(['order_number' => SORT_ASC])->all();
+            $Multilingual = BaseLanguageList::find()->asArray()->orderBy(['name' => SORT_ASC])->all();
             $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key) {
                 return [
                     'name' => $model['name'],
