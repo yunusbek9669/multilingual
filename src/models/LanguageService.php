@@ -37,23 +37,20 @@ class LanguageService extends ActiveQuery
         $translate_list = array_fill_keys(array_keys($tableResult['language']), null);
 
         /** Asosiy tilni ro‘yxatga qo‘shish */
+        $default_lang = [];
         foreach ($languages as $language) {
             if (!isset($language['table'])) {
                 foreach ($tableResult['table_iterations'] as $table_name => $table_iterations) {
                     $table_id_list = array_keys($table_iterations);
-                    if (!(count($table_id_list) === 1 && array_key_first($table_id_list) === 0) && self::checkTable($table_name)) {
+                    if (self::checkTable($table_name)) {
                         $flat = call_user_func_array('array_merge', $table_iterations);
                         $result = array_merge(array_keys(array_flip($flat)), ['id']);
-                        $modelResult = (new Query())
-                            ->select($result)
-                            ->from($table_name)
-                            ->where(['in', 'id', $table_id_list])
-                            ->all();
+                        $modelResult = (new Query())->select($result)->from($table_name)->where(['in', 'id', $table_id_list])->all();
                         if (!empty($modelResult)) {
                             foreach ($modelResult as $model) {
                                 $id = $model['id'];
                                 unset($model['id']);
-                                $tableResult['langTables'][$language['name']][] = [
+                                $default_lang[$language['name']][] = [
                                     'table_name' => $table_name,
                                     'table_iteration' => $id,
                                     'value' => json_encode($model),
@@ -64,6 +61,7 @@ class LanguageService extends ActiveQuery
                 }
             }
         }
+        $tableResult['langTables'] = array_merge($default_lang, $tableResult['langTables']);
 
         $result = [
             'header' => [
@@ -99,11 +97,11 @@ class LanguageService extends ActiveQuery
                             $body[$unique_name]['translate'][$attribute] = $translate_list;
                         }
                         /** Asosiy modeldan olingan qiymatni qo‘shish */
+                        $body[$unique_name]['translate'][$attribute][$key] = $value;
                         if (empty($value)) {
                             $result['header']['language'][$key] += 1;
                             $is_full = false;
                         }
-                        $body[$unique_name]['translate'][$attribute][$key] = $value;
 
                     }
                     $body[$unique_name]['is_full'] = $is_full;
