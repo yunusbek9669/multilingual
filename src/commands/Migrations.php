@@ -39,7 +39,7 @@ class {$migrationClassName} extends Migration
             'key' => \$this->string(5)->notNull(), # Enter the short code representing the current language. Based on the international standard ISO 639-1 language codes. For example: uz, en, ru.
             'image' => \$this->string(50), # Enter the path to the flag image for the current language.
             'import_excel' => \$this->string(50), # Import an Excel file downloaded from an existing language and translated into a new language
-            'table' => \$this->string(50)->notNull(), # Enter the name of the table that stores translations for the current language, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern)
+            'table' => \$this->string(50)->notNull(), # The name of the table where translations for the current language are stored, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern, do not enter it manually)
         ]);
 
         \$this->createIndex('{{%idx-language_list-key}}', '{{%language_list}}', 'key');

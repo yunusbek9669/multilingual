@@ -66,7 +66,7 @@ The next important processing steps in the project settings.
             'class' => 'Yunusbek\Multilingual\components\MultilingualI18N',
             'translations' => [
                 'app*' => [
-                    'class' => 'Yunusbek\Multilingual\models\DbMessageSource', // You should apply this class to other categories as well.
+                    'class' => 'Yunusbek\Multilingual\components\DbMessageSource', // You should apply this class to other categories as well.
                 ],
             ],
         ],

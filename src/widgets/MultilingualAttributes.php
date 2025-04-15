@@ -71,7 +71,7 @@ class MultilingualAttributes extends Widget
         if (!in_array($columnType, ['string', 'text'])) {
             throw new Exception('The value of attribute - "'.$attribute.'" must be of type string.');
         }
-        if (!in_array('id', $model->getAttributes())) {
+        if (!in_array('id', array_keys($model->getAttributes()))) {
             throw new Exception('The "'.$model::tableName().'" table does not have an id column.');
         }
 

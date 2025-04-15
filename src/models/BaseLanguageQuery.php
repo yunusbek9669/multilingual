@@ -14,46 +14,87 @@ use yii\db\Exception;
 class BaseLanguageQuery extends ActiveQuery
 {
     public $selectColumns = [];
-    /**
-     * @throws Exception
-     */
-    public function joinWithLang(): static
+    protected $customAlias = null;
+    protected $langJoined = false;
+
+    public function __construct($modelClass, $config = [])
     {
+        parent::__construct($modelClass, $config);
+    }
+
+    public function alias($alias): static
+    {
+        $this->customAlias = $alias;
+        $this->from[$alias] = $this->modelClass::tableName();
+        return $this;
+    }
+
+    public function joinWithLang(string $joinType = 'leftJoin', string $current_table = null, string $alias = null, array $selectColumns = []): static
+    {
+        if ($this->langJoined) { return $this; }
+
         $tableName = 'lang_' . Yii::$app->language;
 
-        $tableExists = Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")
-            ->bindValue(':table', $tableName)
-            ->queryScalar();
-
-        if ($tableExists) {
-            $current_table = $this->modelClass::tableName();
-            $this->alias($current_table);
-
-            $columns = Yii::$app->db->getTableSchema($current_table)->columns;
-
-            $selectColumns = [];
-            foreach ($columns as $columnName => $column)
-            {
-                if (in_array($column->type, ['string', 'text', 'safe']))
-                {
-                    $coalesce = "COALESCE(
-                        NULLIF(json_extract_path_text($tableName.value, '$columnName'), ''),
-                        {$current_table}.{$columnName}
-                    )";
-                    $this->selectColumns[$columnName] = $coalesce;
-                    $selectColumns[] = $coalesce." AS {$columnName}";
+        if (Yii::$app->params['table_available'] ?? false) {
+            if ($current_table === null) { $current_table = $this->modelClass::tableName(); }
+            if ($alias === null) { $alias = $this->customAlias ?: $current_table; }
+            if (empty($selectColumns)) {
+                $columns = Yii::$app->db->getTableSchema($current_table)->columns;
+                foreach ($columns as $columnName => $column) {
+                    if (in_array($column->type, ['string', 'text', 'safe'])) {
+                        $coalesce = "COALESCE(NULLIF(json_extract_path_text($current_table$tableName.value, '$columnName'), ''), {$alias}.{$columnName})";
+                        $selectColumns[$columnName] = $coalesce;
+                    }
                 }
             }
-            $this->addSelect(array_merge(["{$current_table}.*"], $selectColumns));
 
-            $this->leftJoin(
-                $tableName,
-                "$tableName.table_name = :table_name AND $tableName.table_iteration = $current_table.id",
-                [':table_name' => $current_table]
+            if (!empty($this->select)) {
+                foreach ($this->select as $key => $column) {
+                    if (str_contains($column, '.')) {
+                        $joinAlias = explode('.', $column)[0];
+                        if ($joinAlias !== $alias) {
+                            if ($this->join) {
+                                foreach ($this->join as $join) {
+                                    $joinType = lcfirst(str_replace(' ', '', $join[0]));
+                                    $joinTable = is_array($join[1]) ? reset($join[1]) : $join[1];
+                                    if ($current_table !== $joinTable) {
+                                        $clear_column = explode('.', $column)[1];
+                                        $coalesce = "COALESCE(NULLIF(json_extract_path_text($joinTable$tableName.value, '$clear_column'), ''), {$column})";
+                                        $selectColumns[$key] = $coalesce;
+                                        $this->joinWithLang($joinType, $joinTable, $joinAlias, $selectColumns);
+                                    }
+                                }
+                            }
+                            if (!str_contains($column, 'COUNT')) {
+                                $this->addSelect(array_merge(["{$alias}.*"], $selectColumns));
+                            }
+                        }
+                    }
+                }
+            } else {
+                $this->addSelect(array_merge(["{$alias}.*"], $selectColumns));
+            }
+
+            $this->$joinType(
+                [$current_table.$tableName => $tableName],
+                "$current_table$tableName.table_name = :table_name_$current_table AND $current_table$tableName.table_iteration = {$alias}.id",
+                [":table_name_$current_table" => $current_table]
             );
+
+            $this->langJoined = true;
         }
 
         return $this;
+    }
+
+    public function prepare($builder)
+    {
+        $this->joinWithLang();
+        if ($this->customAlias) {
+            $tableName = $this->modelClass::tableName();
+            $this->from = [$this->customAlias => $tableName];
+        }
+        return parent::prepare($builder);
     }
 
     public function orderBy($columns)

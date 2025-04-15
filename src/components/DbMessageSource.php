@@ -1,10 +1,10 @@
 <?php
 
-namespace Yunusbek\Multilingual\models;
+namespace Yunusbek\Multilingual\components;
 
 use Yii;
-use yii\i18n\MessageSource;
 use yii\db\Query;
+use yii\i18n\MessageSource;
 
 class DbMessageSource extends MessageSource
 {
@@ -15,8 +15,6 @@ class DbMessageSource extends MessageSource
      */
     protected function loadMessages($category, $language)
     {
-        if (!isset($this->_messages[$language])) {
-        }
         $this->_messages[$language] = $this->fetchAllMessages($language);
         return $this->_messages[$language][$category] ?? $this->_messages[$language] ?? [];
     }
@@ -27,10 +25,7 @@ class DbMessageSource extends MessageSource
     private function fetchAllMessages($language)
     {
         $tableName = "lang_{$language}";
-        $tableExists = Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")
-            ->bindValue(':table', $tableName)
-            ->queryScalar();
-        if ($tableExists)
+        if (Yii::$app->params['table_available'])
         {
             return Yii::$app->cache->getOrSet($tableName, function () use ($tableName)
             {

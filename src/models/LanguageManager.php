@@ -70,6 +70,7 @@ class LanguageManager
         $language_list = array_merge(Yii::$app->params['language_list'], $result);
         $filtered_languages = array_filter($language_list, fn($lang) => !empty($lang['active']));
         Yii::$app->params['active_language'] = reset($filtered_languages);
+        Yii::$app->params['table_available'] = Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")->bindValue(':table', 'lang_' . Yii::$app->language)->queryScalar();
         return $language_list;
     }
 }

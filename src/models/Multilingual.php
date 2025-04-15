@@ -70,7 +70,7 @@ class Multilingual extends ActiveRecord
      */
     public static function find(): ActiveQuery|BaseLanguageQuery
     {
-        return (new BaseLanguageQuery(static::class))->joinWithLang();
+        return new BaseLanguageQuery(static::class);
     }
 
     /**

@@ -11,7 +11,7 @@ class MultilingualI18N extends I18N
         parent::init();
         if (!isset($this->translations['multilingual']) && !isset($this->translations['multilingual*'])) {
             $this->translations['multilingual'] = [
-                'class' => 'Yunusbek\Multilingual\models\DbMessageSource'
+                'class' => 'Yunusbek\Multilingual\components\DbMessageSource'
             ];
         }
     }
