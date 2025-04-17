@@ -2,10 +2,10 @@
 
 namespace Yunusbek\Multilingual\controllers;
 
-use yii\base\InvalidParamException;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
-use Yunusbek\Multilingual\models\Multilingual;
 use Yii;
+use yii\base\InvalidParamException;
+use Yunusbek\Multilingual\models\LanguageService;
+use Yunusbek\Multilingual\models\Multilingual;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use yii\filters\VerbFilter;
@@ -42,7 +42,7 @@ class LanguageController extends Controller
     {
         $searchParams = Yii::$app->request->queryParams;
         $searchParams['is_all'] = true;
-        $translates = BaseLanguageQuery::searchAllLanguage($searchParams);
+        $translates = LanguageService::getModelsData($searchParams);
         if(Yii::$app->request->isAjax){
             return $this->renderAjax('index-all-language', [
                 'searchParams' => $searchParams,

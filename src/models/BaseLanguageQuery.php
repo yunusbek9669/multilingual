@@ -14,8 +14,8 @@ use yii\db\Exception;
 class BaseLanguageQuery extends ActiveQuery
 {
     public $selectColumns = [];
+    protected $joinList = [];
     protected $customAlias = null;
-    protected $langJoined = false;
 
     public function __construct($modelClass, $config = [])
     {
@@ -29,61 +29,29 @@ class BaseLanguageQuery extends ActiveQuery
         return $this;
     }
 
-    public function joinWithLang(string $joinType = 'leftJoin', string $current_table = null, string $alias = null, array $selectColumns = []): static
+    public function joinWithLang(string $joinType = 'leftJoin', string $current_table = null): static
     {
-        if ($this->langJoined) { return $this; }
-
-        $tableName = 'lang_' . Yii::$app->language;
-
         if (Yii::$app->params['table_available'] ?? false) {
-            if ($current_table === null) { $current_table = $this->modelClass::tableName(); }
-            if ($alias === null) { $alias = $this->customAlias ?: $current_table; }
-            if (empty($selectColumns)) {
-                $columns = Yii::$app->db->getTableSchema($current_table)->columns;
-                foreach ($columns as $columnName => $column) {
-                    if (in_array($column->type, ['string', 'text', 'safe'])) {
-                        $coalesce = "COALESCE(NULLIF(json_extract_path_text($current_table$tableName.value, '$columnName'), ''), {$alias}.{$columnName})";
-                        $selectColumns[$columnName] = $coalesce;
-                    }
-                }
-            }
+            $current_table = $current_table ?? $this->modelClass::tableName();
+            $alias = $this->customAlias ?? $current_table;
 
-            if (!empty($this->select)) {
-                foreach ($this->select as $key => $column) {
-                    if (str_contains($column, '.')) {
-                        $joinAlias = explode('.', $column)[0];
-                        if ($joinAlias !== $alias) {
-                            if ($this->join) {
-                                foreach ($this->join as $join) {
-                                    $joinType = lcfirst(str_replace(' ', '', $join[0]));
-                                    $joinTable = is_array($join[1]) ? reset($join[1]) : $join[1];
-                                    if ($current_table !== $joinTable) {
-                                        $clear_column = explode('.', $column)[1];
-                                        $coalesce = "COALESCE(NULLIF(json_extract_path_text($joinTable$tableName.value, '$clear_column'), ''), {$column})";
-                                        $selectColumns[$key] = $coalesce;
-                                        $this->joinWithLang($joinType, $joinTable, $joinAlias, $selectColumns);
-                                    }
-                                }
-                            }
-                            if (!str_contains($column, 'COUNT')) {
-                                $this->addSelect(array_merge(["{$alias}.*"], $selectColumns));
-                            }
+            $langTable = 'lang_' . Yii::$app->language;
+
+            if (empty($this->select)) {
+                $this->setFullSelect($joinType, $current_table, $langTable, $alias);
+            } else {
+                foreach ($this->select as $attribute_name => $column) {
+                    if (!str_contains($column, 'COUNT') && !empty($this->join)) {
+                        $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
+                        if (!empty($full) && $this->customAlias === explode('.', $full)[0]) {
+                            $this->setFullSelect($joinType, $current_table, $langTable, $alias);
+                        } else {
+                            $this->setSingleSelect($joinType, $this->join, $this->modelClass::tableName(), $langTable, $attribute_name, $column);
                         }
                     }
                 }
-            } else {
-                $this->addSelect(array_merge(["{$alias}.*"], $selectColumns));
             }
-
-            $this->$joinType(
-                [$current_table.$tableName => $tableName],
-                "$current_table$tableName.table_name = :table_name_$current_table AND $current_table$tableName.table_iteration = {$alias}.id",
-                [":table_name_$current_table" => $current_table]
-            );
-
-            $this->langJoined = true;
         }
-
         return $this;
     }
 
@@ -97,28 +65,76 @@ class BaseLanguageQuery extends ActiveQuery
         return parent::prepare($builder);
     }
 
+    protected function setFullSelect(string $joinType, string $current_table, string $langTable, string $alias): void
+    {
+        $collectColumns = [];
+        $nonTranslatableColumns = [];
+        $joinTable = $current_table . '_' . $langTable;
+        $columns = Yii::$app->db->getTableSchema($current_table)->columns;
+
+        foreach ($columns as $attribute_name => $column) {
+            if (in_array($column->type, ['string', 'text', 'safe'])) {
+                $collectColumns[$attribute_name] = $this->coalesce($joinTable, $attribute_name, $alias . '.' . $attribute_name);
+            } else {
+                $nonTranslatableColumns[] = "{$alias}.{$attribute_name}";
+            }
+        }
+
+        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
+        $this->addSelect(array_merge($nonTranslatableColumns, $collectColumns));
+        $this->addJoin($joinType, $joinTable, $langTable, $current_table, $alias);
+    }
+
+    protected function setSingleSelect(string $joinType, array $joins, string $rootTable, string $langTable, string $attribute_name, string $column): void
+    {
+        $explode = explode('.', $column);
+        $collectColumns = [];
+        foreach ($joins as $join) {
+            if (isset($join[1][$explode[0]])) {
+                $current_table = $join[1][$explode[0]];
+                $joinTable = $current_table . '_' . $langTable;
+                $collectColumns[$attribute_name] = $this->coalesce($joinTable, $explode[1], $column);
+                $this->addSelect($collectColumns);
+                $this->addJoin($joinType, $joinTable, $langTable, $current_table, $explode[0]);
+                break;
+            }
+        }
+        $this->joinList = array_merge($this->joinList, $collectColumns);
+        if (empty($collectColumns) && !in_array($attribute_name, array_keys($this->joinList)) && $explode[0] === $this->customAlias) {
+            $joinTable = $rootTable . '_' . $langTable;
+            $collectColumns[$attribute_name] = $this->coalesce($joinTable, $explode[1], $column);
+            $this->addSelect($collectColumns);
+            $this->addJoin($joinType, $joinTable, $langTable, $rootTable, $explode[0]);
+        }
+        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
+    }
+
+    protected function coalesce(string $table, string $attribute, string $qualified_column_name): string
+    {
+        return "COALESCE(NULLIF(json_extract_path_text({$table}.value, '{$attribute}'), ''), {$qualified_column_name})";
+    }
+
+    protected function addJoin(string $joinType, string $joinTable, string $langTable, string $current_table, string $alias): void
+    {
+        $this->$joinType(
+            [$joinTable => $langTable],
+            "$joinTable.table_name = :table_name_$current_table AND $joinTable.table_iteration = {$alias}.id",
+            [":table_name_$current_table" => $current_table]
+        );
+    }
+
     public function orderBy($columns)
     {
         if (is_array($columns) && isset($this->selectColumns)) {
-            foreach ($columns as $column => $value)
-            {
+            foreach ($columns as $column => $value) {
                 if (!empty($this->selectColumns[$column])) {
                     $columns[$this->selectColumns[$column]] = $value;
                     unset($columns[$column]);
                 }
             }
         }
-
         $this->orderBy = $this->normalizeOrderBy($columns);
         return $this;
-    }
-
-    /**
-     * @throws Exception
-     */
-    public static function searchAllLanguage($params): array
-    {
-        return LanguageService::getModelsData($params);
     }
 
     /**
