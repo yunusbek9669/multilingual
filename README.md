@@ -172,7 +172,8 @@ Useful buttons to install
 Add the following button to the top of the created CRUD index page which will take you to the general translations page.
 
 ````php
-echo Html::a(Yii::t('multilingual', 'All translations'), ['/multilingual/language/index']);
+echo Html::a(Yii::t('multilingual', 'All columns'), ['/multilingual/language/index?is_static=0']);  // it will take you to all dynamic translations
+echo Html::a(Yii::t('multilingual', 'All i18n'), ['/multilingual/language/index?is_static=1']);     // it will take you to all static translations
 ````
 
 and add the following button to the actions section of each language row, which will download an excel file of all translations for that language.
