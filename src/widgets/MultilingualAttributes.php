@@ -9,6 +9,24 @@ use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\components\LanguageService;
+global $css;
+$css = <<<CSS
+.dashed-ml {
+    -webkit-box-flex: 1;
+    flex: 1 0 0%;
+    border: none;
+    height: 1px;
+    width: -webkit-fill-available;
+    background: repeating-linear-gradient(
+        to right,
+        #ccc 0px,
+        #ccc 15px,
+        transparent 15px,
+        transparent 20px
+    );
+    margin: 15px 0 20px 0;
+}
+CSS;
 
 class MultilingualAttributes extends Widget
 {
@@ -54,8 +72,9 @@ class MultilingualAttributes extends Widget
             $params['attribute'] = $attribute;
             $result = $this->setAttribute($params);
         }
-
-        return $result;
+        global $css;
+        $this->view->registerCss($css);
+        return $result.'<div style="display: flex; color: #888"><div class="dashed-ml"></div></div>';
     }
 
     /**
@@ -106,6 +125,6 @@ class MultilingualAttributes extends Widget
             ]);
             $output .= '</div></div>';
         }
-        return $output;
+        return '<div style="display: flex; color: #888"><div class="dashed-ml"></div>'.$label.'<div class="dashed-ml"></div></div>'.$output;
     }
 }

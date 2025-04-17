@@ -58,14 +58,14 @@ class BaseLanguageList extends ActiveRecord
             'code' => 'success',
             'message' => 'success'
         ];
-        $this->table = 'lang_'.$this->key;
+        $this->table = self::LANG_TABLE_PREFIX . $this->key;
         if ($this->isNewRecord)
         {
             if (!$this::isTableExists($this->table)) {
                 $response = BaseLanguageQuery::createLangTable($this->table);
             }
         } else {
-            $oldTableName = 'lang_' . $this->getOldAttribute('key');
+            $oldTableName = self::LANG_TABLE_PREFIX . $this->getOldAttribute('key');
             if ($this->getOldAttribute('key') !== $this->key) {
                 $response = BaseLanguageQuery::updateLangTable($oldTableName, $this->table);
             }

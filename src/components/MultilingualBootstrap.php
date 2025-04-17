@@ -3,7 +3,6 @@
 namespace Yunusbek\Multilingual\components;
 
 use yii\base\BootstrapInterface;
-use Yunusbek\Multilingual\models\LanguageManager;
 
 class MultilingualBootstrap implements BootstrapInterface
 {

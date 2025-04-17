@@ -107,12 +107,6 @@ class LanguageController extends Controller
                 return $this->redirect(['index']);
             }
         }
-        if (Yii::$app->request->isAjax) {
-            return $this->renderAjax('_form', [
-                'attributes' => $attributes,
-                'model' => $model,
-            ]);
-        }
 
         return $this->render('_form', [
             'attributes' => $attributes,
