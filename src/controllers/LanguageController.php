@@ -4,14 +4,14 @@ namespace Yunusbek\Multilingual\controllers;
 
 use Yii;
 use yii\base\InvalidParamException;
-use Yunusbek\Multilingual\models\LanguageService;
-use Yunusbek\Multilingual\models\Multilingual;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use yii\filters\VerbFilter;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
+use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\models\Multilingual;
 
 /**
  * LanguageController implements the CRUD actions for Multilingual model.

@@ -24,6 +24,8 @@ use Yii;
  */
 class BaseLanguageList extends ActiveRecord
 {
+    const LANG_TABLE_PREFIX = 'lang_';
+
     public static function tableName()
     {
         return '{{%language_list}}';

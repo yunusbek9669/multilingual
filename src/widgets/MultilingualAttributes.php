@@ -2,13 +2,13 @@
 
 namespace Yunusbek\Multilingual\widgets;
 
-use Yii;
 use Exception;
+use Yii;
 use yii\base\Widget;
-use yii\helpers\Html;
 use yii\db\ActiveRecord;
+use yii\helpers\Html;
 use yii\widgets\ActiveForm;
-use Yunusbek\Multilingual\models\LanguageService;
+use Yunusbek\Multilingual\components\LanguageService;
 
 class MultilingualAttributes extends Widget
 {
