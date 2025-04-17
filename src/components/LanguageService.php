@@ -113,6 +113,31 @@ class LanguageService
         return $result;
     }
 
+    /**
+     * Umumiy extend olgan modellarning ma’lumotlari
+     * @throws Exception
+     */
+    public static function getI18NData(): array
+    {
+        $basePath = Yii::$app->i18n->translations ?? [];
+
+        /** kategoriyalar bo‘yicha ro‘yxat */
+        $result = [];
+        foreach (array_keys($basePath) as $category) {
+            if ($category !== 'yii') {
+                $category = str_replace('*', '', $category);
+                $result['categories'][] = $category;
+            }
+        }
+        $result['header'] = [
+            'categories' => Yii::t('multilingual', 'Table Name'),
+            'attributes' => Yii::t('multilingual', 'Attributes'),
+            'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
+        ];
+
+        return $result;
+    }
+
     /** lang_* tablitsalarini chaqirib olish (Create, Update) */
     public static function setCustomAttributes($model, string $attribute = null): array
     {

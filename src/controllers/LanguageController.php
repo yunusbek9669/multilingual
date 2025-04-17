@@ -38,16 +38,14 @@ class LanguageController extends Controller
      * @return string
      * @throws Exception
      */
-    public function actionIndex(): string
+    public function actionIndex($is_static = 0): string
     {
         $searchParams = Yii::$app->request->queryParams;
         $searchParams['is_all'] = true;
-        $translates = LanguageService::getModelsData($searchParams);
-        if(Yii::$app->request->isAjax){
-            return $this->renderAjax('index-all-language', [
-                'searchParams' => $searchParams,
-                'translates' => $translates,
-            ]);
+        if ($is_static) {
+            $translates = LanguageService::getI18NData();
+        } else {
+            $translates = LanguageService::getModelsData($searchParams);
         }
         return $this->render('index', [
             'searchParams' => $searchParams,
