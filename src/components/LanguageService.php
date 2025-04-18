@@ -40,6 +40,7 @@ class LanguageService
         $default_lang = [];
         foreach ($languages as $language) {
             if (!isset($language['table'])) {
+                $default_lang_name = $language['name'].' <i class="fas fa-star text-warning"></i>';
                 foreach ($tableResult['table_iterations'] as $table_name => $table_iterations) {
                     $table_id_list = array_keys($table_iterations);
                     if (self::checkTable($table_name)) {
@@ -50,7 +51,7 @@ class LanguageService
                             foreach ($modelResult as $model) {
                                 $id = $model['id'];
                                 unset($model['id']);
-                                $default_lang[$language['name']][] = [
+                                $default_lang[$default_lang_name][] = [
                                     'table_name' => $table_name,
                                     'table_iteration' => $id,
                                     'value' => json_encode($model),
@@ -74,25 +75,21 @@ class LanguageService
 
         $body = [];
         /** body shakllantirish */
-        foreach ($tableResult['langTables'] as $key => $table)
-        {
-            if (!empty($table))
-            {
+        foreach ($tableResult['langTables'] as $key => $table) {
+            if (!empty($table)) {
                 /** lang_* jadvallarining qatorlari bo‘yicha siklga solish */
-                foreach ($table as $tableRow)
-                {
+                foreach ($table as $tableRow) {
                     $is_full = true;
                     /** Ro‘yxatni shakllantirish */
                     $tableValue = json_decode($tableRow['value'], true);
-                    $unique_name = $tableRow['table_name'].'_'.$tableRow['table_iteration'];
+                    $unique_name = $tableRow['table_name'] . '_' . $tableRow['table_iteration'];
                     unset($tableRow['is_static']);
                     unset($tableRow['value']);
                     $body[$unique_name]['table_name'] = $tableRow['table_name'];
                     $body[$unique_name]['table_iteration'] = $tableRow['table_iteration'];
 
                     /** lang_* jadvallarining value:json ustuni bo‘yicha siklga solish */
-                    foreach ($tableValue as $attribute => $value)
-                    {
+                    foreach ($tableValue as $attribute => $value) {
                         if (empty($body[$unique_name]['translate'][$attribute])) {
                             $body[$unique_name]['translate'][$attribute] = $translate_list;
                         }
@@ -143,12 +140,9 @@ class LanguageService
     {
         $attributes = [];
         $languages = Yii::$app->params['language_list'];
-        if (!empty($languages))
-        {
-            foreach ($languages as $language)
-            {
-                if (!empty($language['table']) && self::checkTable($language['table']))
-                {
+        if (!empty($languages)) {
+            foreach ($languages as $language) {
+                if (!empty($language['table']) && self::checkTable($language['table'])) {
                     $lang_table = (new yii\db\Query())
                         ->from($language['table'])
                         ->select('value')
@@ -160,7 +154,7 @@ class LanguageService
                     $data_value = json_decode($lang_table);
                     $name = $language['table'];
                     if ($attribute !== null) {
-                        $name = 'Language['.$name.']['.$attribute.']';
+                        $name = 'Language[' . $name . '][' . $attribute . ']';
                     }
                     $attributes[$name] = !empty($data_value->$attribute) ? $data_value->$attribute : null;
                 }
@@ -175,14 +169,11 @@ class LanguageService
         $result = [];
         $grouped = [];
         /** Tizimdagi tillar bo‘yicha siklga solish */
-        foreach ($languages as $language)
-        {
+        foreach ($languages as $language) {
             $result['language'][$language['name']] = 0;
-            if (!empty($language['table']))
-            {
+            if (!empty($language['table'])) {
                 /** Dinamik tillar tablitsalarini ro‘yxatini shakllantirish */
-                if (self::checkTable($language['table']))
-                {
+                if (self::checkTable($language['table'])) {
                     $result['langTables'][$language['name']] = (new Query())
                         ->select(['table_name', 'table_iteration', 'value'])
                         ->from($language['table'])
@@ -211,7 +202,7 @@ class LanguageService
         $sheet = $spreadsheet->getActiveSheet();
 
         /** Asosiy ustunlar */
-        $basicList = ['A','B','C'];
+        $basicList = ['A', 'B', 'C'];
         $letterList = $basicList;
         $baseHeaders = ['is_static', 'table_name', 'table_iteration'];
         $dynamicJsonKeys = [];

@@ -59,8 +59,7 @@ class BaseLanguageList extends ActiveRecord
             'message' => 'success'
         ];
         $this->table = self::LANG_TABLE_PREFIX . $this->key;
-        if ($this->isNewRecord)
-        {
+        if ($this->isNewRecord) {
             if (!$this::isTableExists($this->table)) {
                 $response = BaseLanguageQuery::createLangTable($this->table);
             }
@@ -72,13 +71,14 @@ class BaseLanguageList extends ActiveRecord
         }
 
         $file = UploadedFile::getInstance($this, 'image');
-        if (!empty($file))
-        {
+        if (!empty($file)) {
             $dirPath = 'uploads/' . $this::tableName();
             $fileNamePath = '/' . $dirPath . '/' . $this->table . "." . $file->extension;
             $absolutePath = Yii::getAlias("@webroot{$fileNamePath}");
 
-            if (!is_dir($dirPath)) { mkdir($dirPath); }
+            if (!is_dir($dirPath)) {
+                mkdir($dirPath);
+            }
 
             if ($file->saveAs($absolutePath)) {
                 $this->image = $fileNamePath;

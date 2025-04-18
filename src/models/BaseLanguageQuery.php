@@ -242,15 +242,13 @@ class BaseLanguageQuery extends ActiveQuery
 
     public static function modErrToStr($model): string
     {
-        if (!$model instanceof Model)
-        {
+        if (!$model instanceof Model) {
             $explode = explode("\n", trim($model->getMessage()));
             return $explode[0] ?? $model;
         }
         $errors = $model->getErrors();
         $string = "";
-        foreach ($errors as $error)
-        {
+        foreach ($errors as $error) {
             $string = $error[0] . " " . PHP_EOL . $string;
         }
 

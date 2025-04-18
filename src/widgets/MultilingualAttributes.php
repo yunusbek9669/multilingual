@@ -9,6 +9,7 @@ use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\components\LanguageService;
+
 global $css;
 $css = <<<CSS
 .dashed-ml {
@@ -74,7 +75,7 @@ class MultilingualAttributes extends Widget
         }
         global $css;
         $this->view->registerCss($css);
-        return $result.'<div style="display: flex; color: #888"><div class="dashed-ml"></div></div>';
+        return $result . '<div style="display: flex; color: #888"><div class="dashed-ml"></div></div>';
     }
 
     /**
@@ -88,10 +89,10 @@ class MultilingualAttributes extends Widget
         $attribute = $params['attribute'];
         $columnType = $params['tableSchema']->columns[$attribute]->type;
         if (!in_array($columnType, ['string', 'text'])) {
-            throw new Exception('The value of attribute - "'.$attribute.'" must be of type string.');
+            throw new Exception('The value of attribute - "' . $attribute . '" must be of type string.');
         }
         if (!in_array('id', array_keys($model->getAttributes()))) {
-            throw new Exception('The "'.$model::tableName().'" table does not have an id column.');
+            throw new Exception('The "' . $model::tableName() . '" table does not have an id column.');
         }
 
         $defaultValue = (new yii\db\Query())
@@ -104,20 +105,22 @@ class MultilingualAttributes extends Widget
         $languages = Yii::$app->params['language_list'];
         $defaultLanguage = null;
         foreach ($languages as $lang) {
-            if (empty($lang['table'])) { $defaultLanguage = $lang; break; }
+            if (empty($lang['table'])) {
+                $defaultLanguage = $lang;
+                break;
+            }
         }
         $label = $model->getAttributeLabel($attribute);
-        $defaultLabel = $label.' ('.$defaultLanguage['name'].')';
-        $output = '<div class="col-'.$params['col'].'">'.$form->field($model, $attribute)->textInput(['placeholder' => $defaultLabel." 🖊", 'value' => $defaultValue])->label($defaultLabel.' <i class="fas fa-star text-warning"></i>').'</div>';
-        foreach (LanguageService::setCustomAttributes($model, $attribute) as $key => $value)
-        {
+        $defaultLabel = $label . ' (' . $defaultLanguage['name'] . ')';
+        $output = '<div class="col-' . $params['col'] . '">' . $form->field($model, $attribute)->textInput(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue])->label($defaultLabel . ' <i class="fas fa-star text-warning"></i>') . '</div>';
+        foreach (LanguageService::setCustomAttributes($model, $attribute) as $key => $value) {
             preg_match('/lang_(\w+)/', $key, $matches);
             $dynamic_label = $label;
             $language = $languages[$matches[1]];
             if (!empty($language['name'])) {
-                $dynamic_label .= ' ('.$language['name'].')';
+                $dynamic_label .= ' (' . $language['name'] . ')';
             }
-            $output .= '<div class="col-'.$params['col'].'"><div class="form-group highlight-addon">';
+            $output .= '<div class="col-' . $params['col'] . '"><div class="form-group highlight-addon">';
             $output .= Html::label($dynamic_label, $key, ['class' => 'form-label']);
             $output .= Html::textInput($key, $value, [
                 'placeholder' => $dynamic_label . " 🖊",
@@ -125,6 +128,6 @@ class MultilingualAttributes extends Widget
             ]);
             $output .= '</div></div>';
         }
-        return '<div style="display: flex; color: #888"><div class="dashed-ml"></div>'.$label.'<div class="dashed-ml"></div></div>'.$output;
+        return '<div style="display: flex; color: #888"><div class="dashed-ml"></div>' . $label . '<div class="dashed-ml"></div></div>' . $output;
     }
 }

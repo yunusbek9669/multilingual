@@ -40,17 +40,20 @@ class LanguageController extends Controller
      */
     public function actionIndex($is_static = 0): string
     {
-        $searchParams = Yii::$app->request->queryParams;
-        $searchParams['is_all'] = true;
         if ($is_static) {
             $translates = LanguageService::getI18NData();
+            return $this->render('index-static', [
+                'translates' => $translates,
+            ]);
         } else {
+            $searchParams = Yii::$app->request->queryParams;
+            $searchParams['is_all'] = true;
             $translates = LanguageService::getModelsData($searchParams);
+            return $this->render('index-dynamic', [
+                'searchParams' => $searchParams,
+                'translates' => $translates,
+            ]);
         }
-        return $this->render('index', [
-            'searchParams' => $searchParams,
-            'translates' => $translates,
-        ]);
     }
 
     /**
@@ -66,9 +69,10 @@ class LanguageController extends Controller
     {
         $model = $this->findModel($table_name, $table_iteration);
         $request = Yii::$app->request;
-        if ($request->isPost)
-        {
-            if ($request->isAjax) { Yii::$app->response->format = Response::FORMAT_JSON; }
+        if ($request->isPost) {
+            if ($request->isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+            }
             $response = [];
             $response['status'] = true;
             $response['code'] = 'error';

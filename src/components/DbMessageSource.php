@@ -25,10 +25,8 @@ class DbMessageSource extends MessageSource
     private function fetchAllMessages($language)
     {
         $tableName = "lang_{$language}";
-        if (Yii::$app->params['table_available'])
-        {
-            return Yii::$app->cache->getOrSet($tableName, function () use ($tableName)
-            {
+        if (Yii::$app->params['table_available']) {
+            return Yii::$app->cache->getOrSet($tableName, function () use ($tableName) {
                 $rows = (new Query())
                     ->select(['table_name', 'value'])
                     ->from($tableName)

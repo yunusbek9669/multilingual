@@ -1,4 +1,5 @@
 <?php
+
 namespace Yunusbek\Multilingual\models;
 
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -83,18 +84,14 @@ class Multilingual extends ActiveRecord
         $response = [];
         $response['status'] = true;
         $response['message'] = Yii::t('multilingual', 'Error');
-        try
-        {
+        try {
             $post = Yii::$app->request->post('Language');
-            if (!empty($post))
-            {
+            if (!empty($post)) {
                 $response = $this->setDynamicLanguageValue($post);
-            } elseif (isset($this->status) && $this->status !== 1)
-            {
+            } elseif (isset($this->status) && $this->status !== 1) {
                 $response = $this->deleteLanguageValue();
             }
-        } catch (Exception $e)
-        {
+        } catch (Exception $e) {
             $response['message'] = $e->getMessage();
             $response['status'] = false;
         }
@@ -129,8 +126,7 @@ class Multilingual extends ActiveRecord
             'message' => 'success',
         ];
         $table_name = $this::tableName();
-        foreach ($post as $table => $data)
-        {
+        foreach ($post as $table => $data) {
             $upsert = $db->createCommand()
                 ->upsert($table, [
                     'table_name' => $table_name,
@@ -161,8 +157,7 @@ class Multilingual extends ActiveRecord
         $response['status'] = true;
         $response['message'] = 'success';
         $data = LanguageService::setCustomAttributes($this);
-        foreach ($data as $key => $value)
-        {
+        foreach ($data as $key => $value) {
             try {
                 $db->createCommand()
                     ->delete($key, [
@@ -192,10 +187,8 @@ class Multilingual extends ActiveRecord
             'message' => 'success'
         ];
         $languages = Yii::$app->params['language_list'];
-        foreach ($languages as $language)
-        {
-            if (!empty($language['table']))
-            {
+        foreach ($languages as $language) {
+            if (!empty($language['table'])) {
                 $table = $language['table'];
                 $upsert = $db->createCommand()
                     ->upsert($table, [
@@ -247,12 +240,13 @@ class Multilingual extends ActiveRecord
         ];
         $excel_file = UploadedFile::getInstance($model, 'import_excel');
         if ($excel_file) {
-            if ($model->validate())
-            {
+            if ($model->validate()) {
                 $table = $model->table;
                 $transaction = $db->beginTransaction();
                 try {
-                    if (!is_dir('uploads/import_language')) { mkdir('uploads/import_language'); }
+                    if (!is_dir('uploads/import_language')) {
+                        mkdir('uploads/import_language');
+                    }
                     $filePath = 'uploads/import_language/' . $excel_file->name;
                     $excel_file->saveAs($filePath);
 
@@ -262,12 +256,10 @@ class Multilingual extends ActiveRecord
 
                     unlink($filePath);
 
-                    if (!empty($data))
-                    {
+                    if (!empty($data)) {
                         $attributes = array_slice($data[0], 3);
                         unset($data[0]);
-                        if (!empty($data))
-                        {
+                        if (!empty($data)) {
                             /** static tarjimalr uchun */
                             $static = [];
                             foreach ($data as $row) {
@@ -275,8 +267,7 @@ class Multilingual extends ActiveRecord
                                     $static[$row[1]][$row[2]] = $row[3];
                                 }
                             }
-                            foreach ($static as $category => $values)
-                            {
+                            foreach ($static as $category => $values) {
                                 $upsert = $db->createCommand()
                                     ->upsert($table, [
                                         'is_static' => true,
@@ -301,11 +292,10 @@ class Multilingual extends ActiveRecord
                             $dynamic = array_filter($data, function ($item) {
                                 return $item[0] === '0';
                             });
-                            foreach ($dynamic as $row)
-                            {
+                            foreach ($dynamic as $row) {
                                 $filteredArray = array_slice($row, 3);
                                 $values = array_combine($attributes, $filteredArray);
-                                $values = array_filter($values, function($value) {
+                                $values = array_filter($values, function ($value) {
                                     return $value !== null;
                                 });
                                 $upsert = $db->createCommand()

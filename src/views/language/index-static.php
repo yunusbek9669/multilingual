@@ -17,7 +17,7 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
     <div class="ml-card">
         <div class="ml-card-body">
             <div class="ml-card-header">
-                <?php echo  $this->title ?>
+                <?php echo $this->title ?>
             </div>
             <div class="ml-table-responsive">
                 <table class="ml-table">
@@ -28,7 +28,7 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
                         <th><?php echo $translates['header']['attributes'] ?></th>
                         <?php if (!empty($translates)): ?>
                             <?php foreach ($translates['header']['language'] as $key => $not_translated): ?>
-                                <th><?php echo $key.($default_language['name'] === $key ? ' <i class="fas fa-star text-warning"></i>' : ' <span class="ml-not-translated ' . ($not_translated > 0 ? 'has' : 'not') . '">' . $not_translated . '</span>') ?></th>
+                                <th><?php echo $key . ($default_language['name'] === $key ? '' : ' <span class="ml-not-translated ' . ($not_translated > 0 ? 'has' : 'not') . '">' . $not_translated . '</span>') ?></th>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tr>
@@ -36,8 +36,22 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
                     <?php foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
                         <tbody class="ml-tbody">
                         <tr>
-                            <td rowspan="<?php echo 1+count($row['translate']) ?>" style="width: 50px; text-align: center"><a href="<?php echo Url::to(['translate', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>" class="btn btn-<?php echo $row['is_full'] ? 'info' : 'warning' ?>" data-row="<?php echo count($translates['header']['language'])*count($row['translate']) ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>
-                            <td rowspan="<?php echo 1+count($row['translate']) ?>" style="color: #979aa6; font-style: italic; font-weight: bold;">{<?php echo $row['table_name']; ?>}</td>
+                            <td rowspan="<?php echo 1 + count($row['translate']) ?>"
+                                style="width: 50px; text-align: center"><a
+                                        href="<?php echo Url::to(['translate', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>"
+                                        class="btn btn-<?php echo $row['is_full'] ? 'info' : 'warning' ?>"
+                                        data-row="<?php echo count($translates['header']['language']) * count($row['translate']) ?>">
+                                    <svg aria-hidden="true"
+                                         style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em"
+                                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                                        <path fill="currentColor"
+                                              d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path>
+                                    </svg>
+                                </a></td>
+                            <td rowspan="<?php echo 1 + count($row['translate']) ?>"
+                                style="color: #979aa6; font-style: italic; font-weight: bold;">
+                                {<?php echo $row['table_name']; ?>}
+                            </td>
                         </tr>
                         <?php foreach ($row['translate'] as $attribute => $languages): ?>
                             <tr>
@@ -49,7 +63,10 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
                                 <?php endforeach; ?>
                             </tr>
                         <?php endforeach; ?>
-                        <tr><td colspan="<?php echo 3+count($translates['header']['language']) ?>" style="padding: 0"></td></tr>
+                        <tr>
+                            <td colspan="<?php echo 3 + count($translates['header']['language']) ?>"
+                                style="padding: 0"></td>
+                        </tr>
                         </tbody>
                     <?php endforeach; ?>
                 </table>
