@@ -40,7 +40,6 @@ class LanguageService
         $default_lang = [];
         foreach ($languages as $language) {
             if (!isset($language['table'])) {
-                $default_lang_name = $language['name'].' <i class="fas fa-star text-warning"></i>';
                 foreach ($tableResult['table_iterations'] as $table_name => $table_iterations) {
                     $table_id_list = array_keys($table_iterations);
                     if (self::checkTable($table_name)) {
@@ -51,7 +50,7 @@ class LanguageService
                             foreach ($modelResult as $model) {
                                 $id = $model['id'];
                                 unset($model['id']);
-                                $default_lang[$default_lang_name][] = [
+                                $default_lang[$language['name']][] = [
                                     'table_name' => $table_name,
                                     'table_iteration' => $id,
                                     'value' => json_encode($model),
@@ -119,18 +118,22 @@ class LanguageService
         $basePath = Yii::$app->i18n->translations ?? [];
 
         /** kategoriyalar bo‘yicha ro‘yxat */
-        $result = [];
-        foreach (array_keys($basePath) as $category) {
-            if ($category !== 'yii') {
-                $category = str_replace('*', '', $category);
-                $result['categories'][] = $category;
+        $result = [
+            'header' => [
+                'languages' => Yii::t('multilingual', 'Languages'),
+                'categories' => Yii::t('multilingual', 'Categories')
+            ]
+        ];
+        foreach (Yii::$app->params['language_list'] as $langugae) {
+            if (isset($langugae['table'])) {
+                $result['langugaes'][] = $langugae['name'];
             }
         }
-        $result['header'] = [
-            'categories' => Yii::t('multilingual', 'Table Name'),
-            'attributes' => Yii::t('multilingual', 'Attributes'),
-            'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
-        ];
+        foreach (array_keys($basePath) as $category) {
+            if ($category !== 'yii') {
+                $result['categories'][] = str_replace('*', '', $category);
+            }
+        }
 
         return $result;
     }

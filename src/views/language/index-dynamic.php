@@ -6,13 +6,12 @@ use yii\grid\GridView;
 use yii\helpers\Url;
 
 /* @var $this yii\web\View */
+/* @var $default_language array */
 /* @var $searchParams array */
 /* @var $translates array */
 
-$this->title = Yii::t('multilingual', 'Translates');
+$this->title = Yii::t('multilingual', 'Translating column values in the database tables of the application');
 $this->params['breadcrumbs'][] = $this->title;
-$languages = Yii::$app->params['language_list'];
-$default_language = current(array_filter($languages, fn($lang) => empty($lang['table'])));
 ?>
     <div class="ml-card">
         <div class="ml-card-body">
@@ -36,7 +35,7 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
                     <?php foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
                         <tbody class="ml-tbody">
                         <tr>
-                            <td rowspan="<?php echo 1 + count($row['translate']) ?>" style="width: 50px; text-align: center"><a href="<?php echo Url::to(['translate', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>" class="btn btn-<?php echo $row['is_full'] ? 'info' : 'warning' ?>" data-row="<?php echo count($translates['header']['language']) * count($row['translate']) ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>
+                            <td rowspan="<?php echo 1 + count($row['translate']) ?>" style="width: 50px; text-align: center"><a href="<?php echo Url::to(['translate', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>" class="btn btn-<?php echo $row['is_full'] ? 'info' : 'warning' ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>
                             <td rowspan="<?php echo 1 + count($row['translate']) ?>" style="color: #979aa6; font-style: italic; font-weight: bold;">{<?php echo $row['table_name']; ?>}</td>
                         </tr>
                         <?php foreach ($row['translate'] as $attribute => $languages): ?>
@@ -58,6 +57,40 @@ $default_language = current(array_filter($languages, fn($lang) => empty($lang['t
     </div>
 
 <?php
+$js = <<<JS
+    const container = document.querySelector('.ml-table-responsive');
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+    
+    container.addEventListener('mousedown', (e) => {
+      isDown = true;
+      container.classList.add('active');
+      container.style.cursor = 'grabbing';
+      startX = e.pageX - container.offsetLeft;
+      scrollLeft = container.scrollLeft;
+    });
+    
+    container.addEventListener('mouseleave', () => {
+      isDown = false;
+      container.style.cursor = 'grab';
+    });
+    
+    container.addEventListener('mouseup', () => {
+      isDown = false;
+      container.style.cursor = 'grab';
+    });
+    
+    container.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - container.offsetLeft;
+      const walk = (x - startX) * 1; // tezlik (1x)
+      container.scrollLeft = scrollLeft - walk;
+    });
+JS;
+$this->registerJs($js);
+
 $css = <<<CSS
 .ml-card {
     position: relative;
@@ -88,12 +121,19 @@ $css = <<<CSS
     border-bottom: 1px solid #ddd;
 }
 .ml-table-responsive {
+    cursor: grab;
+    user-select: none;
     display: block;
     width: 100%;
-    overflow-x: auto;
+    overflow: auto;
+    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
 }
+.ml-table-responsive:active {
+    cursor: grabbing;
+}
 .ml-table {
+    min-width: 1200px;
     width: 100%;
     margin-bottom: 1rem;
     color: #495057;
