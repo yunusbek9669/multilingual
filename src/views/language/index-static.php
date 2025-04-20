@@ -10,11 +10,6 @@ use yii\helpers\Url;
 
 $this->title = Yii::t('multilingual', 'Translating static (i18n) messages in the application');
 $this->params['breadcrumbs'][] = $this->title;
-
-$categories = '';
-foreach ($translates['categories'] as $category) {
-    $categories .= '<td class="ml-category" style="font-weight: bold"><a href="'. Url::to(['translate', 'category' => $category]) .'">'.$category.' <svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>';
-}
 ?>
     <div class="ml-card">
         <div class="ml-card-body">
@@ -26,14 +21,16 @@ foreach ($translates['categories'] as $category) {
                     <thead>
                     <tr>
                         <th><?php echo $translates['header']['languages'] ?></th>
-                        <th colspan="<?php echo count($translates['categories']) ?>"><?php echo $translates['header']['categories'] ?></th>
+                        <th colspan="<?php echo count(reset($translates['body'])) ?>"><?php echo $translates['header']['categories'] ?></th>
                     </tr>
                     </thead>
-                    <?php foreach ($translates['langugaes'] as $langugae): ?>
+                    <?php foreach ($translates['body'] as $langugae => $categories): ?>
                         <tbody class="ml-tbody">
                         <tr>
                             <td style="color: #979aa6; font-style: italic; font-weight: bold"><?php echo $langugae ?></td>
-                            <?php echo $categories ?>
+                            <?php foreach ($categories as $category): ?>
+                                <td class="ml-category" style="font-weight: bold"><a href="<?php echo Url::to(['translate', 'category' => $category]) ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg> <?php echo $category ?></a></td>
+                            <?php endforeach; ?>
                         </tr>
                         </tbody>
                     <?php endforeach; ?>
@@ -66,6 +63,8 @@ $css = <<<CSS
     padding: 1.25rem 1.25rem;
 }
 .ml-card-header {
+    display: flex;
+    justify-content: space-between;
     font-size: 20px;
     font-weight: bold;
     padding-bottom: .5em;
@@ -73,20 +72,21 @@ $css = <<<CSS
     border-bottom: 1px solid #ddd;
 }
 .ml-table-responsive {
+    user-select: none;
     display: block;
     width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    height: calc(90vh - 100px);
+    overflow: auto;
+    position: relative;
+    -webkit-overflow-scrolling: auto;
 }
 .ml-table {
     width: 100%;
-    margin-bottom: 1rem;
     color: #495057;
     vertical-align: top;
     border-color: #eff2f7;
     caption-side: bottom;
     border-collapse: collapse;
-    border: 1px solid #eff2f7;
 }
 .ml-table .ml-tbody:hover {
     background-color: #f8fafb;
@@ -102,6 +102,10 @@ $css = <<<CSS
     vertical-align: bottom;
 }
 .ml-table thead th {
+    position: sticky;
+    top: -0.3px;
+    background: #f1f1f1;
+    z-index: 2;
     border-bottom: 2px solid #dee2e6;
 }
 thead, tbody, tfoot, tr, td, th {

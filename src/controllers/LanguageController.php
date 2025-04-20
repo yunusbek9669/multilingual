@@ -43,7 +43,7 @@ class LanguageController extends Controller
         $searchParams = Yii::$app->request->queryParams;
         if ((int)$searchParams['is_static'] === 1) {
             return $this->render('index-static', [
-                'translates' => LanguageService::getI18NData(),
+                'translates' => LanguageService::getI18NData($searchParams),
                 'searchParams' => $searchParams,
             ]);
         } else {

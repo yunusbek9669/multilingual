@@ -87,7 +87,7 @@ class LanguageService
      * Umumiy extend olgan modellarning ma’lumotlari
      * @throws Exception
      */
-    public static function getI18NData(): array
+    public static function getI18NData(array $params): array
     {
         $basePath = Yii::$app->i18n->translations ?? [];
 
@@ -98,46 +98,35 @@ class LanguageService
                 'categories' => Yii::t('multilingual', 'Categories')
             ]
         ];
-        foreach (Yii::$app->params['language_list'] as $langugae) {
-            if (isset($langugae['table'])) {
-                $result['langugaes'][] = $langugae['name'];
-            }
-        }
-        foreach (array_keys($basePath) as $category) {
-            if ($category !== 'yii') {
-                $result['categories'][] = str_replace('*', '', $category);
+        foreach (Yii::$app->params['language_list'] as $language) {
+            if (isset($language['table'])) {
+                foreach (array_keys($basePath) as $category) {
+                    if ($category !== 'yii') {
+                        $category = str_replace('*', '', $category);
+                        $incomplete = (new \yii\db\Query())
+                            ->select(['table_name', 'table_iteration', 'value'])
+                            ->from($language['table'])
+                            ->where([
+                                'table_name' => $category,
+                                'is_static' => (int)$params['is_static'],
+                            ])
+                            ->andWhere(new \yii\db\Expression("EXISTS (SELECT 1 FROM json_each_text({$language['table']}.value) kv WHERE kv.value = '')"))
+                            ->one();
+                        $count = 0;
+                        if (!empty($incomplete)) {
+                            foreach (json_decode($incomplete['value']) as $row) {
+                                if (empty($row)) {
+                                    $count++;
+                                }
+                            }
+                        }
+                        $result['body'][$language['name']][$category] = $category.' '.'<span class="ml-not-translated ' . ($count > 0 ? 'has' : 'not') . '">'.$count.'</span>';
+                    }
+                }
             }
         }
 
         return $result;
-    }
-
-    /** lang_* tablitsalarini chaqirib olish (Create, Update) */
-    public static function setCustomAttributes($model, string $attribute = null): array
-    {
-        $attributes = [];
-        $languages = Yii::$app->params['language_list'];
-        if (!empty($languages)) {
-            foreach ($languages as $language) {
-                if (!empty($language['table']) && self::checkTable($language['table'])) {
-                    $lang_table = (new yii\db\Query())
-                        ->from($language['table'])
-                        ->select('value')
-                        ->where([
-                            'table_name' => $model::tableName(),
-                            'table_iteration' => $model->id
-                        ])
-                        ->scalar();
-                    $data_value = json_decode($lang_table);
-                    $name = $language['table'];
-                    if ($attribute !== null) {
-                        $name = 'Language[' . $name . '][' . $attribute . ']';
-                    }
-                    $attributes[$name] = !empty($data_value->$attribute) ? $data_value->$attribute : null;
-                }
-            }
-        }
-        return $attributes;
     }
 
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar */
@@ -220,6 +209,34 @@ class LanguageService
             }
         }
         return $result;
+    }
+
+    /** lang_* tablitsalarini chaqirib olish (Create, Update) */
+    public static function setCustomAttributes($model, string $attribute = null): array
+    {
+        $attributes = [];
+        $languages = Yii::$app->params['language_list'];
+        if (!empty($languages)) {
+            foreach ($languages as $language) {
+                if (!empty($language['table']) && self::checkTable($language['table'])) {
+                    $lang_table = (new yii\db\Query())
+                        ->from($language['table'])
+                        ->select('value')
+                        ->where([
+                            'table_name' => $model::tableName(),
+                            'table_iteration' => $model->id
+                        ])
+                        ->scalar();
+                    $data_value = json_decode($lang_table);
+                    $name = $language['table'];
+                    if ($attribute !== null) {
+                        $name = 'Language[' . $name . '][' . $attribute . ']';
+                    }
+                    $attributes[$name] = !empty($data_value->$attribute) ? $data_value->$attribute : null;
+                }
+            }
+        }
+        return $attributes;
     }
 
 
