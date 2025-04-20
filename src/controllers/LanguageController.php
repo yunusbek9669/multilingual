@@ -38,16 +38,15 @@ class LanguageController extends Controller
      * @return string
      * @throws Exception
      */
-    public function actionIndex($is_static = 0): string
+    public function actionIndex(int $is_static): string
     {
         $searchParams = Yii::$app->request->queryParams;
-        if ($is_static) {
+        if ((int)$searchParams['is_static'] === 1) {
             return $this->render('index-static', [
                 'translates' => LanguageService::getI18NData(),
                 'searchParams' => $searchParams,
             ]);
         } else {
-            $searchParams['is_all'] = true;
             return $this->render('index-dynamic', [
                 'default_language' => current(array_filter(Yii::$app->params['language_list'], fn($lang) => empty($lang['table']))),
                 'translates' => LanguageService::getModelsData($searchParams),
@@ -106,7 +105,7 @@ class LanguageController extends Controller
                     return $response;
                 }
                 Yii::$app->session->setFlash($response['code'], $response['message']);
-                return $this->redirect(['index']);
+                return $this->redirect(['index', 'is_static' => 0]);
             }
         }
 

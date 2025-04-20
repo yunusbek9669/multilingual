@@ -176,7 +176,7 @@ echo Html::a(Yii::t('multilingual', 'All columns'), ['/multilingual/language/ind
 echo Html::a(Yii::t('multilingual', 'All i18n'), ['/multilingual/language/index?is_static=1']);     // it will take you to all static translations
 ````
 
-and add the following button to the actions section of each language row, which will download an excel file of all translations for that language.
+and add the following button to the actions section of each language row, which will download an Excel file of all translations for that language.
 
 ````php
 echo Html::a(Yii::t('multilingual', 'Export i18n'), ['/multilingual/language/export-to-excel', 'table_name' => $model->table, 'is_static' => true], ['data-pjax' => '0'])
