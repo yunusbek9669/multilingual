@@ -10,7 +10,7 @@ use yii\helpers\Html;
 /* @var $form ActiveForm */
 
 $this->title = Yii::t('multilingual', 'Edit translations');
-$this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'All columns'), 'url' => ['index', 'is_static' => 0]];
+$this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'Translating column values in the database tables of the application'), 'url' => ['index', 'is_static' => 0]];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 

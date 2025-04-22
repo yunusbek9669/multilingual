@@ -11,7 +11,7 @@ use yii\helpers\Html;
 /* @var $form ActiveForm */
 
 $this->title = Yii::t('multilingual', 'Edit {{category}} category from i18n', ['category' => $category]);
-$this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'All i18n'), 'url' => ['index', 'is_static' => 1]];
+$this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'Translating static (i18n) messages in the application'), 'url' => ['index', 'is_static' => 1]];
 $this->params['breadcrumbs'][] = $this->title;
 
 $table_name = key($table);
