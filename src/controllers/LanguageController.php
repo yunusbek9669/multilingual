@@ -11,6 +11,7 @@ use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\Multilingual;
 
 /**
@@ -69,13 +70,11 @@ class LanguageController extends Controller
         $model = $this->findModel($table_name, $table_iteration);
         $request = Yii::$app->request;
         if ($request->isPost) {
-            if ($request->isAjax) {
-                Yii::$app->response->format = Response::FORMAT_JSON;
-            }
-            $response = [];
-            $response['status'] = true;
-            $response['code'] = 'error';
-            $response['message'] = Yii::t('multilingual', 'Error');
+            $response = [
+                'status' => true,
+                'code' => 'error',
+                'message' => Yii::t('multilingual', 'Error')
+            ];
             $Multilingual = $request->post((new \ReflectionClass($model))->getShortName());
             if ($model->load($request->post())) {
                 $transaction = Yii::$app->db->beginTransaction();
@@ -136,13 +135,11 @@ class LanguageController extends Controller
             ->one();
         $request = Yii::$app->request;
         if ($request->isPost) {
-            if ($request->isAjax) {
-                Yii::$app->response->format = Response::FORMAT_JSON;
-            }
-            $response = [];
-            $response['status'] = true;
-            $response['code'] = 'error';
-            $response['message'] = Yii::t('multilingual', 'Error');
+            $response = [
+                'status' => true,
+                'code' => 'error',
+                'message' => Yii::t('multilingual', 'Error')
+            ];
             $transaction = Yii::$app->db->beginTransaction();
             try {
                 $response = Multilingual::setStaticLanguageValue($lang, $category, $request->post($lang));
@@ -169,6 +166,8 @@ class LanguageController extends Controller
 
         return $this->render('_form-static', [
             'table' => $table,
+            'translating_language' => Yii::$app->params['language_list'][str_replace(BaseLanguageList::LANG_TABLE_PREFIX, '', $lang)]['name'] ?? $lang,
+            'category' => $category,
         ]);
     }
 

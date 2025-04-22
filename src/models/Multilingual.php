@@ -177,7 +177,7 @@ class Multilingual extends ActiveRecord
     /** Static ma'lumotlarni tarjima qilish
      * @throws \Exception
      */
-    public static function setStaticLanguageValue(string $lang, string $category, array $value): array
+    public static function setStaticLanguageValue(string $langTable, string $category, array $value): array
     {
         $response = [
             'status' => true,
@@ -186,7 +186,7 @@ class Multilingual extends ActiveRecord
         ];
         ksort($value);
         $upsert = Yii::$app->db->createCommand()
-            ->upsert($lang, [
+            ->upsert($langTable, [
                 'is_static' => true,
                 'table_name' => $category,
                 'table_iteration' => 0,
@@ -196,9 +196,15 @@ class Multilingual extends ActiveRecord
             ])->execute();
 
         if ($upsert <= 0) {
-            $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang]);
+            $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
             $response['code'] = 'error';
             $response['status'] = false;
+        } else {
+            Yii::$app->cache->delete($langTable);
+            Yii::$app->cache->getOrSet($langTable, function () use ($value)
+            {
+                return $value;
+            }, 3600 * 2);
         }
 
         return $response;
