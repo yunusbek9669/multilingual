@@ -13,15 +13,28 @@ use yii\helpers\Url;
 
 $this->title = Yii::t('multilingual', 'Translating column values in the database tables of the application');
 $this->params['breadcrumbs'][] = $this->title;
+$is_all = Yii::$app->request->get('is_all', 0);
+$page = Yii::$app->request->get('page', 0);
+$page_countable = $translates['total'] === 0 || count($translates['body']) < 1000;
 ?>
     <div class="ml-card">
         <div class="ml-card-body">
             <div class="ml-card-header">
                 <div><?php echo $this->title ?></div>
-                <div>
+                <div style="display: flex">
+                    <div class="ml-btn-group" style="margin-right: 30px">
+                        <?php echo Html::a('<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="none"><path d="M18 7L10 12L18 17V7Z" fill="#000000"/><path d="M6 7H9V12V17H6V7Z" fill="#000000"/></svg>',
+                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => 0], ['class' => 'ml-btn '.($page == 0 ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
+                        <?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="30px" width="30px" version="1.1" viewBox="20 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path d="M512,381.4l-237.7-118.9L512,143.6V381.4z M274.3,262.5v118.9l-237.7-118.9L274.3,143.6V262.5z"/></svg>',
+                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => $page - 1], ['class' => 'ml-btn '.($page == 0 ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
+                        <?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="30px" width="30px" version="1.1" viewBox="-20 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path d="M0,381.4l237.7-118.9L0,143.6V381.4z M237.7,262.5v118.9l237.7-118.9L237.7,143.6V262.5z"/></svg>',
+                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => $page + 1], ['class' => 'ml-btn '.($page_countable ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
+                        <?php echo Html::a('<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="none"><path d="M6 17L14 12L6 7V17Z" fill="#000000"/><path d="M18 7H15V12V17H18V7Z" fill="#000000"/></svg>',
+                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => $translates['total']], ['class' => 'ml-btn '.($page_countable ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
+                    </div>
                     <?php echo Yii::$app->request->get('is_all') ? Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="grey"><path d="M21 21L3 3V6.33726C3 6.58185 3 6.70414 3.02763 6.81923C3.05213 6.92127 3.09253 7.01881 3.14736 7.10828C3.2092 7.2092 3.29568 7.29568 3.46863 7.46863L9.53137 13.5314C9.70432 13.7043 9.7908 13.7908 9.85264 13.8917C9.90747 13.9812 9.94787 14.0787 9.97237 14.1808C10 14.2959 10 14.4182 10 14.6627V21L14 17V14M8.60139 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L16.8008 11.1992" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                        ['index?is_static=0']) : Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="red"><path d="M3 4.6C3 4.03995 3 3.75992 3.10899 3.54601C3.20487 3.35785 3.35785 3.20487 3.54601 3.10899C3.75992 3 4.03995 3 4.6 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L14.4686 13.5314C14.2957 13.7043 14.2092 13.7908 14.1474 13.8917C14.0925 13.9812 14.0521 14.0787 14.0276 14.1808C14 14.2959 14 14.4182 14 14.6627V17L10 21V14.6627C10 14.4182 10 14.2959 9.97237 14.1808C9.94787 14.0787 9.90747 13.9812 9.85264 13.8917C9.7908 13.7908 9.70432 13.7043 9.53137 13.5314L3.46863 7.46863C3.29568 7.29568 3.2092 7.2092 3.14736 7.10828C3.09253 7.01881 3.05213 6.92127 3.02763 6.81923C3 6.70414 3 6.58185 3 6.33726V4.6Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                        ['index?is_static=0&is_all=1']) ?>
+                        ['index', 'is_static' => 0]) : Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="red"><path d="M3 4.6C3 4.03995 3 3.75992 3.10899 3.54601C3.20487 3.35785 3.35785 3.20487 3.54601 3.10899C3.75992 3 4.03995 3 4.6 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L14.4686 13.5314C14.2957 13.7043 14.2092 13.7908 14.1474 13.8917C14.0925 13.9812 14.0521 14.0787 14.0276 14.1808C14 14.2959 14 14.4182 14 14.6627V17L10 21V14.6627C10 14.4182 10 14.2959 9.97237 14.1808C9.94787 14.0787 9.90747 13.9812 9.85264 13.8917C9.7908 13.7908 9.70432 13.7043 9.53137 13.5314L3.46863 7.46863C3.29568 7.29568 3.2092 7.2092 3.14736 7.10828C3.09253 7.01881 3.05213 6.92127 3.02763 6.81923C3 6.70414 3 6.58185 3 6.33726V4.6Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                        ['index', 'is_static' => 0, 'is_all' => 1]) ?>
                 </div>
             </div>
             <div class="ml-table-responsive">
@@ -39,7 +52,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         <?php endif; ?>
                     </tr>
                     </thead>
-                    <?php $iteration = 1; foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
+                    <?php $iteration = ($page * 1000) + 1; foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
                         <tbody class="ml-tbody">
                         <tr>
                             <td rowspan="<?php echo 1 + count($row['translate']) ?>"><?php echo $iteration++ ?></td>
@@ -261,6 +274,58 @@ thead, tbody, tfoot, tr, td, th {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+.ml-btn {
+    display: inline-block;
+    font-weight: 400;
+    line-height: 1.5;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    color: #212529;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: transparent;
+    border: 1px solid #eff2f7;
+    font-size: 0.8125rem;
+    border-radius: 0.25rem;
+    -webkit-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+}
+.ml-btn:hover {
+    color: #000;
+    background-color: #eff2f7;
+    border-color: #eff2f7;
+}
+.ml-btn-group {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+}
+
+.ml-btn-group .ml-btn {
+    border-radius: 0;
+    border-radius: 0;
+}
+.ml-btn-group .ml-btn:first-child {
+    border-top-left-radius: 0.25rem;
+    border-bottom-left-radius: 0.25rem;
+}
+.ml-btn-group .ml-btn:last-child {
+    border-top-right-radius: 0.25rem;
+    border-bottom-right-radius: 0.25rem;
+}
+.disabled {
+    pointer-events: none;
+    background: #f1f1f1;
+    color: grey;
+}
+.disabled svg {
+    opacity: 0.5;
 }
 CSS;
 $this->registerCss($css);

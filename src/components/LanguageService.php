@@ -37,6 +37,7 @@ class LanguageService
         $translate_list = array_fill_keys(array_keys($tableResult['language']), null);
 
         $result = [
+            'total' => $tableResult['total'],
             'header' => [
                 'table_name' => Yii::t('multilingual', 'Table Name'),
                 'attributes' => Yii::t('multilingual', 'Attributes'),
@@ -133,19 +134,43 @@ class LanguageService
     public static function getLangTables(array $languages, array $params): array
     {
         $result = [];
+        $result['total'] = 0;
         $emptyEntries = [];
+        $limit = 1000;
+        $page = isset($params['page']) ? (int)$params['page'] : 0;
+        $offset = $page * $limit;
+
+        $isStatic = (int)($params['is_static'] ?? 0);
+        $isAll = (int)($params['is_all'] ?? 0);
+
         /** Tizimdagi tillar bo‘yicha siklga solish */
         foreach ($languages as $language) {
             $result['language'][$language['name']] = 0;
             if (!empty($language['table'])) {
                 /** Bo‘sh qiymatli ("" value) lang_* dan topilgan table_name + table_iteration larni yig‘ish */
-                $rows = (new \yii\db\Query())
+                $query = (new \yii\db\Query())
                     ->select(['table_name', 'table_iteration', 'value'])
                     ->from($language['table'])
-                    ->where(['is_static' => (int)$params['is_static']])
-                    ->andWhere(condition: !isset($params['is_all']) || (int)$params['is_all'] === 0 ?
-                        new \yii\db\Expression("EXISTS (SELECT 1 FROM json_each_text({$language['table']}.value) kv WHERE kv.value = '')") :
-                        ['is_static' => (int)$params['is_static']])
+                    ->where(['is_static' => $isStatic]);
+                if ($isAll === 0) {
+                    $getEmpty = new \yii\db\Expression("
+                        EXISTS (
+                            SELECT 1
+                            FROM json_each_text({$language['table']}.value) kv
+                            WHERE kv.value = ''
+                        )
+                    ");
+                    $query->andWhere($getEmpty);
+                }
+
+                $totalCount = (int)$query->count();
+                $totalPages = (int)floor($totalCount / $limit);
+
+                $result['total'] = max($result['total'], $totalPages);
+
+                $rows = $query
+                    ->limit($limit)
+                    ->offset($offset)
                     ->orderBy(['table_name' => SORT_ASC, 'table_iteration' => SORT_ASC])
                     ->all();
 

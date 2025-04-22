@@ -20,7 +20,7 @@ or add
 "yunusbek/multilingual": "^1.0",
 ```
 
-to the require section of your composer.json.
+to the ```require``` section of your composer.json.
 
 Usage
 ------------
@@ -172,8 +172,8 @@ Useful buttons to install
 Add the following button to the top of the created CRUD index page which will take you to the general translations page.
 
 ````php
-echo Html::a(Yii::t('multilingual', 'All columns'), ['/multilingual/language/index?is_static=0']);  // it will take you to all dynamic translations
-echo Html::a(Yii::t('multilingual', 'All i18n'), ['/multilingual/language/index?is_static=1']);     // it will take you to all static translations
+echo Html::a(Yii::t('multilingual', 'All columns'), ['/multilingual/language/index', 'is_static' => 0], ['target' => '_blank']);  // it will take you to all dynamic translations
+echo Html::a(Yii::t('multilingual', 'All i18n'), ['/multilingual/language/index', 'is_static' => 1], ['target' => '_blank']);     // it will take you to all static translations
 ````
 
 and add the following button to the actions section of each language row, which will download an Excel file of all translations for that language.
@@ -195,7 +195,7 @@ This is a translated Excel file for the language that needs to be added.
 
 ![This is a translated Excel file for the language that needs to be added.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/excel2.jpg)
 
-> When adding a new language, you can save the path of the translated excel file above to the ```import_excel``` attribute in the ```language_list``` table.
+> When adding a new language, you can save the path of the translated Excel file above to the ```import_excel``` attribute in the ```language_list``` table.
 > 
 > Result: all translations for the newly added language will be saved, automatically saved from the Excel file to the new ```lang_*``` table.
 >
