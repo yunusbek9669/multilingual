@@ -200,11 +200,9 @@ class Multilingual extends ActiveRecord
             $response['code'] = 'error';
             $response['status'] = false;
         } else {
-            Yii::$app->cache->delete($langTable);
-            Yii::$app->cache->getOrSet($langTable, function () use ($value)
-            {
-                return $value;
-            }, 3600 * 2);
+            $data = Yii::$app->cache->get($langTable);
+            $data[$category] = $value;
+            Yii::$app->cache->set($langTable, $data);
         }
 
         return $response;
