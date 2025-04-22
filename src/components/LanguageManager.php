@@ -30,6 +30,7 @@ class LanguageManager
                 MESSAGE
             );
         }
+        Yii::$app->params['default_language'] = Yii::$app->params['language_list'];
         $hasActive = false;
         $key = Yii::$app->session->get($session_key);
         if (empty($key)) {
@@ -47,7 +48,7 @@ class LanguageManager
                     'short_name' => $model['short_name'],
                     'image' => $model['image'],
                     'table' => $model['table'],
-                    'active' => $hasActive,
+                    'active' => $isActive,
                 ];
             });
         } catch (Exception $e) {

@@ -8,8 +8,9 @@ use yii\helpers\Html;
 /* @var $model ActiveRecord */
 /* @var $attributes array */
 /* @var $form ActiveForm */
+
 $this->title = Yii::t('multilingual', 'Edit translations');
-$this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'Translates'), 'url' => ['index']];
+$this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'All columns'), 'url' => ['index', 'is_static' => 0]];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 

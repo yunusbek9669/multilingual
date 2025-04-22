@@ -64,7 +64,7 @@ class LanguageController extends Controller
      * @throws Exception
      * @throws NotFoundHttpException|InvalidParamException
      */
-    public function actionTranslate(string $table_name, int $table_iteration, array $attributes): Response|array|string
+    public function actionTranslateDynamic(string $table_name, int $table_iteration, array $attributes): Response|array|string
     {
         $model = $this->findModel($table_name, $table_iteration);
         $request = Yii::$app->request;
@@ -109,9 +109,66 @@ class LanguageController extends Controller
             }
         }
 
-        return $this->render('_form', [
+        return $this->render('_form-dynamic', [
             'attributes' => $attributes,
             'model' => $model,
+        ]);
+    }
+
+    /**
+     * Updates an existing BaseLanguageList model.
+     * If update is successful, the browser will be redirected to the 'view' page.
+     * @param string $table_name
+     * @param integer $table_iteration
+     * @return Response|array|string
+     * @throws Exception
+     * @throws NotFoundHttpException|InvalidParamException
+     */
+    public function actionTranslateStatic(string $lang, string $category): Response|array|string
+    {
+        $table = (new \yii\db\Query())
+            ->select([$lang => 'value'])
+            ->from($lang)
+            ->where([
+                'table_name' => $category,
+                'is_static' => true,
+            ])
+            ->one();
+        $request = Yii::$app->request;
+        if ($request->isPost) {
+            if ($request->isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+            }
+            $response = [];
+            $response['status'] = true;
+            $response['code'] = 'error';
+            $response['message'] = Yii::t('multilingual', 'Error');
+            $transaction = Yii::$app->db->beginTransaction();
+            try {
+                $response = Multilingual::setStaticLanguageValue($lang, $category, $request->post($lang));
+            } catch (\Exception $e) {
+                $response['message'] = $e->getMessage();
+                $response['errors'] = $e->getTrace();
+                $response['status'] = false;
+            }
+            if ($response['status']) {
+                $response['status'] = true;
+                $response['code'] = 'success';
+                $response['message'] = Yii::t('multilingual', 'Saved Successfully');
+                $transaction->commit();
+            } else {
+                $response['code'] = 'error';
+                $transaction->rollBack();
+            }
+            if (Yii::$app->request->isAjax) {
+                return $response;
+            }
+            Yii::$app->session->setFlash($response['code'], $response['message']);
+            return $this->redirect(['index', 'is_static' => 1]);
+        }
+
+        return $this->render('_form-static', [
+            'table' => $table,
         ]);
     }
 

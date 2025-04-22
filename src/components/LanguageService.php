@@ -96,10 +96,12 @@ class LanguageService
             'header' => [
                 'languages' => Yii::t('multilingual', 'Languages'),
                 'categories' => Yii::t('multilingual', 'Categories')
-            ]
+            ],
+            'tables' => []
         ];
         foreach (Yii::$app->params['language_list'] as $language) {
             if (isset($language['table'])) {
+                $result['tables'][$language['name']] = $language['table'];
                 foreach (array_keys($basePath) as $category) {
                     if ($category !== 'yii') {
                         $category = str_replace('*', '', $category);
@@ -115,9 +117,7 @@ class LanguageService
                         $count = 0;
                         if (!empty($incomplete)) {
                             foreach (json_decode($incomplete['value']) as $row) {
-                                if (empty($row)) {
-                                    $count++;
-                                }
+                                $count += (int)empty($row);
                             }
                         }
                         $result['body'][$language['name']][$category] = $category.' '.'<span class="ml-not-translated ' . ($count > 0 ? 'has' : 'not') . '">'.$count.'</span>';

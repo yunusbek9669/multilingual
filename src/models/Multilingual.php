@@ -177,36 +177,28 @@ class Multilingual extends ActiveRecord
     /** Static ma'lumotlarni tarjima qilish
      * @throws \Exception
      */
-    public static function setStaticLanguageValue($category, $message): array
+    public static function setStaticLanguageValue(string $lang, string $category, array $value): array
     {
-        $db = Yii::$app->db;
-        $data = [];
         $response = [
             'status' => true,
             'code' => 'success',
             'message' => 'success'
         ];
-        $languages = Yii::$app->params['language_list'];
-        foreach ($languages as $language) {
-            if (!empty($language['table'])) {
-                $table = $language['table'];
-                $upsert = $db->createCommand()
-                    ->upsert($table, [
-                        'is_static' => true,
-                        'table_name' => $category,
-                        'table_iteration' => 0,
-                        'value' => $data,
-                    ], [
-                        'value' => $data
-                    ])->execute();
+        ksort($value);
+        $upsert = Yii::$app->db->createCommand()
+            ->upsert($lang, [
+                'is_static' => true,
+                'table_name' => $category,
+                'table_iteration' => 0,
+                'value' => $value,
+            ], [
+                'value' => $value
+            ])->execute();
 
-                if ($upsert <= 0) {
-                    $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
-                    $response['code'] = 'error';
-                    $response['status'] = false;
-                    break;
-                }
-            }
+        if ($upsert <= 0) {
+            $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang]);
+            $response['code'] = 'error';
+            $response['status'] = false;
         }
 
         return $response;
