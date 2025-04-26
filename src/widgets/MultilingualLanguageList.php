@@ -41,7 +41,7 @@ class MultilingualLanguageList extends Widget
         $active = Yii::$app->params['active_language'];
         $list = '<div class="dropdown-menu dropdown-menu-right">';
         foreach (Yii::$app->params['language_list'] as $key => $value) {
-            $list .= '<a href="/multilingual/language/select-lang?lang='.$key.'" class="dropdown-item notify-item language" data-lang="'.$key.'"><img src="'.$value['image'].'" alt="flag-image" class="mr-1" height="12"> <span class="align-middle">'.$value['name'].'</span></a>';
+            $list .= Html::a(Html::img($value['image'], ['height' => 12, 'alt' => 'flag']), ['/multilingual/language/select-lang', 'lang' => $key], ['class' => 'dropdown-item notify-item language']);
         }
         $list .= '</div>';
         $html = <<<HTML

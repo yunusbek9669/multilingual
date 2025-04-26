@@ -34,8 +34,6 @@ class MultilingualAttributes extends Widget
     public ActiveForm $form;
 
     public ActiveRecord $model;
-
-    public bool $disabled = false;
     public string $table_name;
 
     public string|array $attribute;
@@ -52,8 +50,6 @@ class MultilingualAttributes extends Widget
 
         $model = $this->model;
 
-        $disabled = $this->disabled;
-
         $attribute = $this->attribute;
 
         $col = $this->col ?? 12;
@@ -62,7 +58,6 @@ class MultilingualAttributes extends Widget
 
         $params = [
             'tableSchema' => $tableSchema,
-            'disabled' => $disabled,
             'model' => $model,
             'form' => $form,
             'col' => $col
@@ -91,7 +86,6 @@ class MultilingualAttributes extends Widget
         /** @var ActiveRecord $model */
         $form = $params['form'];
         $model = $params['model'];
-        $disabled = $params['disabled'];
         $attribute = $params['attribute'];
         $columnType = $params['tableSchema']->columns[$attribute]->type;
         if (!in_array($columnType, ['string', 'text'])) {
