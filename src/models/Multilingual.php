@@ -114,6 +114,33 @@ class Multilingual extends ActiveRecord
         parent::afterDelete();
     }
 
+    /** Tarjimalarni o‘chirish
+     * @throws Exception
+     */
+    public function deleteLanguageValue(): array
+    {
+        $db = Yii::$app->db;
+        $response = [];
+        $response['status'] = true;
+        $response['message'] = 'success';
+        $data = LanguageService::setCustomAttributes($this);
+        foreach ($data as $key => $value) {
+            try {
+                $db->createCommand()
+                    ->delete($key, [
+                        'table_name' => $this::tableName(),
+                        'table_iteration' => $this->id ?? null,
+                    ])
+                    ->execute();
+            } catch (\yii\db\Exception $e) {
+                $response['message'] = BaseLanguageQuery::modErrToStr($e);
+                $response['code'] = 'error';
+                $response['status'] = false;
+            }
+        }
+        return $response;
+    }
+
     /** Tarjimalarni qo‘shib qo‘yish
      * @throws Exception
      */
@@ -142,33 +169,6 @@ class Multilingual extends ActiveRecord
                 $response['code'] = 'error';
                 $response['status'] = false;
                 break;
-            }
-        }
-        return $response;
-    }
-
-    /** Tarjimalarni o‘chirish
-     * @throws Exception
-     */
-    public function deleteLanguageValue(): array
-    {
-        $db = Yii::$app->db;
-        $response = [];
-        $response['status'] = true;
-        $response['message'] = 'success';
-        $data = LanguageService::setCustomAttributes($this);
-        foreach ($data as $key => $value) {
-            try {
-                $db->createCommand()
-                    ->delete($key, [
-                        'table_name' => $this::tableName(),
-                        'table_iteration' => $this->id ?? null,
-                    ])
-                    ->execute();
-            } catch (\yii\db\Exception $e) {
-                $response['message'] = BaseLanguageQuery::modErrToStr($e);
-                $response['code'] = 'error';
-                $response['status'] = false;
             }
         }
         return $response;

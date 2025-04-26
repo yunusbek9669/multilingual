@@ -97,6 +97,19 @@ class BaseLanguageList extends ActiveRecord
         return parent::beforeSave($insert);
     }
 
+    public function afterDelete()
+    {
+        parent::afterDelete();
+
+        if ($this->import_excel && file_exists($this->import_excel)) {
+            unlink($this->import_excel);
+        }
+
+        $db = Yii::$app->db;
+        $db->createCommand("DROP INDEX IF EXISTS idx_{$this->table}_table_name_iteration")->execute();
+        $db->createCommand("DROP TABLE {$this->table}")->execute();
+    }
+
     public static function isTableExists($tableName): bool
     {
         $schema = Yii::$app->db->schema;
