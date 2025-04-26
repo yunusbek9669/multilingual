@@ -119,8 +119,10 @@ Add this array to the ```params.php``` file
 >All added dynamic languages are stored as an array in the ```Yii::$app->params['language_list']``` variable. You can extract languages from this variable to use them in the navbar,
 >and you get the current language from the ```Yii::$app->params['active_language']``` variable.
 > 
-> Link the address ```Url::to(['/multilingual/language/select-lang', 'lang' => $key])``` to each language so that the language selected from the list of languages formed in the header section is implemented in the system. Where ```$key``` is the associative key of the ```Yii::$app->params['language_list']``` array
-> 
+> To make the added languages available in the system, place the following widget in the header section of your web project.
+````php
+echo \Yunusbek\Multilingual\widgets\MultilingualLanguageList::widget() //['options' => ['class' => '...']] if you want
+````
 >![All added dynamic languages.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/language_list.jpg)
 
 The models to be translated are inherited from the ```Multilingual``` model.
