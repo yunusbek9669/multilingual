@@ -471,7 +471,7 @@ EOD;
         $updateColumnCount = ['add' => [], 'delete' => []];
         try {
             foreach ($translateTables as $table_name => $attributes) {
-                $obsoleteLangTableData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false, 'table_name' => $table_name])->from($langTable)->orderBy('table_iteration')->all($db);
+                $langTableData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false, 'table_name' => $table_name])->from($langTable)->orderBy('table_iteration')->all($db);
                 if (BaseLanguageList::isTableExists($table_name)) {
                     $schema = $db->getTableSchema($table_name);
                     $columns = $schema ? array_keys($schema->columns) : [];
@@ -483,7 +483,7 @@ EOD;
                             $addColumnCount = 0;
                             $deleteColumnCount = 0;
                             foreach ($translateTable as $key => $row) {
-                                if (empty($this->findByTableIteration($obsoleteLangTableData, $row['id']))) {
+                                if (empty($this->findByTableIteration($langTableData, $row['id']))) {
                                     $values = array_fill_keys($attributes, '');
                                     $execute = $db->createCommand()->insert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $values])->execute();
                                     if (!$execute) {
@@ -494,11 +494,10 @@ EOD;
                                     }
                                 } else {
                                     $currentLangValues = [];
-                                    if (isset($obsoleteLangTableData[$key])) $currentLangValues = json_decode($obsoleteLangTableData[$key]['value'], true);
+                                    if (isset($langTableData[$key])) $currentLangValues = json_decode($langTableData[$key]['value'], true);
                                     $attributes = array_values(array_unique($attributes));
                                     if (array_keys($currentLangValues) !== $attributes) {
-                                        $langValues = array_merge(array_fill_keys($attributes, null), $currentLangValues);
-                                        $langValues = array_intersect_key($langValues, array_flip($attributes));
+                                        $langValues = array_intersect_key(array_merge(array_fill_keys($attributes, null), $currentLangValues), array_flip($attributes));
                                         $execute = $db->createCommand()->upsert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $langValues], ['value' => $langValues])->execute();
                                         if (!$execute) {
                                             $this->stderr("\n$langTable ".json_encode($langValues)." failed", BaseConsole::FG_RED);
@@ -512,10 +511,10 @@ EOD;
                                         }
                                     }
                                 }
-                                if ($insCount > 0) { $insertCount[$table_name] = $insCount; }
-                                if ($addColumnCount > 0) { $updateColumnCount['add'][$table_name] = $addColumnCount; }
-                                if ($deleteColumnCount > 0) { $updateColumnCount['delete'][$table_name] = $deleteColumnCount; }
                             }
+                            if ($insCount > 0) $insertCount[$table_name] = $insCount;
+                            if ($addColumnCount > 0) $updateColumnCount['add'][$table_name] = $addColumnCount;
+                            if ($deleteColumnCount > 0) $updateColumnCount['delete'][$table_name] = $deleteColumnCount;
                         } else {
                             $affectedRows = $db->createCommand()
                                 ->delete($langTable, [
