@@ -184,15 +184,18 @@ class Multilingual extends ActiveRecord
             'code' => 'success',
             'message' => 'success'
         ];
+        $table = (new Query())->select('value')->from($langTable)->where(['table_name' => $category, 'is_static' => true])->one();
+        $allMessages = json_decode($table['value'], true);
+        ksort($allMessages);
         ksort($value);
         $upsert = Yii::$app->db->createCommand()
             ->upsert($langTable, [
                 'is_static' => true,
                 'table_name' => $category,
                 'table_iteration' => 0,
-                'value' => $value,
+                'value' => array_replace($allMessages, $value),
             ], [
-                'value' => $value
+                'value' => array_replace($allMessages, $value)
             ])->execute();
 
         if ($upsert <= 0) {
