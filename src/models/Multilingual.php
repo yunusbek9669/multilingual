@@ -278,7 +278,7 @@ class Multilingual extends ActiveRecord
                                     $json = json_encode($values);
                                     $response['status'] = false;
                                     $response['code'] = 'error';
-                                    $response['message'] = Yii::t('multilingual', '"Error saving {category}, {json}"', ['category' => $category, 'json' => $json]);
+                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $category, 'json' => $json]);
                                     break;
                                 }
                             }
@@ -308,7 +308,7 @@ class Multilingual extends ActiveRecord
                                     $json = json_encode($values);
                                     $response['status'] = false;
                                     $response['code'] = 'error';
-                                    $response['message'] = Yii::t('multilingual', '"Error saving {category}, {json}"', ['category' => $row[1], 'json' => $json]);
+                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $row[1], 'json' => $json]);
                                     break;
                                 }
                             }

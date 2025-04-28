@@ -104,7 +104,7 @@ class LanguageService
             if (isset($language['table'])) {
                 $result['tables'][$language['name']] = $language['table'];
                 foreach (array_keys($basePath) as $category) {
-                    if ($category !== 'yii') {
+                    if ($category !== 'yii' && !str_contains($category, 'yii/')) {
                         $category = str_replace('*', '', $category);
                         $incomplete = (new \yii\db\Query())
                             ->select(['table_name', 'table_iteration', 'value'])

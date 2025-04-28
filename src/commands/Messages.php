@@ -3,11 +3,13 @@
 namespace Yunusbek\Multilingual\commands;
 
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\console\Exception;
 use yii\console\ExitCode;
 use yii\db\Connection;
 use yii\db\Query;
 use yii\di\Instance;
+use yii\helpers\BaseConsole;
 use yii\helpers\Console;
 use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
@@ -74,11 +76,6 @@ class Messages extends \yii\console\Controller
      * Defaults to false, which means these messages will NOT be removed.
      */
     public $is_static = true;
-    /**
-     * @var bool whether to remove messages that no longer appear in the source code.
-     * Defaults to false, which means these messages will NOT be removed.
-     */
-    public $removeUnused = false;
     /**
      * @var array|null list of patterns that specify which files/directories should NOT be processed.
      * If empty or not set, all files/directories will be processed.
@@ -147,7 +144,6 @@ class Messages extends \yii\console\Controller
             'sort',
             'overwrite',
             'is_static',
-            'removeUnused',
             'except',
             'only',
             'format',
@@ -176,7 +172,6 @@ class Messages extends \yii\console\Controller
             't' => 'translator',
             'm' => 'langTable',
             's' => 'sourcePath',
-            'r' => 'removeUnused',
         ]);
     }
 
@@ -220,11 +215,11 @@ return $array;
 EOD;
 
         if (FileHelper::createDirectory($dir) === false || file_put_contents($filePath, $content, LOCK_EX) === false) {
-            $this->stdout("Configuration file was NOT created: '{$filePath}'.\n\n", Console::FG_RED);
+            $this->stdout("Configuration file was NOT created: '{$filePath}'.\n\n", BaseConsole::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
 
-        $this->stdout("Configuration file created: '{$filePath}'.\n\n", Console::FG_GREEN);
+        $this->stdout("Configuration file created: '{$filePath}'.\n\n", BaseConsole::FG_GREEN);
         return ExitCode::OK;
     }
 
@@ -250,11 +245,11 @@ EOD;
         }
 
         if (!copy(Yii::getAlias('@yii/views/messageConfig.php'), $filePath)) {
-            $this->stdout("Configuration file template was NOT created at '{$filePath}'.\n\n", Console::FG_RED);
+            $this->stdout("Configuration file template was NOT created at '{$filePath}'.\n\n", BaseConsole::FG_RED);
             return ExitCode::UNSPECIFIED_ERROR;
         }
 
-        $this->stdout("Configuration file template created at '{$filePath}'.\n\n", Console::FG_GREEN);
+        $this->stdout("Configuration file template created at '{$filePath}'.\n\n", BaseConsole::FG_GREEN);
         return ExitCode::OK;
     }
 
@@ -272,9 +267,9 @@ EOD;
      * @param string|null $configFile the path or alias of the configuration file.
      * You may use the "yii message/config" command to generate
      * this file and then customize it for your needs.
-     * @throws Exception on failure.
+     * @throws Exception|InvalidConfigException on failure.
      */
-    public function actionI18n($configFile = '@vendor/yunusbek/multilingual/src/config/i18n.php')
+    public function actionI18n(?string $configFile = '@vendor/yunusbek/multilingual/src/config/i18n.php'): void
     {
         $this->initConfig($configFile);
 
@@ -303,8 +298,7 @@ EOD;
             $this->saveMessagesToDb(
                 $messages,
                 $db,
-                $langTable,
-                $this->config['removeUnused']
+                $langTable
             );
         }
     }
@@ -318,9 +312,9 @@ EOD;
      * @param string|null $configFile the path or alias of the configuration file.
      * You may use the "yii message/config" command to generate
      * this file and then customize it for your needs.
-     * @throws Exception on failure.
+     * @throws Exception|InvalidConfigException on failure.
      */
-    public function actionAttributes($configFile = '@vendor/yunusbek/multilingual/src/config/attributes.php')
+    public function actionAttributes(?string $configFile = '@vendor/yunusbek/multilingual/src/config/attributes.php'): void
     {
         $this->initConfig($configFile);
 
@@ -340,8 +334,7 @@ EOD;
             $this->saveAttributesToDb(
                 $attributes,
                 $db,
-                $langTable,
-                $this->config['removeUnused']
+                $langTable
             );
         }
     }
@@ -352,31 +345,28 @@ EOD;
      * @param array $messages
      * @param Connection $db
      * @param string $langTable
-     * @param bool $removeUnused
      */
-    protected function saveMessagesToDb($messages, $db, $langTable, $removeUnused)
+    protected function saveMessagesToDb(array $messages, Connection $db, string $langTable): void
     {
         $currentValues = [];
-        $currentMessages = [];
-        $langTbalesData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => true])->from($langTable)->all($db);
-        foreach ($langTbalesData as $row) {
-            foreach (json_decode($row['value']) as $key => $item) {
-                $currentMessages[$row['table_name']][] = $key;
+        $langTablesData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => true])->from($langTable)->all($db);
+        foreach ($langTablesData as $row) {
+            foreach (json_decode($row['value'], true) as $key => $item) {
                 $currentValues[$row['table_name']][$key] = $item;
             }
         }
-
         $this->stdout("\nInserting new messages to the ");
-        $this->stdout('"'.$langTable.'" ', Console::FG_YELLOW);
+        $this->stdout('"'.$langTable.'" ', BaseConsole::FG_YELLOW);
         $this->stdout("table... ");
 
         $execute = false;
+        $insertCount = [];
+        $obsoleteCount = [];
         try {
             Yii::$app->cache->delete($langTable);
 
             /** delete obsolete categories */
-            $obsoleteCount = [];
-            $obsoleteCategories = array_diff(array_keys($currentMessages), array_keys($messages));
+            $obsoleteCategories = array_diff(array_keys($currentValues), array_keys($messages));
             foreach ($obsoleteCategories as $obsoleteCategory) {
                 $obsoleteCategoryData = $db->createCommand()
                     ->delete($langTable, [
@@ -385,24 +375,25 @@ EOD;
                     ])
                     ->execute();
                 if ($obsoleteCategoryData > 0) {
-                    $obsoleteCount[$obsoleteCategory] = count($currentMessages[$obsoleteCategory]);
-                    unset($currentMessages[$obsoleteCategory]);
+                    $obsoleteCount[$obsoleteCategory] = count($currentValues[$obsoleteCategory]);
+                    unset($currentValues[$obsoleteCategory]);
                 }
             }
 
 
             $new = [];
             $obsolete = [];
-            $insertCount = [];
-            $obsaCount = [];
             foreach ($messages as $category => $msgs) {
                 $msgs = array_unique($msgs);
-                if (isset($currentMessages[$category])) {
+                if (isset($currentValues[$category])) {
+                    $currentKeys = array_keys($currentValues[$category]);
+                    asort($msgs);
+                    asort($currentKeys);
                     /** insert news messages */
-                    $new[$category] = array_fill_keys(array_diff($msgs, $currentMessages[$category]), '');
+                    $new[$category] = array_fill_keys(array_diff($msgs, $currentKeys), '');
 
                     /** delete obsolete messages */
-                    $obsolete[$category] = array_diff($currentMessages[$category], $msgs);
+                    $obsolete[$category] = array_diff($currentKeys, $msgs);
                     $obsCount = count($obsolete[$category]);
                     if ($obsCount > 0) {
                         $obsoleteCount[$category] = $obsCount;
@@ -421,6 +412,7 @@ EOD;
 
                 /** save changes */
                 $values = array_merge($currentValues[$category] ?? [], $new[$category]);
+                ksort($values);
                 $execute = $db->createCommand()
                     ->upsert($langTable, [
                         'is_static' => true,
@@ -431,7 +423,7 @@ EOD;
                         'value' => $values
                     ])->execute();
                 if (!$execute) {
-                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($values)." failed\n", Console::FG_RED);
+                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($values)." failed\n", BaseConsole::FG_RED);
                     break;
                 }
             }
@@ -442,16 +434,16 @@ EOD;
         } catch (\yii\db\Exception $e) {
             $this->stderr("\n".$e->getMessage() . "\n");
         }
-        if (($insertCount || $obsoleteCount) && $execute) {
+        if ((!empty($insertCount) || !empty($obsoleteCount)) && $execute) {
             foreach ($insertCount as $category => $count) {
-                $this->stderr("\n{$count} items successfully inserted to ", Console::FG_GREEN);
-                $this->stderr('"'.$category.'" ', Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("categor.", Console::FG_GREEN);
+                $this->stderr("\n{$count} items successfully inserted to ", BaseConsole::FG_GREEN);
+                $this->stderr('"'.$category.'" ', BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stderr("categor.", BaseConsole::FG_GREEN);
             }
             foreach ($obsoleteCount as $category => $count) {
-                $this->stderr("\n{$count} items successfully deleted from ", Console::FG_GREEN);
-                $this->stderr('"'.$category.'" ', Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("category.", Console::FG_GREEN);
+                $this->stderr("\n{$count} items successfully deleted from ", BaseConsole::FG_GREEN);
+                $this->stderr('"'.$category.'" ', BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stderr("category.", BaseConsole::FG_GREEN);
             }
             $this->stdout("\n");
         } else {
@@ -462,31 +454,30 @@ EOD;
     /**
      * Saves messages to database.
      *
-     * @param array $messages
+     * @param array $translateTables
      * @param Connection $db
      * @param string $langTable
-     * @param bool $removeUnused
      */
-    protected function saveAttributesToDb($translateTables, $db, $langTable, $removeUnused)
+    protected function saveAttributesToDb(array $translateTables, Connection $db, string $langTable): void
     {
         $this->stdout("Inserting new attributes to the ");
-        $this->stdout('"'.$langTable.'" ', Console::FG_YELLOW);
-        $this->stdout("table...\n");
+        $this->stdout('"'.$langTable.'" ', BaseConsole::FG_YELLOW);
+        $this->stdout("table... ");
 
+        $execute = true;
         $insertCount = [];
-        $updateColumnCount = ['add' => [], 'delete' => []];
         $deleteCount = [];
         $obsoleteCount = [];
-        $execute = true;
+        $updateColumnCount = ['add' => [], 'delete' => []];
         try {
             foreach ($translateTables as $table_name => $attributes) {
-                $obsoleteLangTableData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false, 'table_name' => $table_name])->from($langTable)->all($db);
+                $obsoleteLangTableData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false, 'table_name' => $table_name])->from($langTable)->orderBy('table_iteration')->all($db);
                 if (BaseLanguageList::isTableExists($table_name)) {
                     $schema = $db->getTableSchema($table_name);
                     $columns = $schema ? array_keys($schema->columns) : [];
 
                     if (in_array('id', $columns)) {
-                        $translateTable = (new Query())->select(array_merge(['id'], $attributes))->from($table_name)->all($db);
+                        $translateTable = (new Query())->select(array_merge(['id'], $attributes))->from($table_name)->orderBy('id')->all($db);
                         if (!empty($translateTable)) {
                             $insCount = 0;
                             $addColumnCount = 0;
@@ -496,20 +487,21 @@ EOD;
                                     $values = array_fill_keys($attributes, '');
                                     $execute = $db->createCommand()->insert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $values])->execute();
                                     if (!$execute) {
-                                        $this->stderr('"'.$langTable.'" '.json_encode($values)." failed\n", Console::FG_RED);
+                                        $this->stderr("\n$langTable ".json_encode($values)." failed", BaseConsole::FG_RED);
                                         break 2;
                                     } else {
                                         $insCount++;
                                     }
                                 } else {
                                     $currentLangValues = [];
-                                    if (isset($obsoleteLangTableData[$key])) { $currentLangValues = json_decode($obsoleteLangTableData[$key]['value'], true); }
+                                    if (isset($obsoleteLangTableData[$key])) $currentLangValues = json_decode($obsoleteLangTableData[$key]['value'], true);
+                                    $attributes = array_values(array_unique($attributes));
                                     if (array_keys($currentLangValues) !== $attributes) {
                                         $langValues = array_merge(array_fill_keys($attributes, null), $currentLangValues);
                                         $langValues = array_intersect_key($langValues, array_flip($attributes));
                                         $execute = $db->createCommand()->upsert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $langValues], ['value' => $langValues])->execute();
                                         if (!$execute) {
-                                            $this->stderr('"'.$langTable.'" '.json_encode($langValues)." failed\n", Console::FG_RED);
+                                            $this->stderr("\n$langTable ".json_encode($langValues)." failed", BaseConsole::FG_RED);
                                             break 2;
                                         } else {
                                             if (count($attributes) > count($currentLangValues)) {
@@ -536,15 +528,15 @@ EOD;
                             }
                         }
                     } else {
-                        $this->stderr("\n".'The column ', Console::FG_YELLOW);
-                        $this->stderr('"id" ', Console::FG_CYAN);
-                        $this->stderr('does not exist in the table ', Console::FG_YELLOW);
-                        $this->stderr('"'.$table_name.'"'."\n", Console::FG_RED);
+                        $this->stderr("\n".'The column ', BaseConsole::FG_YELLOW);
+                        $this->stderr('"id" ', BaseConsole::FG_CYAN);
+                        $this->stderr('does not exist in the table ', BaseConsole::FG_YELLOW);
+                        $this->stderr('"'.$table_name.'"'."\n", BaseConsole::FG_RED);
                         break;
                     }
                 } else {
-                    $this->stderr("\n".'"'.$table_name.'"', Console::FG_RED);
-                    $this->stderr(" table doesn't exist"."\n", Console::FG_YELLOW);
+                    $this->stderr("\n".'"'.$table_name.'"', BaseConsole::FG_RED);
+                    $this->stderr(" table doesn't exist"."\n", BaseConsole::FG_YELLOW);
                     break;
                 }
             }
@@ -561,45 +553,47 @@ EOD;
                 }
             }
         } catch (\yii\db\Exception $e) {
-            $this->stderr($e->getMessage() . "\n", Console::FG_RED);
+            $execute = false;
+            $this->stderr("\n".$e->getMessage(), BaseConsole::FG_RED);
         }
-        if ((!empty($insertCount) || !empty($updateColumnCount)) && $execute) {
+        if ((!empty($insertCount) || !empty($updateColumnCount['add']) || !empty($updateColumnCount['delete'])) && $execute) {
             foreach ($insertCount as $table_name => $count) {
-                $this->stderr("Inserted $count rows to ", Console::FG_GREEN);
-                $this->stderr("\"$table_name\" ", Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("category successfully.\n", Console::FG_GREEN);
+                $this->stdout("\nInserted $count rows to ", BaseConsole::FG_GREEN);
+                $this->stdout("\"$table_name\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stdout("category successfully.", BaseConsole::FG_GREEN);
             }
             foreach ($updateColumnCount['add'] as $table_name => $count) {
-                $this->stderr("Added $count items to ", Console::FG_GREEN);
-                $this->stderr("\"value\" ", Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("attribute from ", Console::FG_GREEN);
-                $this->stderr("\"$table_name\" ", Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("category successfully.\n", Console::FG_GREEN);
+                $this->stdout("\nAdded $count items to ", BaseConsole::FG_GREEN);
+                $this->stdout("\"value\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stdout("attribute from ", BaseConsole::FG_GREEN);
+                $this->stdout("\"$table_name\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stdout("category successfully.", BaseConsole::FG_GREEN);
             }
             foreach ($updateColumnCount['delete'] as $table_name => $count) {
-                $this->stderr("Deleted $count items to ", Console::FG_GREEN);
-                $this->stderr("\"value\" ", Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("attribute from ", Console::FG_GREEN);
-                $this->stderr("\"$table_name\" ", Console::FG_YELLOW, Console::ITALIC);
-                $this->stderr("category successfully.\n", Console::FG_GREEN);
+                $this->stdout("\nDeleted $count items to ", BaseConsole::FG_GREEN);
+                $this->stdout("\"value\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stdout("attribute from ", BaseConsole::FG_GREEN);
+                $this->stdout("\"$table_name\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
+                $this->stdout("category successfully.", BaseConsole::FG_GREEN);
             }
         } else {
-            $this->stdout("Nothing to save.\n");
+            $this->stdout("Nothing to save.");
         }
         if (!empty($deleteCount)) {
             foreach ($deleteCount as $table_name => $item) {
-                $this->stderr("Deleted rows for ", Console::FG_YELLOW);
-                $this->stderr("\"$table_name\"", Console::FG_CYAN, Console::ITALIC);
-                $this->stderr(" category: $item.\n", Console::FG_YELLOW);
+                $this->stdout("\nDeleted rows for ", BaseConsole::FG_YELLOW);
+                $this->stdout("\"$table_name\"", BaseConsole::FG_CYAN, BaseConsole::ITALIC);
+                $this->stdout(" category: $item.", BaseConsole::FG_YELLOW);
             }
         }
         if (!empty($obsoleteCount)) {
             foreach ($obsoleteCount as $table_name => $item) {
-                $this->stderr("Deleted obsolete ", Console::FG_YELLOW);
-                $this->stderr("\"$table_name\"", Console::FG_CYAN, Console::ITALIC);
-                $this->stderr(" category with $item rows.\n", Console::FG_YELLOW);
+                $this->stdout("\nDeleted obsolete ", BaseConsole::FG_YELLOW);
+                $this->stdout("\"$table_name\"", BaseConsole::FG_CYAN, BaseConsole::ITALIC);
+                $this->stdout(" category with $item rows.", BaseConsole::FG_YELLOW);
             }
         }
+        $this->stdout("\n");
     }
 
     /**
@@ -610,14 +604,14 @@ EOD;
      * This parameter is available since version 2.0.4.
      * @return array
      */
-    protected function extractMessages($fileName, $translator)
+    protected function extractMessages($fileName, $translator): array
     {
         $subject = file_get_contents($fileName);
         $messages = [];
         $tokens = token_get_all($subject);
         if ($this->config['is_static']) {
             $this->stdout('Extracting messages from ');
-            $this->stdout($fileName, Console::FG_CYAN);
+            $this->stdout($fileName, BaseConsole::FG_CYAN);
             $this->stdout("...\n");
             foreach ((array) $translator as $currentTranslator) {
                 $translatorTokens = token_get_all('<?php ' . $currentTranslator);
@@ -626,7 +620,7 @@ EOD;
             }
         } else {
             $this->stdout('Extracting attributes from ');
-            $this->stdout($fileName, Console::FG_CYAN);
+            $this->stdout($fileName, BaseConsole::FG_CYAN);
             $this->stdout("...\n");
             foreach ((array) $translator as $currentTranslator) {
                 $translatorTokens = token_get_all('<?php ' . $currentTranslator);
@@ -647,7 +641,7 @@ EOD;
      * @param array $translatorTokens translator tokens.
      * @return array messages.
      */
-    protected function extractMessagesFromTokens(array $tokens, array $translatorTokens)
+    protected function extractMessagesFromTokens(array $tokens, array $translatorTokens): array
     {
         $messages = [];
         $translatorTokensCount = count($translatorTokens);
@@ -694,8 +688,8 @@ EOD;
                             }
                         } else {
                             // invalid call or dynamic call we can't extract
-                            $line = Console::ansiFormat($this->getLine($buffer), [Console::FG_CYAN]);
-                            $skipping = Console::ansiFormat('Skipping line', [Console::FG_YELLOW]);
+                            $line = BaseConsole::ansiFormat($this->getLine($buffer), [BaseConsole::FG_CYAN]);
+                            $skipping = BaseConsole::ansiFormat('Skipping line', [BaseConsole::FG_YELLOW]);
                             $this->stdout("$skipping $line. Make sure both category and message are static strings.\n");
                         }
 
@@ -739,10 +733,9 @@ EOD;
     /**
      * Extracts messages from a parsed PHP tokens list.
      * @param array $tokens tokens to be processed.
-     * @param array $translatorTokens translator tokens.
      * @return array messages.
      */
-    protected function extractAttributesFromTokens(array $tokens, array $translatorTokens)
+    protected function extractAttributesFromTokens(array $tokens): array
     {
         $attributes = [];
         $buffer = [];
@@ -753,14 +746,8 @@ EOD;
             if (is_array($token) && ($token[0] === T_NAME_FULLY_QUALIFIED || $token[0] === T_STRING)) {
                 switch ($token[1]) {
                     case '\Yunusbek\Multilingual\widgets\MultilingualAttributes':
-                        $inWidgetCall = true;
-                        break;
                     case 'Multilingual\widgets\MultilingualAttributes':
-                        $inWidgetCall = true;
-                        break;
                     case 'widgets\MultilingualAttributes':
-                        $inWidgetCall = true;
-                        break;
                     case 'MultilingualAttributes':
                         $inWidgetCall = true;
                         break;
@@ -857,12 +844,12 @@ EOD;
                         if ($tableName) {
                             $attributes[$tableName][] = $value;
                         } else {
-                            $this->stderr("Attribute ", Console::FG_YELLOW);
-                            $this->stderr('"table_name" ', Console::FG_RED);
-                            $this->stderr("not found in ", Console::FG_YELLOW);
-                            $this->stderr("MultilingualAttributes::", Console::FG_GREY);
-                            $this->stderr("widget", Console::FG_CYAN);
-                            die($this->stderr("().\n", Console::FG_GREY));
+                            $this->stderr("Attribute ", BaseConsole::FG_YELLOW);
+                            $this->stderr('"table_name" ', BaseConsole::FG_RED);
+                            $this->stderr("not found in ", BaseConsole::FG_YELLOW);
+                            $this->stderr("MultilingualAttributes::", BaseConsole::FG_GREY);
+                            $this->stderr("widget", BaseConsole::FG_CYAN);
+                            die($this->stderr("().\n", BaseConsole::FG_GREY));
                         }
                     } elseif ($this->tokensEqualA('[', $buffer[$i])) {
                         $i++;
@@ -872,12 +859,12 @@ EOD;
                                 if ($tableName) {
                                     $attributes[$tableName][] = $value;
                                 } else {
-                                    $this->stderr("Attribute ", Console::FG_YELLOW);
-                                    $this->stderr('"table_name" ', Console::FG_RED);
-                                    $this->stderr("not found in ", Console::FG_YELLOW);
-                                    $this->stderr("MultilingualAttributes::", Console::FG_GREY);
-                                    $this->stderr("widget", Console::FG_CYAN);
-                                    die($this->stderr("().\n", Console::FG_GREY));
+                                    $this->stderr("Attribute ", BaseConsole::FG_YELLOW);
+                                    $this->stderr('"table_name" ', BaseConsole::FG_RED);
+                                    $this->stderr("not found in ", BaseConsole::FG_YELLOW);
+                                    $this->stderr("MultilingualAttributes::", BaseConsole::FG_GREY);
+                                    $this->stderr("widget", BaseConsole::FG_CYAN);
+                                    die($this->stderr("().\n", BaseConsole::FG_GREY));
                                 }
                             }
                             $i++;
@@ -891,7 +878,7 @@ EOD;
         return $attributes;
     }
 
-    protected function tokensEqualA($expected, $token)
+    protected function tokensEqualA($expected, $token): bool
     {
         if ($expected === '=>' && is_array($token) && $token[0] === T_DOUBLE_ARROW) {
             return true;
@@ -908,7 +895,7 @@ EOD;
      * @return bool
      * @since 2.0.1
      */
-    protected function tokensEqualM($a, $b)
+    protected function tokensEqualM($a, $b): bool
     {
         if (is_string($a) && is_string($b)) {
             return $a === $b;

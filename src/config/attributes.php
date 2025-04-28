@@ -8,7 +8,6 @@ return [
     'translator' => 'MultilingualAttributes::widget',
     'sort' => false,
     'is_static' => false,
-    'removeUnused' => true,
     'only' => ['*.php'],
     'except' => [
         '.git',
