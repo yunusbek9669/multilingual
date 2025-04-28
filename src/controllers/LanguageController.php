@@ -36,6 +36,7 @@ class LanguageController extends Controller
 
     /**
      * Lists all BaseLanguageList models.
+     * @param int $is_static
      * @return string
      * @throws Exception
      */
@@ -61,9 +62,10 @@ class LanguageController extends Controller
      * If update is successful, the browser will be redirected to the 'view' page.
      * @param string $table_name
      * @param integer $table_iteration
+     * @param array $attributes
      * @return Response|array|string
      * @throws Exception
-     * @throws NotFoundHttpException|InvalidParamException
+     * @throws NotFoundHttpException
      */
     public function actionTranslateDynamic(string $table_name, int $table_iteration, array $attributes): Response|array|string
     {
@@ -117,22 +119,14 @@ class LanguageController extends Controller
     /**
      * Updates an existing BaseLanguageList model.
      * If update is successful, the browser will be redirected to the 'view' page.
-     * @param string $table_name
-     * @param integer $table_iteration
+     * @param string $lang
+     * @param string $category
      * @return Response|array|string
      * @throws Exception
-     * @throws NotFoundHttpException|InvalidParamException
+     * @throws InvalidParamException
      */
     public function actionTranslateStatic(string $lang, string $category): Response|array|string
     {
-        $table = (new \yii\db\Query())
-            ->select([$lang => 'value'])
-            ->from($lang)
-            ->where([
-                'table_name' => $category,
-                'is_static' => true,
-            ])
-            ->one();
         $request = Yii::$app->request;
         if ($request->isPost) {
             $response = [
@@ -165,7 +159,8 @@ class LanguageController extends Controller
         }
 
         return $this->render('_form-static', [
-            'table' => $table,
+            'table' => LanguageService::getMessages($lang, $category, Yii::$app->request->queryParams),
+            'table_name' => $lang,
             'translating_language' => Yii::$app->params['language_list'][str_replace(BaseLanguageList::LANG_TABLE_PREFIX, '', $lang)]['name'] ?? $lang,
             'category' => $category,
         ]);

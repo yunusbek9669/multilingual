@@ -8,7 +8,6 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use yii\db\ActiveQuery;
 use yii\db\Exception;
 use yii\db\Query;
 
@@ -84,10 +83,7 @@ class LanguageService
         return $result;
     }
 
-    /**
-     * Umumiy extend olgan modellarning ma’lumotlari
-     * @throws Exception
-     */
+    /** Bazadagi barcha static qatorlar */
     public static function getI18NData(array $params): array
     {
         $basePath = Yii::$app->i18n->translations ?? [];
@@ -130,6 +126,17 @@ class LanguageService
         return $result;
     }
 
+    /** Ma’lum bir (lan_*) tablitsadagi tanlangan category messagelari */
+    public static function getMessages(string $lang, string $category, array $params): array
+    {
+        $table = (new Query())->select([$lang => 'value'])->from($lang)->where(['table_name' => $category, 'is_static' => true])->one();
+        $data = json_decode($table[$lang], true);
+        asort($data);
+        $limit = 1000;
+        $currentItems = array_slice($data, (isset($params['page']) ? (int)$params['page'] : 0) * $limit, $limit);
+        return ['total' => (int)floor(count($data) / $limit), $lang => $currentItems];
+    }
+
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar */
     public static function getLangTables(array $languages, array $params): array
     {
@@ -163,8 +170,7 @@ class LanguageService
                     $query->andWhere($getEmpty);
                 }
 
-                $totalCount = (int)$query->count();
-                $totalPages = (int)floor($totalCount / $limit);
+                $totalPages = (int)floor((int)$query->count() / $limit);
 
                 $result['total'] = max($result['total'], $totalPages);
 
