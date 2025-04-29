@@ -10,6 +10,7 @@ use yii\web\UploadedFile;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use Yii;
+use Yunusbek\Multilingual\components\ExcelExportImport;
 
 /**
  * This is the model class for table "language_list".
@@ -88,7 +89,7 @@ class BaseLanguageList extends ActiveRecord
             }
         }
         if ($response['status']) {
-            $response = Multilingual::importFromExcel($this);
+            $response = ExcelExportImport::importFromExcel($this);
         }
         if (!$response['status']) {
             $this->addError($response['code'], $response['message']);

@@ -3,11 +3,7 @@
 namespace Yunusbek\Multilingual\components;
 
 use Yii;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Style\Color;
-use PhpOffice\PhpSpreadsheet\Style\Protection;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\Query;
 
@@ -21,9 +17,7 @@ class LanguageService
             ->exists();
     }
 
-    /**
-     * Umumiy extend olgan modellarning ma’lumotlari
-     */
+    /**  Umumiy extend olgan modellarning ma’lumotlari */
     public static function getModelsData(array $params): array
     {
         $languages = Yii::$app->params['language_list'];
@@ -241,107 +235,53 @@ class LanguageService
         return $result;
     }
 
-    /** Bazadagi barcha tarjimon qilinadigan asosiy tablitsalar */
+    /** Bazadagi barcha tarjimon qilinadigan asosiy tablitsalar
+     * @throws Exception
+     */
     public static function getDefaultTables(array $languages, array $params): array
     {
         $result = [];
-        $result['total'] = 0;
-        $emptyEntries = [];
-        $limit = 1000;
-        $page = isset($params['page']) ? (int)$params['page'] : 0;
-        $offset = $page * $limit;
-
-        $isStatic = (int)($params['is_static'] ?? 0);
-        $isAll = (int)($params['is_all'] ?? 0);
+        $allRealTables = [];
 
         /** Tizimdagi tillar bo‘yicha siklga solish */
         foreach ($languages as $language) {
-            $result['language'][$language['name']] = 0;
             if (!empty($language['table'])) {
-                /** Bo‘sh qiymatli ("" value) lang_* dan topilgan table_name + table_iteration larni yig‘ish */
-                $query = (new Query())
-                    ->select(['table_name', 'table_iteration', 'value'])
-                    ->from($language['table'])
-                    ->where(['is_static' => $isStatic]);
-                if ($isAll === 0) {
-                    $getEmpty = new Expression("
-                        EXISTS (
-                            SELECT 1
-                            FROM json_each_text({$language['table']}.value) kv
-                            WHERE kv.value = ''
-                        )
-                    ");
-                    $query->andWhere($getEmpty);
+                $query = (new Query())->select(['table_name', 'value'])->from($language['table'])->orderBy(['table_name' => SORT_ASC])->where(['is_static' => false]);
+
+                if (isset($params['category'])) {
+                    $query->andWhere(['table_name' => $params['category']]);
                 }
 
-                $totalPages = (int)floor((int)$query->count() / $limit);
-
-                $result['total'] = max($result['total'], $totalPages);
-
-                $rows = $query
-                    ->limit($limit)
-                    ->offset($offset)
-                    ->orderBy(['table_name' => SORT_ASC, 'table_iteration' => SORT_ASC])
-                    ->all();
-
-                foreach ($rows as $row) {
-                    $key = $row['table_name'] . '::' . $row['table_iteration'];
-                    $emptyEntries[$key] = ['table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration']];
+                $table = $query->createCommand()->setSql('SELECT DISTINCT ON ("table_name") "table_name", "value" FROM "' . $language['table'] . '" WHERE "is_static" = FALSE ORDER BY "table_name" ASC')->queryAll();
+                foreach ($table as $row) {
+                    $allRealTables[$row['table_name']] = json_decode($row['value'], true);
                 }
             }
         }
 
-        /** Barcha lang_* dan shu kombinatsiyalarga mos bo‘lgan satrlarni yig‘ish */
-        foreach ($languages as $language) {
-            if (!empty($language['table'])) {
-                $result['langTables'][$language['name']] = [];
-                foreach ($emptyEntries as $entry) {
-                    $row = (new Query())
-                        ->select(['table_name', 'table_iteration', 'value'])
-                        ->from($language['table'])
-                        ->where([
-                            'is_static' => (int)$params['is_static'],
-                            'table_name' => $entry['table_name'],
-                            'table_iteration' => $entry['table_iteration']
-                        ])
-                        ->orderBy(['table_name' => SORT_ASC, 'table_iteration' => SORT_ASC])
-                        ->one();
-
-                    if ($row) {
-                        $row['value'] = json_decode($row['value'], true);
-                        $result['langTables'][$language['name']][$row['table_name'] . '::' . $row['table_iteration']] = $row;
-                    }
+        /** Asl jadvallardan ma‘lumotlarni olish */
+        if (!empty($allRealTables)) {
+            $allSqlParts = [];
+            foreach ($allRealTables as $table_name => $attributes) {
+                $jsonFields = [];
+                foreach (array_keys($attributes) as $key) {
+                    $jsonFields[] = "'$key'";
+                    $jsonFields[] = $key;
                 }
-                ksort($result['langTables'][$language['name']]);
-            }
-        }
+                $jsonFieldsSql = implode(", ", $jsonFields);
 
-        /** Asl jadvallardan (table_name bo‘yicha) ham o‘qib olish */
-        if (!empty($result['langTables'])) {
-            foreach ($languages as $language) {
-                if (empty($language['table'])) {
-                    $default_lang = [];
-                    foreach (reset($result['langTables']) as $entry) {
-                        $tableName = $entry['table_name'];
-                        $iteration = $entry['table_iteration'];
-                        $row = (new Query())
-                            ->select(array_keys($entry['value']))
-                            ->from($tableName)
-                            ->where(['id' => $iteration])
-                            ->one();
-
-                        if ($row) {
-                            $default_lang[$language['name']][$tableName . '::' . $iteration] = [
-                                'table_name' => $tableName,
-                                'table_iteration' => $iteration,
-                                'value' => $row
-                            ];
-                        }
-                    }
-                    $result['langTables'] = array_merge($default_lang, $result['langTables']);
-                    break;
-                }
+                $allSqlParts[] = "
+                    SELECT
+                      '{$table_name}' AS table_name,
+                      id AS table_iteration,
+                      FALSE AS is_static,
+                      json_build_object($jsonFieldsSql)::json AS value
+                    FROM {$table_name}
+                ";
             }
+            $finalSql = implode(" UNION ALL ", $allSqlParts) . " ORDER BY table_name, table_iteration";
+
+            $result = Yii::$app->db->createCommand($finalSql)->queryAll();
         }
         return $result;
     }
@@ -372,130 +312,5 @@ class LanguageService
             }
         }
         return $attributes;
-    }
-
-
-    /** Ma‘lumotlarni excelga export qilish */
-    public static function exportToExcelData($data, $fileName): bool|string
-    {
-        $is_static = false;
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-
-        /** Asosiy ustunlar */
-        $basicList = ['A', 'B', 'C'];
-        $letterList = $basicList;
-        $baseHeaders = ['is_static', 'table_name', 'table_iteration'];
-        $dynamicJsonKeys = [];
-        $staticJsonKeys = [];
-
-        /** Barcha JSON indekslarini aniqlash */
-        foreach ($data as $row) {
-            $is_static = $row['is_static'];
-            $jsonData = json_decode($row['value'], true);
-            if ($row['is_static']) {
-                $staticJsonKeys[$row['table_name']] = [];
-                if (is_array($jsonData)) {
-                    $staticJsonKeys[$row['table_name']] = array_unique(array_merge($staticJsonKeys[$row['table_name']], array_keys($jsonData)));
-                }
-            } else {
-                if (is_array($jsonData)) {
-                    $dynamicJsonKeys = array_unique(array_merge($dynamicJsonKeys, array_keys($jsonData)));
-                }
-            }
-        }
-
-        /** Barcha sarlavhalar: asosiy ustunlar + JSON indekslari */
-        $headers = array_merge($baseHeaders, $dynamicJsonKeys);
-        $sheet->fromArray($headers, NULL, 'A1');
-        $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
-        $sheet->getColumnDimension('A')->setAutoSize(false);
-        $sheet->getColumnDimension('B')->setAutoSize(true);
-        $sheet->getColumnDimension('A')->setWidth(9);
-        if ($is_static) {
-            $sheet->getColumnDimension('C')->setAutoSize(true);
-            $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-            $sheet->getStyle('D1')->getFont()->setBold(true);
-            $sheet->setCellValue("D1", "translate here");
-        } else {
-            $sheet->getColumnDimension('C')->setAutoSize(false);
-            $sheet->getColumnDimension('C')->setWidth(15);
-        }
-        $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
-        $sheet->getStyle("C1")->getFont()->setBold(true)->setColor(new Color('777777'));
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
-
-        /** Asosiy ustunlarni (table_name, table_iteration, va JSON kalitlari) himoyalash */
-        $sheet->getStyle('A1:B1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-        $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-
-        /** Ma'lumotlarni qo'shish */
-        $rowNumber = 2;
-        foreach ($data as $row) {
-            $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-            $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-
-            $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-            $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
-            if ($row['is_static']) {
-                /** JSON qiymatlarini alohida qatorda chiqarish */
-                $jsonData = json_decode($row['value'], true);
-                foreach ($staticJsonKeys[$row['table_name']] as $value) {
-                    $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-                    $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-
-                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-                    $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
-                    $sheet->setCellValue("C{$rowNumber}", $value);
-
-                    $colLetter = Coordinate::stringFromColumnIndex(4); // A, B, C...
-                    $letterList = array_merge($letterList, [$colLetter]);
-                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$value] ?? '');
-                    $rowNumber++;
-                }
-            } else {
-                $sheet->setCellValue("C{$rowNumber}", $row['table_iteration']);
-                /** JSON qiymatlarini mos ustunlarga qo'shish */
-                $jsonData = json_decode($row['value'], true);
-                $colIndex = 3;
-                foreach ($dynamicJsonKeys as $key) {
-                    $colIndex++;
-                    $colLetter = Coordinate::stringFromColumnIndex($colIndex); // A, B, C...
-                    $letterList = array_merge($letterList, [$colLetter]);
-                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$key] ?? '');
-                }
-                $rowNumber++;
-            }
-        }
-
-        /** Ustunlarning kengligini avtomatik sozlash */
-        foreach (array_diff_key(array_unique($letterList), $basicList) as $columnID) {
-            $sheet->getColumnDimension($columnID)->setAutoSize(true);
-        }
-
-        /** JSON qiymatlarini o'zgartirishga ruxsat berish */
-        $sheet->getStyle('D2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
-
-        /** Himoyani yoqish */
-        $spreadsheet->getActiveSheet()->getProtection()->setSheet(true);
-
-        /** Faylni saqlash */
-        $writer = new Xlsx($spreadsheet);
-        $baseDir = Yii::getAlias('@webroot/uploads');
-        $directory = "$baseDir/languages";
-
-        if (!is_dir($baseDir)) {
-            mkdir($baseDir, 0777, true);
-        }
-        if (!is_dir($directory)) {
-            mkdir($directory, 0777, true);
-        }
-
-        $filePath = "$directory/{$fileName}";
-        $fileUrl = Yii::getAlias("@web/uploads/languages/{$fileName}");
-        $writer->save($filePath);
-
-        return json_encode(['success' => true, 'fileUrl' => $fileUrl]);
     }
 }

@@ -13,6 +13,7 @@ use yii\db\BaseActiveRecord;
 use yii\db\Exception;
 use yii\db\Query;
 use yii\web\UploadedFile;
+use Yunusbek\Multilingual\components\ExcelExportImport;
 use Yunusbek\Multilingual\components\LanguageService;
 
 
@@ -229,7 +230,7 @@ class Multilingual extends ActiveRecord
             throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
         }
 
-        return LanguageService::exportToExcelData($data, "{$tableName}.xlsx");
+        return ExcelExportImport::exportToExcelData($data, "{$tableName}.xlsx");
     }
 
     /** Asosiy tablitsalardan excelga export qilish
@@ -249,114 +250,6 @@ class Multilingual extends ActiveRecord
             throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
         }
 
-        return LanguageService::exportToExcelData($data, "default_lang.xlsx");
-    }
-
-    /** Exceldan tablitsaga import qilish
-     * @param BaseLanguageList $model
-     * @return array
-     */
-    public static function importFromExcel(BaseLanguageList $model): array
-    {
-        $db = Yii::$app->db;
-        $response = [
-            'status' => true,
-            'code' => 'success',
-            'message' => 'success'
-        ];
-        $excel_file = UploadedFile::getInstance($model, 'import_excel');
-        if ($excel_file) {
-            if ($model->validate()) {
-                $table = $model->table;
-                $transaction = $db->beginTransaction();
-                try {
-                    if (!is_dir('uploads/import_language')) {
-                        mkdir('uploads/import_language');
-                    }
-                    $filePath = 'uploads/import_language/' . $excel_file->name;
-                    $excel_file->saveAs($filePath);
-
-                    $spreadsheet = IOFactory::load($filePath);
-                    $sheet = $spreadsheet->getActiveSheet();
-                    $data = $sheet->toArray();
-
-                    unlink($filePath);
-
-                    if (!empty($data)) {
-                        $attributes = array_slice($data[0], 3);
-                        unset($data[0]);
-                        if (!empty($data)) {
-                            /** static tarjimalr uchun */
-                            $static = [];
-                            foreach ($data as $row) {
-                                if ($row[0] == '1') {
-                                    $static[$row[1]][$row[2]] = $row[3];
-                                }
-                            }
-                            foreach ($static as $category => $values) {
-                                $upsert = $db->createCommand()
-                                    ->upsert($table, [
-                                        'is_static' => true,
-                                        'table_name' => $category,
-                                        'table_iteration' => 0,
-                                        'value' => $values,
-                                    ], [
-                                        'value' => $values
-                                    ])->execute();
-
-                                if ($upsert <= 0) {
-                                    $json = json_encode($values);
-                                    $response['status'] = false;
-                                    $response['code'] = 'error';
-                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $category, 'json' => $json]);
-                                    break;
-                                }
-                            }
-
-                            /** dynamic tarjimalr uchun */
-                            $dynamic = array_filter($data, function ($item) {
-                                return $item[0] === '0';
-                            });
-                            foreach ($dynamic as $row) {
-                                $filteredArray = array_slice($row, 3);
-                                $values = array_combine($attributes, $filteredArray);
-                                $values = array_filter($values, function ($value) {
-                                    return $value !== null;
-                                });
-                                $upsert = $db->createCommand()
-                                    ->upsert($table, [
-                                        'is_static' => false,
-                                        'table_name' => $row[1],
-                                        'table_iteration' => (int)$row[2],
-                                        'value' => $values,
-                                    ], [
-                                        'value' => $values
-                                    ])->execute();
-
-                                if ($upsert <= 0) {
-                                    $json = json_encode($values);
-                                    $response['status'] = false;
-                                    $response['code'] = 'error';
-                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $row[1], 'json' => $json]);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    Yii::$app->cache->flush();
-                    $transaction->commit();
-                } catch (Exception $e) {
-                    $response['status'] = false;
-                    $response['code'] = 'error';
-                    $response['message'] = $e->getMessage();
-                    $transaction->rollBack();
-                }
-            } else {
-                $response['status'] = false;
-                $response['code'] = 'error';
-                $response['message'] = $model->getErrors();
-            }
-        }
-        return $response;
+        return ExcelExportImport::exportToExcelData($data, "default_lang.xlsx");
     }
 }

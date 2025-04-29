@@ -199,7 +199,7 @@ class LanguageController extends Controller
      */
     public function actionExportToExcelDefault()
     {
-        $response = Multilingual::exportToExcelDefault();
+        $response = Multilingual::exportToExcelDefault(Yii::$app->request->queryParams);
         if (Yii::$app->request->isAjax) {
             return $response;
         } else {
