@@ -195,6 +195,34 @@ class LanguageController extends Controller
     }
 
     /**
+     * @throws \Exception
+     */
+    public function actionExportToExcelDefault()
+    {
+        $response = Multilingual::exportToExcelDefault();
+        if (Yii::$app->request->isAjax) {
+            return $response;
+        } else {
+            $url = json_decode($response)->fileUrl;
+            $file = Yii::getAlias("@webroot{$url}");
+            if (file_exists($file)) {
+                header('Content-Description: File Transfer');
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); // Excel fayl turi
+                header('Content-Disposition: attachment; filename="' . basename($file) . '"'); // Fayl nomi
+                header('Expires: 0'); // Yaroqlilik muddati
+                header('Cache-Control: must-revalidate');
+                header('Pragma: public');
+                header('Content-Length: ' . filesize($file)); // Fayl hajmi
+
+                // Faylni o'qish va yuklab berish
+                readfile($file);
+                exit;
+            }
+            return true;
+        }
+    }
+
+    /**
      * @param $lang
      * @return yii\web\Response
      */

@@ -117,7 +117,7 @@ $css = <<<CSS
 .ml-table-responsive {
     display: block;
     width: 100%;
-    height: calc(90vh - 100px);
+    height: calc(90vh - 120px);
     overflow: auto;
     position: relative;
     -webkit-overflow-scrolling: auto;

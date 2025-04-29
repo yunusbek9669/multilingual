@@ -67,9 +67,7 @@ class Multilingual extends ActiveRecord
         ];
     }
 
-    /**
-     * @throws Exception
-     */
+    /** Avto tarjimani ulash */
     public static function find(): ActiveQuery|BaseLanguageQuery
     {
         return new BaseLanguageQuery(static::class);
@@ -114,9 +112,7 @@ class Multilingual extends ActiveRecord
         parent::afterDelete();
     }
 
-    /** Tarjimalarni o‘chirish
-     * @throws Exception
-     */
+    /** Tarjimalarni o‘chirish */
     public function deleteLanguageValue(): array
     {
         $db = Yii::$app->db;
@@ -132,7 +128,7 @@ class Multilingual extends ActiveRecord
                         'table_iteration' => $this->id ?? null,
                     ])
                     ->execute();
-            } catch (\yii\db\Exception $e) {
+            } catch (Exception $e) {
                 $response['message'] = BaseLanguageQuery::modErrToStr($e);
                 $response['code'] = 'error';
                 $response['status'] = false;
@@ -142,6 +138,8 @@ class Multilingual extends ActiveRecord
     }
 
     /** Tarjimalarni qo‘shib qo‘yish
+     * @param array $post
+     * @return array
      * @throws Exception
      */
     public function setDynamicLanguageValue(array $post = []): array
@@ -175,7 +173,11 @@ class Multilingual extends ActiveRecord
     }
 
     /** Static ma'lumotlarni tarjima qilish
-     * @throws \Exception
+     * @param string $langTable
+     * @param string $category
+     * @param array $value
+     * @return array
+     * @throws Exception
      */
     public static function setStaticLanguageValue(string $langTable, string $category, array $value): array
     {
@@ -212,9 +214,13 @@ class Multilingual extends ActiveRecord
     }
 
     /** Tablitsadan excelga export qilish
+     * @param string $tableName
+     * @param bool $is_static
+     * @return bool|string
+     * @throws Exception
      * @throws \Exception
      */
-    public static function exportToExcel($tableName, bool $is_static = true): bool|string
+    public static function exportToExcel(string $tableName, bool $is_static = true): bool|string
     {
         $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName} WHERE is_static = :is_static" . ($is_static ? '' : ' AND table_iteration != 0'))
             ->bindValue(':is_static', $is_static, \PDO::PARAM_BOOL)->queryAll();
@@ -226,8 +232,29 @@ class Multilingual extends ActiveRecord
         return LanguageService::exportToExcelData($data, "{$tableName}.xlsx");
     }
 
+    /** Asosiy tablitsalardan excelga export qilish
+     * @param array $params
+     * @return bool|string
+     * @throws \Exception
+     */
+    public static function exportToExcelDefault(array $params): bool|string
+    {
+        $languages = Yii::$app->params['language_list'];
+        if (count($languages) === 1) {
+            throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
+        }
+        $data = LanguageService::getDefaultTables($languages, $params);
+
+        if (empty($data)) {
+            throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
+        }
+
+        return LanguageService::exportToExcelData($data, "default_lang.xlsx");
+    }
+
     /** Exceldan tablitsaga import qilish
-     * @throws Exception|InvalidParamException
+     * @param BaseLanguageList $model
+     * @return array
      */
     public static function importFromExcel(BaseLanguageList $model): array
     {
@@ -287,7 +314,6 @@ class Multilingual extends ActiveRecord
                             }
 
                             /** dynamic tarjimalr uchun */
-                            $dynamic = [];
                             $dynamic = array_filter($data, function ($item) {
                                 return $item[0] === '0';
                             });

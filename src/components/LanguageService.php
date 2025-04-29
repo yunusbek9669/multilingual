@@ -8,7 +8,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use yii\db\Exception;
+use yii\db\Expression;
 use yii\db\Query;
 
 class LanguageService
@@ -23,7 +23,6 @@ class LanguageService
 
     /**
      * Umumiy extend olgan modellarning ma’lumotlari
-     * @throws Exception
      */
     public static function getModelsData(array $params): array
     {
@@ -102,14 +101,14 @@ class LanguageService
                 foreach (array_keys($basePath) as $category) {
                     if ($category !== 'yii' && !str_contains($category, 'yii/')) {
                         $category = str_replace('*', '', $category);
-                        $incomplete = (new \yii\db\Query())
+                        $incomplete = (new Query())
                             ->select(['table_name', 'table_iteration', 'value'])
                             ->from($language['table'])
                             ->where([
                                 'table_name' => $category,
                                 'is_static' => (int)$params['is_static'],
                             ])
-                            ->andWhere(new \yii\db\Expression("EXISTS (SELECT 1 FROM json_each_text({$language['table']}.value) kv WHERE kv.value = '')"))
+                            ->andWhere(new Expression("EXISTS (SELECT 1 FROM json_each_text({$language['table']}.value) kv WHERE kv.value = '')"))
                             ->one();
                         $count = 0;
                         if (!empty($incomplete)) {
@@ -155,12 +154,12 @@ class LanguageService
             $result['language'][$language['name']] = 0;
             if (!empty($language['table'])) {
                 /** Bo‘sh qiymatli ("" value) lang_* dan topilgan table_name + table_iteration larni yig‘ish */
-                $query = (new \yii\db\Query())
+                $query = (new Query())
                     ->select(['table_name', 'table_iteration', 'value'])
                     ->from($language['table'])
                     ->where(['is_static' => $isStatic]);
                 if ($isAll === 0) {
-                    $getEmpty = new \yii\db\Expression("
+                    $getEmpty = new Expression("
                         EXISTS (
                             SELECT 1
                             FROM json_each_text({$language['table']}.value) kv
@@ -192,7 +191,7 @@ class LanguageService
             if (!empty($language['table'])) {
                 $result['langTables'][$language['name']] = [];
                 foreach ($emptyEntries as $entry) {
-                    $row = (new \yii\db\Query())
+                    $row = (new Query())
                         ->select(['table_name', 'table_iteration', 'value'])
                         ->from($language['table'])
                         ->where([
@@ -220,7 +219,112 @@ class LanguageService
                     foreach (reset($result['langTables']) as $entry) {
                         $tableName = $entry['table_name'];
                         $iteration = $entry['table_iteration'];
-                        $row = (new \yii\db\Query())
+                        $row = (new Query())
+                            ->select(array_keys($entry['value']))
+                            ->from($tableName)
+                            ->where(['id' => $iteration])
+                            ->one();
+
+                        if ($row) {
+                            $default_lang[$language['name']][$tableName . '::' . $iteration] = [
+                                'table_name' => $tableName,
+                                'table_iteration' => $iteration,
+                                'value' => $row
+                            ];
+                        }
+                    }
+                    $result['langTables'] = array_merge($default_lang, $result['langTables']);
+                    break;
+                }
+            }
+        }
+        return $result;
+    }
+
+    /** Bazadagi barcha tarjimon qilinadigan asosiy tablitsalar */
+    public static function getDefaultTables(array $languages, array $params): array
+    {
+        $result = [];
+        $result['total'] = 0;
+        $emptyEntries = [];
+        $limit = 1000;
+        $page = isset($params['page']) ? (int)$params['page'] : 0;
+        $offset = $page * $limit;
+
+        $isStatic = (int)($params['is_static'] ?? 0);
+        $isAll = (int)($params['is_all'] ?? 0);
+
+        /** Tizimdagi tillar bo‘yicha siklga solish */
+        foreach ($languages as $language) {
+            $result['language'][$language['name']] = 0;
+            if (!empty($language['table'])) {
+                /** Bo‘sh qiymatli ("" value) lang_* dan topilgan table_name + table_iteration larni yig‘ish */
+                $query = (new Query())
+                    ->select(['table_name', 'table_iteration', 'value'])
+                    ->from($language['table'])
+                    ->where(['is_static' => $isStatic]);
+                if ($isAll === 0) {
+                    $getEmpty = new Expression("
+                        EXISTS (
+                            SELECT 1
+                            FROM json_each_text({$language['table']}.value) kv
+                            WHERE kv.value = ''
+                        )
+                    ");
+                    $query->andWhere($getEmpty);
+                }
+
+                $totalPages = (int)floor((int)$query->count() / $limit);
+
+                $result['total'] = max($result['total'], $totalPages);
+
+                $rows = $query
+                    ->limit($limit)
+                    ->offset($offset)
+                    ->orderBy(['table_name' => SORT_ASC, 'table_iteration' => SORT_ASC])
+                    ->all();
+
+                foreach ($rows as $row) {
+                    $key = $row['table_name'] . '::' . $row['table_iteration'];
+                    $emptyEntries[$key] = ['table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration']];
+                }
+            }
+        }
+
+        /** Barcha lang_* dan shu kombinatsiyalarga mos bo‘lgan satrlarni yig‘ish */
+        foreach ($languages as $language) {
+            if (!empty($language['table'])) {
+                $result['langTables'][$language['name']] = [];
+                foreach ($emptyEntries as $entry) {
+                    $row = (new Query())
+                        ->select(['table_name', 'table_iteration', 'value'])
+                        ->from($language['table'])
+                        ->where([
+                            'is_static' => (int)$params['is_static'],
+                            'table_name' => $entry['table_name'],
+                            'table_iteration' => $entry['table_iteration']
+                        ])
+                        ->orderBy(['table_name' => SORT_ASC, 'table_iteration' => SORT_ASC])
+                        ->one();
+
+                    if ($row) {
+                        $row['value'] = json_decode($row['value'], true);
+                        $result['langTables'][$language['name']][$row['table_name'] . '::' . $row['table_iteration']] = $row;
+                    }
+                }
+                ksort($result['langTables'][$language['name']]);
+            }
+        }
+
+        /** Asl jadvallardan (table_name bo‘yicha) ham o‘qib olish */
+        if (!empty($result['langTables'])) {
+            foreach ($languages as $language) {
+                if (empty($language['table'])) {
+                    $default_lang = [];
+                    foreach (reset($result['langTables']) as $entry) {
+                        $tableName = $entry['table_name'];
+                        $iteration = $entry['table_iteration'];
+                        $row = (new Query())
                             ->select(array_keys($entry['value']))
                             ->from($tableName)
                             ->where(['id' => $iteration])
