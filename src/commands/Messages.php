@@ -15,6 +15,7 @@ use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
 use yii\i18n\GettextPoFile;
 use Yunusbek\Multilingual\models\BaseLanguageList;
+use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 /**
  * Extracts messages to be translated from source files.
@@ -413,15 +414,7 @@ EOD;
                 /** save changes */
                 $values = array_merge($currentValues[$category] ?? [], $new[$category]);
                 ksort($values);
-                $execute = $db->createCommand()
-                    ->upsert($langTable, [
-                        'is_static' => true,
-                        'table_name' => $category,
-                        'table_iteration' => 0,
-                        'value' => $values,
-                    ], [
-                        'value' => $values
-                    ])->execute();
+                $execute = BaseLanguageQuery::upsert($langTable, $category, 0, true, $values);
                 if (!$execute) {
                     $this->stderr("\n".'"'.$langTable.'" '.json_encode($values)." failed\n", BaseConsole::FG_RED);
                     break;
@@ -498,7 +491,7 @@ EOD;
                                     $attributes = array_values(array_unique($attributes));
                                     if (array_keys($currentLangValues) !== $attributes) {
                                         $langValues = array_intersect_key(array_merge(array_fill_keys($attributes, null), $currentLangValues), array_flip($attributes));
-                                        $execute = $db->createCommand()->upsert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $langValues], ['value' => $langValues])->execute();
+                                        $execute = BaseLanguageQuery::upsert($langTable, $table_name, $row['id'], false, $langValues);
                                         if (!$execute) {
                                             $this->stderr("\n$langTable ".json_encode($langValues)." failed", BaseConsole::FG_RED);
                                             break 2;

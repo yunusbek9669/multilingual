@@ -2,6 +2,7 @@
 
 namespace Yunusbek\Multilingual\components;
 
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Yii;
 use PhpOffice\PhpSpreadsheet\Settings;
 use PhpOffice\PhpSpreadsheet\Collection\Memory\SimpleCache3;
@@ -10,7 +11,10 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use yii\db\Exception;
+use yii\web\UploadedFile;
 use Yunusbek\Multilingual\models\BaseLanguageList;
+use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class ExcelExportImport
 {
@@ -86,7 +90,7 @@ class ExcelExportImport
                     $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
                     $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-                    $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
+                    $sheet->setCellValue("B{$rowNumber}", '{'.$row['table_name'].'}');
                     $sheet->setCellValue("C{$rowNumber}", $value);
 
                     $colLetter = Coordinate::stringFromColumnIndex(4); // A, B, C...
@@ -177,20 +181,11 @@ class ExcelExportImport
                             $static = [];
                             foreach ($data as $row) {
                                 if ($row[0] == '1') {
-                                    $static[$row[1]][$row[2]] = $row[3];
+                                    $static[$row[1]][str_replace(['{','}'], '', $row[2])] = $row[3];
                                 }
                             }
                             foreach ($static as $category => $values) {
-                                $upsert = $db->createCommand()
-                                    ->upsert($table, [
-                                        'is_static' => true,
-                                        'table_name' => $category,
-                                        'table_iteration' => 0,
-                                        'value' => $values,
-                                    ], [
-                                        'value' => $values
-                                    ])->execute();
-
+                                $upsert = BaseLanguageQuery::upsert($table, $category, 0, true, $values);
                                 if ($upsert <= 0) {
                                     $json = json_encode($values);
                                     $response['status'] = false;
@@ -210,16 +205,7 @@ class ExcelExportImport
                                 $values = array_filter($values, function ($value) {
                                     return $value !== null;
                                 });
-                                $upsert = $db->createCommand()
-                                    ->upsert($table, [
-                                        'is_static' => false,
-                                        'table_name' => $row[1],
-                                        'table_iteration' => (int)$row[2],
-                                        'value' => $values,
-                                    ], [
-                                        'value' => $values
-                                    ])->execute();
-
+                                $upsert = BaseLanguageQuery::upsert($table, str_replace(['{','}'], '', $row[1]), (int)$row[2], false, $values);
                                 if ($upsert <= 0) {
                                     $json = json_encode($values);
                                     $response['status'] = false;

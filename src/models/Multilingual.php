@@ -153,16 +153,7 @@ class Multilingual extends ActiveRecord
         ];
         $table_name = $this::tableName();
         foreach ($post as $table => $data) {
-            $upsert = $db->createCommand()
-                ->upsert($table, [
-                    'table_name' => $table_name,
-                    'table_iteration' => $this->id ?? null,
-                    'is_static' => false,
-                    'value' => $data,
-                ], [
-                    'value' => $data
-                ])->execute();
-
+            $upsert = BaseLanguageQuery::upsert($table, $table_name, $this->id ?? null, false, $data);
             if ($upsert <= 0) {
                 $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
                 $response['code'] = 'error';
@@ -191,16 +182,7 @@ class Multilingual extends ActiveRecord
         $allMessages = json_decode($table['value'], true);
         ksort($allMessages);
         ksort($value);
-        $upsert = Yii::$app->db->createCommand()
-            ->upsert($langTable, [
-                'is_static' => true,
-                'table_name' => $category,
-                'table_iteration' => 0,
-                'value' => array_replace($allMessages, $value),
-            ], [
-                'value' => array_replace($allMessages, $value)
-            ])->execute();
-
+        $upsert = BaseLanguageQuery::upsert($langTable, $category, 0, true, array_replace($allMessages, $value));
         if ($upsert <= 0) {
             $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
             $response['code'] = 'error';
