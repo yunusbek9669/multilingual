@@ -157,7 +157,7 @@ class LanguageService
                         EXISTS (
                             SELECT 1
                             FROM json_each_text({$language['table']}.value) kv
-                            WHERE kv.value = ''
+                            WHERE kv.value = '' or kv.value IS NULL
                         )
                     ");
                     $query->andWhere($getEmpty);

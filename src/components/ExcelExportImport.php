@@ -12,15 +12,83 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use yii\db\Exception;
+use yii\db\Query;
 use yii\web\UploadedFile;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class ExcelExportImport
 {
+    /** so‘z oxiriga "s" qo‘shish */
+    protected static function toPlural($word): string
+    {
+        if (str_ends_with($word, 'y')) {
+            return substr($word, 0, -1) . 'ies';
+        }
+        return $word . 's';
+    }
+
+    /** xarflarni raqam bilan alishtirish */
+    protected static function encodeString($input): string
+    {
+        $map = array_combine(range('a', 'z'), range(1, 26));
+        $input = strtolower($input);
+        $output = '';
+
+        for ($i = 0; $i < strlen($input); $i++) {
+            $char = $input[$i];
+            if (isset($map[$char])) {
+                $output .= $map[$char] . '-';
+            } else {
+                $output .= $char . '-';
+            }
+        }
+
+        return rtrim($output, '-');
+    }
+
+    /** raqamlarni xarf bilan alishtirish */
+    protected static function decodeString($encoded): string
+    {
+        $reverseMap = array_combine(range(1, 26), range('a', 'z'));
+        $parts = explode('-', $encoded);
+        $output = '';
+
+        foreach ($parts as $part) {
+            if (ctype_digit($part) && isset($reverseMap[(int)$part])) {
+                $output .= $reverseMap[(int)$part];
+            } else {
+                $output .= $part;
+            }
+        }
+        return $output;
+    }
+
     /** Ma‘lumotlarni excelga export qilish */
     public static function exportToExcelData($data, $fileName): bool|string
     {
+        $messages = (new Query())
+            ->select(['table_name', 'value'])
+            ->from(BaseLanguageList::LANG_TABLE_PREFIX.Yii::$app->language)
+            ->where(['is_static' => true])
+            ->all();
+        $tableNames = Yii::$app->db->schema->getTableNames();
+        $k_tableNames = [];
+
+        foreach ($tableNames as $key => $value) {
+            foreach ($messages as $row) {
+                $val = str_replace('_', ' ', ucwords($value, '_'));
+                $k_tableNames[$value] = $key.'-'.$val;
+                if (str_contains($row['value'], $val)) {
+                    foreach (json_decode($row['value'], true) as $k => $v) {
+                        if (str_starts_with($k, $val) && (str_ends_with($k, $val) || str_ends_with($k, self::toPlural($val)))) {
+                            $k_tableNames[$value] = $key.'-'.$v;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
         Settings::setCache(new SimpleCache3());
         $is_static = false;
         $spreadsheet = new Spreadsheet();
@@ -43,8 +111,12 @@ class ExcelExportImport
                     $staticJsonKeys[$row['table_name']] = array_unique(array_merge($staticJsonKeys[$row['table_name']], array_keys($jsonData)));
                 }
             } else {
+                $attributes = [];
+                foreach ($jsonData as $key => $attr) {
+                    $attributes[] = self::encodeString($key);
+                }
                 if (is_array($jsonData)) {
-                    $dynamicJsonKeys = array_unique(array_merge($dynamicJsonKeys, array_keys($jsonData)));
+                    $dynamicJsonKeys = array_unique(array_merge($dynamicJsonKeys, $attributes));
                 }
             }
         }
@@ -81,7 +153,7 @@ class ExcelExportImport
             $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
             $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-            $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
+            $sheet->setCellValue("B{$rowNumber}", $k_tableNames[$row['table_name']]);
             if ($row['is_static']) {
                 /** JSON qiymatlarini alohida qatorda chiqarish */
                 $jsonData = json_decode($row['value'], true);
@@ -90,7 +162,7 @@ class ExcelExportImport
                     $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
                     $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-                    $sheet->setCellValue("B{$rowNumber}", '{'.$row['table_name'].'}');
+                    $sheet->setCellValue("B{$rowNumber}", $k_tableNames[$row['table_name']]);
                     $sheet->setCellValue("C{$rowNumber}", $value);
 
                     $colLetter = Coordinate::stringFromColumnIndex(4); // A, B, C...
@@ -107,7 +179,7 @@ class ExcelExportImport
                     $colIndex++;
                     $colLetter = Coordinate::stringFromColumnIndex($colIndex); // A, B, C...
                     $letterList = array_merge($letterList, [$colLetter]);
-                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$key] ?? '');
+                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[self::decodeString($key)] ?? '');
                 }
                 $rowNumber++;
             }
@@ -150,6 +222,7 @@ class ExcelExportImport
     public static function importFromExcel(BaseLanguageList $model): array
     {
         $db = Yii::$app->db;
+        $tableNames = $db->schema->getTableNames();
         $response = [
             'status' => true,
             'code' => 'success',
@@ -174,14 +247,18 @@ class ExcelExportImport
                     unlink($filePath);
 
                     if (!empty($data)) {
-                        $attributes = array_slice($data[0], 3);
+                        $attributes = [];
+                        $hash_attributes = array_slice($data[0], 3);
+                        foreach ($hash_attributes as $attribute) {
+                            $attributes[] = self::decodeString(trim($attribute));
+                        }
                         unset($data[0]);
                         if (!empty($data)) {
                             /** static tarjimalr uchun */
                             $static = [];
                             foreach ($data as $row) {
                                 if ($row[0] == '1') {
-                                    $static[$row[1]][str_replace(['{','}'], '', $row[2])] = $row[3];
+                                    $static[$row[1]][$tableNames[(int)$row[2]]] = $row[3];
                                 }
                             }
                             foreach ($static as $category => $values) {
@@ -205,7 +282,7 @@ class ExcelExportImport
                                 $values = array_filter($values, function ($value) {
                                     return $value !== null;
                                 });
-                                $upsert = BaseLanguageQuery::upsert($table, str_replace(['{','}'], '', $row[1]), (int)$row[2], false, $values);
+                                $upsert = BaseLanguageQuery::upsert($table, $tableNames[(int)$row[1]], (int)$row[2], false, $values);
                                 if ($upsert <= 0) {
                                     $json = json_encode($values);
                                     $response['status'] = false;
