@@ -3,12 +3,11 @@
 namespace Yunusbek\Multilingual\controllers;
 
 use Yii;
-use yii\base\InvalidParamException;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
-use yii\filters\VerbFilter;
-use yii\web\Controller;
+use yii\filters\AccessControl;
 use yii\web\NotFoundHttpException;
+use yii\web\Controller;
 use yii\web\Response;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\models\BaseLanguageList;
@@ -22,13 +21,16 @@ class LanguageController extends Controller
     /**
      * {@inheritdoc}
      */
-    public function behaviors()
+    public function behaviors(): array
     {
         return [
-            'verbs' => [
-                'class' => VerbFilter::className(),
-                'actions' => [
-                    'delete' => ['POST'],
+            'access' => [
+                'class' => AccessControl::class,
+                'rules' => [
+                    [
+                        'allow' => true,
+                        'roles' => ['@'],
+                    ],
                 ],
             ],
         ];
@@ -38,7 +40,6 @@ class LanguageController extends Controller
      * Lists all BaseLanguageList models.
      * @param int $is_static
      * @return string
-     * @throws Exception
      */
     public function actionIndex(int $is_static): string
     {
@@ -123,7 +124,6 @@ class LanguageController extends Controller
      * @param string $category
      * @return Response|array|string
      * @throws Exception
-     * @throws InvalidParamException
      */
     public function actionTranslateStatic(string $lang, string $category): Response|array|string
     {
@@ -239,7 +239,6 @@ class LanguageController extends Controller
      * @param string $table_name
      * @param integer $id
      * @return array|ActiveRecord the loaded model
-     * @throws Exception if the model cannot be found
      * @throws NotFoundHttpException if the model cannot be found
      */
     protected function findModel(string $table_name, int $id): array|ActiveRecord
