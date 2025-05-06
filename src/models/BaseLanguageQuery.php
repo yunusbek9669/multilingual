@@ -39,6 +39,8 @@ class BaseLanguageQuery extends ActiveQuery
             if (empty($this->select)) {
                 $this->setFullSelect($joinType, $current_table, $alias);
             } else {
+                $tableSchema = Yii::$app->db->getTableSchema($current_table);
+                $stringColumns = array_filter($tableSchema->columns, fn($column) => in_array($column->type, ['string', 'text', 'safe']));
                 foreach ($this->select as $attribute_name => $column) {
                     if (!str_contains($column, 'COUNT') && !empty($this->join)) {
                         $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
@@ -47,6 +49,8 @@ class BaseLanguageQuery extends ActiveQuery
                         } else {
                             $this->setSingleSelect($joinType, $this->join, $this->modelClass::tableName(), $attribute_name, $column);
                         }
+                    } elseif (isset($stringColumns[$column])) {
+                        $this->setSingleSelectNotAlias($joinType, $current_table, $alias, $column);
                     }
                 }
             }
@@ -62,6 +66,16 @@ class BaseLanguageQuery extends ActiveQuery
             $this->from = [$this->customAlias => $tableName];
         }
         return parent::prepare($builder);
+    }
+
+    protected function setSingleSelectNotAlias(string $joinType, string $current_table, string $alias, string $current_column): void
+    {
+        $collectColumns = [];
+        $joinTable = $current_table . '_' . $this->langTable;
+        $collectColumns[$current_column] = $this->coalesce($joinTable, $current_column, $alias . '.' . $current_column);
+        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
+        $this->addSelect($collectColumns);
+        $this->addJoin($joinType, $joinTable, $current_table, $alias);
     }
 
     protected function setFullSelect(string $joinType, string $current_table, string $alias): void
