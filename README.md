@@ -130,7 +130,7 @@ The ```MultilingualTrait``` must be used in models that support multilingual (tr
 ```php
 use Yunusbek\Multilingual\components\traits\MultilingualTrait;
 
-class YourModel
+class YourModel extends yii\db\ActiveRecord
 {
     use MultilingualTrait;
     #...model settings.
