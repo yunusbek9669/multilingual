@@ -125,13 +125,14 @@ echo \Yunusbek\Multilingual\widgets\MultilingualLanguageList::widget() //['optio
 ````
 >![All added dynamic languages.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/language_list.jpg)
 
-The models to be translated are inherited from the ```Multilingual``` model.
+The ```MultilingualTrait``` must be used in models that support multilingual (translatable) content.
 
 ```php
-use Yunusbek\Multilingual\models\Multilingual;
+use Yunusbek\Multilingual\components\traits\MultilingualTrait;
 
-class ReferenceModel extends Multilingual
+class YourModel
 {
+    use MultilingualTrait;
     #...model settings.
 }
 ```
