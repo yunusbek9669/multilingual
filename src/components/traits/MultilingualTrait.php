@@ -2,6 +2,7 @@
 
 namespace Yunusbek\Multilingual\components\traits;
 
+use Yii;
 use yii\db\Exception;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
