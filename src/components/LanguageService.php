@@ -217,6 +217,9 @@ class LanguageService
                         jsonb_build_object($allValues) AS all_values
                     ")]);
 
+                    $totalPages = (int)floor((int)$query->count() / $limit);
+                    $result['total'] = max($result['total'], $totalPages);
+
                     $rows = $query
                         ->select($select)
                         ->limit($calculated_limit)
