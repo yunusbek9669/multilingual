@@ -15,7 +15,7 @@ $this->title = Yii::t('multilingual', 'Translating column values in the database
 $this->params['breadcrumbs'][] = $this->title;
 $is_all = Yii::$app->request->get('is_all', 0);
 $page = Yii::$app->request->get('page', 0);
-$page_countable = $translates['total'] === 0 || count($translates['body']) < 1000;
+$page_countable = $translates['total'] === 0 || count($translates['body']) < 500;
 ?>
     <div class="ml-card">
         <div class="ml-card-body">
@@ -54,7 +54,7 @@ $page_countable = $translates['total'] === 0 || count($translates['body']) < 100
                         <?php endif; ?>
                     </tr>
                     </thead>
-                    <?php $iteration = ($page * 1000) + 1; foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
+                    <?php $iteration = ($page * 500) + 1; foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
                         <tbody class="ml-tbody">
                         <tr>
                             <td rowspan="<?php echo 1 + count($row['translate']) ?>"><?php echo $iteration++ ?></td>

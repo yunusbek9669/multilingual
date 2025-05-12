@@ -4,11 +4,34 @@ namespace Yunusbek\Multilingual\components\traits;
 
 use Yii;
 use yii\db\Exception;
+use Yunusbek\Multilingual\commands\Messages;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 trait MultilingualTrait
 {
+    private bool $where = true;
+    private array $jsonData = [];
+    private string $jsonFile;
+    public function getPath($controllerInstance): void
+    {
+        $this->jsonFile = Yii::getAlias('@app') .'/'. $controllerInstance->json_file_name.'.json';
+    }
+
+    public function __construct()
+    {
+        $id = 'messages';
+        $module = Yii::$app;
+        $message = new Messages($id, $module);
+        $this->getPath($message);
+        if (file_exists($this->jsonFile)) {
+            $jsonContent = file_get_contents($this->jsonFile);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $this->jsonData = json_decode($jsonContent, true);
+            }
+        }
+    }
+
     /** Avto tarjimani ulash */
     public static function find(): BaseLanguageQuery
     {
@@ -21,19 +44,16 @@ trait MultilingualTrait
     public function afterSave($insert, $changedAttributes)
     {
         $transaction = Yii::$app->db->beginTransaction();
-        $response = [];
-        $response['status'] = true;
-        $response['message'] = Yii::t('multilingual', 'Error');
-        try {
-            $post = Yii::$app->request->post('Language');
-            if (!empty($post)) {
-                $response = $this->setDynamicLanguageValue($post);
-            } elseif (isset($this->status) && $this->status !== 1) {
-                $response = $this->deleteLanguageValue();
-            }
-        } catch (Exception $e) {
-            $response['message'] = $e->getMessage();
-            $response['status'] = false;
+        $response = [
+            'status' => true,
+            'message' => Yii::t('multilingual', 'Error')
+        ];
+
+        $post = Yii::$app->request->post('Language');
+        if (!empty($post)) {
+            $response = $this->setDynamicLanguageValue($post);
+        } elseif (!$this->where()) {
+            $response = $this->deleteLanguageValue();
         }
 
         if ($response['status']) {
@@ -42,7 +62,9 @@ trait MultilingualTrait
             $transaction->rollBack();
             Yii::$app->session->setFlash('error', $response['message']);
         }
-        parent::afterSave($insert, $changedAttributes);
+        if (method_exists(get_parent_class($this), 'afterSave')) {
+            parent::afterSave($insert, $changedAttributes);
+        }
     }
 
     public function afterDelete()
@@ -51,7 +73,9 @@ trait MultilingualTrait
         if ($response['status']) {
             Yii::error("deleteLanguageValue() failed: " . json_encode($this->attributes), ' ' . $response['message'], __METHOD__);
         }
-        parent::afterDelete();
+        if (method_exists(get_parent_class($this), 'afterDelete')) {
+            parent::afterDelete();
+        }
     }
 
     /** Tarjimalarni o‘chirish */
@@ -66,7 +90,7 @@ trait MultilingualTrait
             try {
                 $db->createCommand()
                     ->delete($key, [
-                        'table_name' => $this::tableName(),
+                        'table_name' => static::tableName(),
                         'table_iteration' => $this->id ?? null,
                     ])
                     ->execute();
@@ -82,7 +106,6 @@ trait MultilingualTrait
     /** Tarjimalarni qo‘shib qo‘yish
      * @param array $post
      * @return array
-     * @throws Exception
      */
     public function setDynamicLanguageValue(array $post = []): array
     {
@@ -92,7 +115,7 @@ trait MultilingualTrait
             'code' => 'success',
             'message' => 'success',
         ];
-        $table_name = $this::tableName();
+        $table_name = static::tableName();
         foreach ($post as $table => $data) {
             $upsert = BaseLanguageQuery::upsert($table, $table_name, $this->id ?? null, false, $data);
             if ($upsert <= 0) {
@@ -103,5 +126,16 @@ trait MultilingualTrait
             }
         }
         return $response;
+    }
+
+    protected function where(): bool
+    {
+        foreach ($this->jsonData['where'] ?? [] as $attribute => $value) {
+            if ($this->$attribute != $value) {
+                $this->where = false;
+                break;
+            }
+        }
+        return $this->where;
     }
 }

@@ -13,23 +13,14 @@ use yii\helpers\BaseConsole;
 use yii\helpers\Console;
 use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
-use yii\i18n\GettextPoFile;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 /**
- * Extracts messages to be translated from source files.
- *
- * The extracted messages can be saved the following depending on `format`
- * setting in config file:
- *
- * - PHP message source files.
- * - ".po" files.
- * - Database.
- *
  * Usage:
  * 1. Create a configuration file using the 'message/config' command:
  *    yii message/config /path/to/myapp/messages/config.php
+ *    yii attribute/config /path/to/myapp/attribute/config.php
  * 2. Edit the created config file, adjusting it for your web application needs.
  * 3. Run the 'message/extract' command, using created config:
  *    yii message /path/to/myapp/messages/config.php
@@ -47,6 +38,15 @@ class Messages extends \yii\console\Controller
      * @var string required, root directory of all source files.
      */
     public $sourcePath = '@yii';
+    /**
+     * @var string required, name of json file.
+     */
+    public $json_file_name = 'multilingual';
+    /**
+     * @var string required, json file.
+     */
+    public $jsonData = [];
+    public $jsonError = false;
     /**
      * @var string required, root directory containing message translations.
      */
@@ -83,6 +83,16 @@ class Messages extends \yii\console\Controller
      * See helpers/FileHelper::findFiles() description for pattern matching rules.
      * If a file/directory matches both a pattern in "only" and "except", it will NOT be processed.
      */
+    public $configFile = [
+        'attribute' => '@vendor/yunusbek/multilingual/src/config/attributes.php',
+        'i18n' => '@vendor/yunusbek/multilingual/src/config/i18n.php'
+    ];
+    /**
+     * @var array|null list of patterns that specify which files/directories should NOT be processed.
+     * If empty or not set, all files/directories will be processed.
+     * See helpers/FileHelper::findFiles() description for pattern matching rules.
+     * If a file/directory matches both a pattern in "only" and "except", it will NOT be processed.
+     */
     public $except = [
         '.*',
         '/.*',
@@ -100,10 +110,6 @@ class Messages extends \yii\console\Controller
      */
     public $only = ['*.php'];
     /**
-     * @var string generated file format. Can be "php", "db", "po" or "pot".
-     */
-    public $format = 'php';
-    /**
      * @var string connection component ID for "db" format.
      */
     public $db = 'db';
@@ -116,12 +122,6 @@ class Messages extends \yii\console\Controller
      * @since 2.0.13
      */
     public $phpFileHeader = '';
-    /**
-     * @var string|null DocBlock used for messages array in generated PHP file. If `null`, default DocBlock will be used.
-     * This property is used only if [[$format]] is "php".
-     * @since 2.0.13
-     */
-    public $phpDocBlock;
 
     /**
      * @var array Config for messages extraction.
@@ -131,11 +131,32 @@ class Messages extends \yii\console\Controller
      */
     protected $config;
 
+    public function __construct($id, $module, $config = [])
+    {
+        $filePath = $this->json_file_name.'.json';
+        $this->languages = array_column((new Query())->select(['key'])->from('{{%language_list}}')->all(), 'key');
+        if (file_exists($filePath)) {
+            $jsonContent = file_get_contents($filePath);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $this->jsonData = json_decode($jsonContent, true);
+            } else {
+                $this->jsonError = true;
+            }
+        } else {
+            $this->jsonData = [
+                'where' => [],
+                'tables' => [],
+            ];
+        }
+
+        parent::__construct($id, $module, $config);
+    }
+
 
     /**
      * {@inheritdoc}
      */
-    public function options($actionID)
+    public function options($actionID): array
     {
         return array_merge(parent::options($actionID), [
             'sourcePath',
@@ -143,15 +164,14 @@ class Messages extends \yii\console\Controller
             'languages',
             'translator',
             'sort',
+            'json_file_name',
             'overwrite',
             'is_static',
             'except',
             'only',
-            'format',
             'db',
             'langTable',
             'phpFileHeader',
-            'phpDocBlock',
         ]);
     }
 
@@ -159,11 +179,10 @@ class Messages extends \yii\console\Controller
      * {@inheritdoc}
      * @since 2.0.8
      */
-    public function optionAliases()
+    public function optionAliases(): array
     {
         return array_merge(parent::optionAliases(), [
             'e' => 'except',
-            'f' => 'format',
             'i' => 'is_static',
             'l' => 'languages',
             'p' => 'messagePath',
@@ -173,6 +192,7 @@ class Messages extends \yii\console\Controller
             't' => 'translator',
             'm' => 'langTable',
             's' => 'sourcePath',
+            'j' => 'json_file_name',
         ]);
     }
 
@@ -185,9 +205,9 @@ class Messages extends \yii\console\Controller
      *
      * @param string $filePath output file name or alias.
      * @return int CLI exit code
-     * @throws Exception on failure.
+     * @throws Exception|\yii\base\Exception on failure.
      */
-    public function actionConfig($filePath)
+    public function actionConfig(string $filePath): int
     {
         $filePath = Yii::getAlias($filePath);
         $dir = dirname($filePath);
@@ -233,9 +253,8 @@ EOD;
      *
      * @param string $filePath output file name or alias.
      * @return int CLI exit code
-     * @throws Exception on failure.
      */
-    public function actionConfigTemplate($filePath)
+    public function actionConfigTemplate(string $filePath): int
     {
         $filePath = Yii::getAlias($filePath);
 
@@ -265,14 +284,13 @@ EOD;
      * This command will search through source code files and extract
      * messages that need to be translated in different languages.
      *
-     * @param string|null $configFile the path or alias of the configuration file.
      * You may use the "yii message/config" command to generate
      * this file and then customize it for your needs.
      * @throws Exception|InvalidConfigException on failure.
      */
-    public function actionI18n(?string $configFile = '@vendor/yunusbek/multilingual/src/config/i18n.php'): void
+    public function actionI18n(): void
     {
-        $this->initConfig($configFile);
+        $this->initConfig($this->configFile['i18n']);
 
         if (is_array($this->config['sourcePath'])) {
             $files = array_merge(...array_map(function ($path) {
@@ -294,7 +312,7 @@ EOD;
         /** @var Connection $db */
         $db = Instance::ensure($this->config['db'], Connection::className());
 
-        foreach ($this->config['languages'] as $language) {
+        foreach ($this->languages as $language) {
             $langTable = "{{%lang_$language}}";
             $this->saveMessagesToDb(
                 $messages,
@@ -310,14 +328,13 @@ EOD;
      * This command will search through source code files and extract
      * messages that need to be translated in different languages.
      *
-     * @param string|null $configFile the path or alias of the configuration file.
      * You may use the "yii message/config" command to generate
      * this file and then customize it for your needs.
      * @throws Exception|InvalidConfigException on failure.
      */
-    public function actionAttributes(?string $configFile = '@vendor/yunusbek/multilingual/src/config/attributes.php'): void
+    public function actionAttributes(): void
     {
-        $this->initConfig($configFile);
+        $this->initConfig($this->configFile['attribute']);
 
         $files = FileHelper::findFiles(realpath($this->config['sourcePath']), $this->config);
 
@@ -330,14 +347,10 @@ EOD;
             $attributes = array_merge_recursive($attributes, $extracted);
         }
 
-        foreach ($this->config['languages'] as $language) {
-            $langTable = "{{%lang_$language}}";
-            $this->saveAttributesToDb(
-                $attributes,
-                $db,
-                $langTable
-            );
-        }
+        $this->fixAttributesToDb(
+            $attributes,
+            $db
+        );
     }
 
     /**
@@ -442,6 +455,95 @@ EOD;
         } else {
             $this->stdout("Nothing to save.\n");
         }
+    }
+
+    /**
+     * Fixes database table and attributes to json.
+     *
+     * @param array $translateTables
+     * @param Connection $db
+     */
+    protected function fixAttributesToDb(array $translateTables, Connection $db): void
+    {
+        $filePath = $this->json_file_name.'.json';
+        $this->stdout("Setting translatable attributes to the ");
+        $this->stdout('"'.$filePath.'" ', BaseConsole::FG_YELLOW);
+        $this->stdout("file... ");
+
+        $execute = true;
+        $attributeCount = [];
+        try {
+            if ($this->jsonError) {
+                $this->stderr("\n".'The JSON ', BaseConsole::FG_YELLOW);
+                $this->stderr('"'.$filePath.'" ', BaseConsole::FG_RED);
+                $this->stderr("file is incorrect\n", BaseConsole::FG_YELLOW);
+            }
+            foreach ($translateTables as $table_name => $attributes) {
+                if (BaseLanguageList::isTableExists($table_name)) {
+                    $schema = $db->getTableSchema($table_name);
+                    $columns = $schema ? array_keys($schema->columns) : [];
+                    if (in_array('id', $columns)) {
+                        $different = array_diff($this->jsonData['tables'][$table_name] ?? [], $columns);
+                        $flip_columns = array_flip($columns);
+                        foreach (array_unique($attributes) as $attribute) {
+                            if (!isset($flip_columns[$attribute])) {
+                                $this->stderr("\n".'The column ', BaseConsole::FG_YELLOW);
+                                $this->stderr('"'.$attribute.'" ', BaseConsole::FG_CYAN);
+                                $this->stderr('does not exist in the table ', BaseConsole::FG_YELLOW);
+                                $this->stderr('"'.$table_name.'"'."\n", BaseConsole::FG_RED);
+                                break;
+                            } elseif (!isset($this->jsonData['tables'][$table_name]) || !in_array($attribute, $this->jsonData['tables'][$table_name])) {
+                                $attributeCount[$table_name] = ($attributeCount[$table_name] ?? 0) + 1;
+                                $this->jsonData['tables'][$table_name][] = $attribute;
+                            }
+                        }
+
+                        if (!empty($different)) {
+                            foreach ($different as $key => $alien_attribute) {
+                                $this->stderr("\n".'The column ', BaseConsole::FG_YELLOW);
+                                $this->stderr('"'.$alien_attribute.'" ', BaseConsole::FG_RED);
+                                $this->stderr('in the json file was not found in the table ', BaseConsole::FG_YELLOW);
+                                $this->stderr('"'.$table_name.'" ', BaseConsole::FG_CYAN);
+                                $this->stderr("and was deleted.\n", BaseConsole::FG_YELLOW);
+                                unset($this->jsonData['tables'][$table_name][$key]);
+                            }
+                        }
+                        $this->jsonData['tables'][$table_name] = array_values(array_unique($this->jsonData['tables'][$table_name]));
+
+                    } else {
+                        $this->stderr("\n".'The column ', BaseConsole::FG_YELLOW);
+                        $this->stderr('"id" ', BaseConsole::FG_CYAN);
+                        $this->stderr('does not exist in the table ', BaseConsole::FG_YELLOW);
+                        $this->stderr('"'.$table_name.'"'."\n", BaseConsole::FG_RED);
+                        break;
+                    }
+                } else {
+                    $this->stderr("\n".'"'.$table_name.'"', BaseConsole::FG_RED);
+                    $this->stderr(" table doesn't exist"."\n", BaseConsole::FG_YELLOW);
+                    break;
+                }
+            }
+            if (empty($this->jsonData['where'])) {
+                $this->jsonData = ['where' => (object)[]] + $this->jsonData;
+            }
+            $jsonData = json_encode($this->jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            file_put_contents($filePath, $jsonData);
+        } catch (\yii\db\Exception $e) {
+            $execute = false;
+            $this->stderr("\n".$e->getMessage(), BaseConsole::FG_RED);
+        }
+        if ($execute && count($attributeCount) > 0) {
+            foreach ($attributeCount as $table_name => $attribute_count) {
+                $this->stdout("\nSet ", BaseConsole::FG_GREEN);
+                $this->stdout("$attribute_count ", BaseConsole::FG_YELLOW);
+                $this->stdout("attributes from ", BaseConsole::FG_GREEN);
+                $this->stdout("\"$table_name\" ", BaseConsole::FG_CYAN, BaseConsole::ITALIC);
+                $this->stdout("table for translate successfully.", BaseConsole::FG_GREEN);
+            }
+        } else {
+            $this->stdout("Nothing to save.");
+        }
+        $this->stdout("\n");
     }
 
     /**
@@ -596,7 +698,7 @@ EOD;
      * This parameter is available since version 2.0.4.
      * @return array
      */
-    protected function extractMessages($fileName, $translator): array
+    protected function extractMessages(string $fileName, $translator): array
     {
         $subject = file_get_contents($fileName);
         $messages = [];
@@ -950,8 +1052,8 @@ EOD;
         if (is_array($this->config['sourcePath'])){
             foreach ($this->config['sourcePath'] as $key => $sourcePath) {
                 $this->config['sourcePath'][$key] = Yii::getAlias($sourcePath);
-                if (!isset($this->config['sourcePath'][$key], $this->config['languages'])) {
-                    throw new Exception('The configuration file must specify "sourcePath" and "languages".');
+                if (!isset($this->config['sourcePath'][$key])) {
+                    throw new Exception('The configuration file must specify "sourcePath".');
                 }
                 if (!is_dir($this->config['sourcePath'][$key])) {
                     throw new Exception("The source path {$this->config['sourcePath'][$key]} is not a valid directory.");
@@ -959,49 +1061,12 @@ EOD;
             }
         } else {
             $this->config['sourcePath'] = Yii::getAlias($this->config['sourcePath']);
-            if (!isset($this->config['sourcePath'], $this->config['languages'])) {
-                throw new Exception('The configuration file must specify "sourcePath" and "languages".');
+            if (!isset($this->config['sourcePath'])) {
+                throw new Exception('The configuration file must specify "sourcePath".');
             }
             if (!is_dir($this->config['sourcePath'])) {
                 throw new Exception("The source path {$this->config['sourcePath']} is not a valid directory.");
             }
-        }
-        $this->config['messagePath'] = Yii::getAlias($this->config['messagePath']);
-        if (empty($this->config['format']) || !in_array($this->config['format'], ['php', 'po', 'pot', 'db'])) {
-            throw new Exception('Format should be either "php", "po", "pot" or "db".');
-        }
-        if (in_array($this->config['format'], ['php', 'po', 'pot'])) {
-            if (!isset($this->config['messagePath'])) {
-                throw new Exception('The configuration file must specify "messagePath".');
-            }
-            if (!is_dir($this->config['messagePath'])) {
-                throw new Exception("The message path {$this->config['messagePath']} is not a valid directory.");
-            }
-        }
-        if (empty($this->config['languages'])) {
-            throw new Exception('Languages cannot be empty.');
-        }
-
-        if ($this->config['format'] === 'php' && $this->config['phpDocBlock'] === null) {
-            $this->config['phpDocBlock'] = <<<DOCBLOCK
-/**
- * Message translations.
- *
- * This file is automatically generated by 'yii {$this->id}/{$this->action->id}' command.
- * It contains the localizable messages extracted from source code.
- * You may modify this file by translating the extracted messages.
- *
- * Each array element represents the translation (value) of a message (key).
- * If the value is empty, the message is considered as not translated.
- * Messages that no longer need translation will have their translations
- * enclosed between a pair of '@@' marks.
- *
- * Message string can be used with plural forms format. Check i18n section
- * of the guide for details.
- *
- * NOTE: this file must be saved in UTF-8 encoding.
- */
-DOCBLOCK;
         }
     }
 }
