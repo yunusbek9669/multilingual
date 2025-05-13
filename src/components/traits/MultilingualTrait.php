@@ -30,6 +30,7 @@ trait MultilingualTrait
                 $this->jsonData = json_decode($jsonContent, true);
             }
         }
+        $this->bootMultilingual();
     }
 
     /** Avto tarjimani ulash */
@@ -38,10 +39,21 @@ trait MultilingualTrait
         return new BaseLanguageQuery(static::class);
     }
 
+    public function bootMultilingual(): void
+    {
+        $this->on(self::EVENT_AFTER_INSERT, [$this, 'multilingualAfterSave']);
+        $this->on(self::EVENT_AFTER_UPDATE, [$this, 'multilingualAfterSave']);
+    }
+
+    public function afterDelete()
+    {
+        $this->multilingualAfterDelete();
+    }
+
     /**
      * @throws Exception
      */
-    public function afterSave($insert, $changedAttributes)
+    protected function multilingualAfterSave(): void
     {
         $transaction = Yii::$app->db->beginTransaction();
         $response = [
@@ -62,12 +74,9 @@ trait MultilingualTrait
             $transaction->rollBack();
             Yii::$app->session->setFlash('error', $response['message']);
         }
-        if (method_exists(get_parent_class($this), 'afterSave')) {
-            parent::afterSave($insert, $changedAttributes);
-        }
     }
 
-    public function afterDelete()
+    private function multilingualAfterDelete(): void
     {
         $response = $this->deleteLanguageValue();
         if ($response['status']) {
@@ -109,7 +118,6 @@ trait MultilingualTrait
      */
     public function setDynamicLanguageValue(array $post = []): array
     {
-        $db = Yii::$app->db;
         $response = [
             'status' => true,
             'code' => 'success',

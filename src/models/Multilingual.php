@@ -8,6 +8,7 @@ use yii\db\Exception;
 use yii\db\Query;
 use Yunusbek\Multilingual\components\ExcelExportImport;
 use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\components\traits\MultilingualTrait;
 
 
 /**
@@ -17,6 +18,8 @@ use Yunusbek\Multilingual\components\LanguageService;
  */
 class Multilingual extends ActiveRecord
 {
+    use MultilingualTrait;
+
     public static $tableName;
 
     public static function tableName()
@@ -26,6 +29,20 @@ class Multilingual extends ActiveRecord
         }
 
         return parent::tableName();
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function afterSave($insert, $changedAttributes)
+    {
+        $this->multilingualAfterSave();
+        parent::afterSave($insert, $changedAttributes);
+    }
+
+    public function afterDelete()
+    {
+        $this->multilingualAfterDelete();
     }
 
 

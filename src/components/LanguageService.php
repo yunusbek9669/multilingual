@@ -47,10 +47,10 @@ class LanguageService
             return [];
         }
         $tableResult = [];
-        $translate_list = [];
+        $default_lang = '';
         foreach ($languages as $language) {
+            if (!isset($language['table'])) { $default_lang = $language['name']; }
             $tableResult['language'][$language['name']] = 0;
-            $translate_list[$language['name']] = null;
         }
 
         $dataProvider = self::getLangTables($languages, $params);
@@ -60,62 +60,33 @@ class LanguageService
                 'attributes' => Yii::t('multilingual', 'Attributes'),
                 'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
                 'language' => $tableResult['language']
-            ]
+            ],
+            'dataProvider' => $dataProvider,
         ];
 
-        $body = [];
-//        foreach ($dataProvider->getModels() as $key => $row) {
-//            $tableResult['body'][$key] = [
-//                'table_name' => $row['table_name'],
-//                'table_iteration' => $row['table_iteration'],
-//                'is_full' => $row['is_full'],
-//            ];
-//            $values = json_decode($row['translate'], true);
-//            foreach ($values as $lang_name => $value) {
-//                foreach ($values[$default_lang] as $attribute => $translation) {
-//                    $tableResult['body'][$key]['translate'][$attribute][$lang_name] = $value[$attribute] ?? null;
-//                }
-//            }
-//        }
-
-        foreach ($dataProvider->getModels() as $row) {
+        foreach ($dataProvider->getModels() as $key => $row) {
+            $result['body'][$key] = [
+                'table_name' => $row['table_name'],
+                'table_iteration' => $row['table_iteration'],
+                'is_full' => $row['is_full'],
+            ];
             $values = json_decode($row['translate'], true);
-            foreach ($tableResult['language'] as $lang_name => $value) {
-                $tableResult['langTables'][$lang_name][] = ['table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'is_full' => $row['is_full'], 'value' => $values[$lang_name]];
-            }
-        }
-        $result['dataProvider'] = $dataProvider;
-
-        /** body shakllantirish */
-        foreach ($tableResult['langTables'] as $lang_name => $table) {
-            if (!empty($table)) {
-                /** lang_* jadvallarining qatorlari bo‘yicha siklga solish */
-                foreach ($table as $key => $tableRow) {
-                    /** Ro‘yxatni shakllantirish */
-                    $tableValue = $tableRow['value'];
-                    unset($tableRow['is_static']);
-                    unset($tableRow['value']);
-                    $body[$key]['table_name'] = $tableRow['table_name'];
-                    $body[$key]['table_iteration'] = $tableRow['table_iteration'];
-                    $body[$key]['is_full'] = $tableRow['is_full'];
-
-                    /** lang_* jadvallarining value:json ustuni bo‘yicha siklga solish */
-                    foreach ($tableValue as $attribute => $value) {
-                        if (empty($body[$key]['translate'][$attribute])) {
-                            $body[$key]['translate'][$attribute] = $translate_list;
+            foreach ($languages as $language) {
+                if (!empty($values[$language['name']])) {
+                    foreach ($values[$language['name']] as $attribute => $translation) {
+                        $result['body'][$key]['translate'][$attribute][$language['name']] = $translation;
+                        if (isset($language['table']) && empty($translation)) {
+                            $result['header']['language'][$language['name']] += 1;
                         }
-                        /** Asosiy modeldan olingan qiymatni qo‘shish */
-                        $body[$key]['translate'][$attribute][$lang_name] = $value;
-                        if (empty($value)) {
-                            $result['header']['language'][$lang_name] += 1;
-                        }
-
+                    }
+                } else {
+                    foreach ($values[$default_lang] as $attribute => $translation) {
+                        $result['body'][$key]['translate'][$attribute][$language['name']] = '';
+                        $result['header']['language'][$language['name']] += 1;
                     }
                 }
             }
         }
-        $result['body'] = $body;
-
         return $result;
     }
 
@@ -186,37 +157,53 @@ class LanguageService
         $default_lang = array_values(Yii::$app->params['default_language'])[0];
         if (!empty($jsonData['tables']))
         {
-            function joinMaker($languages, $table_name): string
+            /** lang_* jadvallari bo‘yicha sql sozlamalar yasash uchun */
+            function sqlHelper(array $languages, array $attributes, string $table_name, int $isStatic, int $isAll): array
             {
                 $joins = [];
+                $langValues = [];
+                $conditions = [];
+                $is_full = new Expression("CASE ");
                 foreach ($languages as $language) {
                     if (isset($language['table'])) {
+                        $name = $language['name'];
                         $lang_table = $language['table'];
+
+                        /** JOIN yasab berish uchun */
                         $joins[$lang_table] = "LEFT JOIN $lang_table AS $lang_table ON $table_name.id = $lang_table.table_iteration AND '$table_name' = $lang_table.table_name";
+
+                        /** is_full:BOOLEAN to‘liq tarjima qilinganligini tekshirish */
+                        $is_full .= new Expression("WHEN {$lang_table}.value::jsonb = '{}' OR EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE kv.value = '' OR kv.value IS NULL) THEN FALSE ");
+
+                        /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
+                        $build = [];
+                        $langValues[$name] = new Expression("'$name', $lang_table.value::jsonb || jsonb_build_object(");
+                        foreach ($attributes as $attribute) {
+                            $build[] = new Expression("'$attribute', COALESCE($lang_table.value->>'$attribute', '') ");
+                            $is_full .= new Expression("WHEN $table_name.$attribute IS NULL OR COALESCE($table_name.$attribute, '') = '' THEN FALSE ");
+                            $is_full .= new Expression("WHEN NOT jsonb_path_exists({$lang_table}.value::jsonb, '$.$attribute') THEN FALSE ");
+                        }
+                        $langValues[$name] .= implode(", ", $build);
+                        $langValues[$name] .= ")";
+
+
+                        /** Qo‘shimcha shartlar */
+                        $conditions[$lang_table] = new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
+                        /** Bo‘sh qiymatlilarni yig‘ish */
+                        if ($isAll === 0) {
+                            $conditions[$lang_table] .= new Expression(" AND ($lang_table.is_static IS NULL OR EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE kv.value = '' OR kv.value IS NULL))");
+                        }
                     }
                 }
-                return join(" ", $joins);
+                $is_full .= "ELSE TRUE END AS is_full";
+
+                return [
+                    'joins' => implode(" ", $joins),
+                    'langValues' => implode(", ", $langValues),
+                    'conditions' => $conditions,
+                    'is_full' => $is_full
+                ];
             }
-            $conditions = [];
-            $langValues = [];
-            $is_full_begin = new Expression("CASE ");
-            foreach ($languages as $language) {
-                $name = $language['name'];
-                if (isset($language['table'])) {
-                    $lang_table = $language['table'];
-                    $langValues[$lang_table] = "'$name', $lang_table.value";
-
-                    $conditions[$lang_table] = new Expression("$lang_table.is_static::int = $isStatic");
-
-                    /** Bo‘sh qiymatli ("" value) lang_* dan topilgan table_name + table_iteration larni yig‘ish */
-                    if ($isAll === 0) {
-                        $conditions[$lang_table] .= new Expression(" AND EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE kv.value = '' OR kv.value IS NULL)");
-                    }
-
-                    $is_full_begin .= new Expression("WHEN {$lang_table}.value::jsonb = '{}' OR EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE kv.value = '' OR kv.value IS NULL) THEN FALSE ");
-                }
-            }
-            $is_full_end = "ELSE TRUE END AS is_full";
 
             $sql = "SELECT * FROM (";
             $countSql = "SELECT COUNT(*) FROM (";
@@ -224,28 +211,27 @@ class LanguageService
             $countSelect = [];
             foreach ($jsonData['tables'] as $table_name => $attributes)
             {
+                /** lang_* jadvallari bo‘yicha sql sozlamalar */
+                $sqlHelper = sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll);
+
                 /** JSON value */
                 $realValues = [];
-                $is_full_real = '';
                 foreach ($attributes as $attribute) {
                     $realValues[] = "'$attribute', $attribute";
-                    $is_full_real .= new Expression("WHEN $table_name.$attribute IS NULL OR COALESCE($table_name.$attribute, '') = '' THEN FALSE ");
                 }
-                $is_full = $is_full_begin.$is_full_real.$is_full_end;
                 $json = implode(", ", $realValues);
                 $default_name = $default_lang['name'];
-                $allValues = join(", ", array_merge(["'$default_name', jsonb_build_object($json)"], $langValues));
+                $allValues = join(", ", array_merge(["'$default_name', jsonb_build_object($json)"], [$sqlHelper['langValues']]));
 
                 /** WHERE */
                 $defaultWhere = [];
                 foreach ($jsonData['where'] as $key => $value) {
                     $defaultWhere[] = "$table_name.$key = $value";
                 }
-                $where = implode(" AND ", array_merge($defaultWhere, $conditions));
+                $where = implode(" AND ", array_merge($defaultWhere, $sqlHelper['conditions']));
 
-                $join_lang_tables = joinMaker($languages, $table_name);
-                $select[] = "(SELECT '$table_name' AS table_name, $table_name.id AS table_iteration, $is_full, jsonb_build_object($allValues) AS translate FROM $table_name $join_lang_tables WHERE $where)";
-                $countSelect[] = "(SELECT $table_name.id FROM $table_name $join_lang_tables WHERE $where)";
+                $select[] = "(SELECT '$table_name' AS table_name, $table_name.id AS table_iteration, {$sqlHelper['is_full']}, jsonb_build_object($allValues) AS translate FROM $table_name {$sqlHelper['joins']} WHERE $where ORDER BY $table_name.id ASC)";
+                $countSelect[] = "(SELECT $table_name.id FROM $table_name {$sqlHelper['joins']} WHERE $where)";
             }
             $select = implode(" UNION ALL ", $select);
             $countSelect = implode(" UNION ALL ", $countSelect);
