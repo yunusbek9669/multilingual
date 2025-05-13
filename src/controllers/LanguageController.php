@@ -40,6 +40,7 @@ class LanguageController extends Controller
      * Lists all BaseLanguageList models.
      * @param int $is_static
      * @return string
+     * @throws Exception
      */
     public function actionIndex(int $is_static): string
     {

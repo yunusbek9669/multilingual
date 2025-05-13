@@ -13,25 +13,13 @@ use yii\helpers\Url;
 
 $this->title = Yii::t('multilingual', 'Translating column values in the database tables of the application');
 $this->params['breadcrumbs'][] = $this->title;
-$is_all = Yii::$app->request->get('is_all', 0);
-$page = Yii::$app->request->get('page', 0);
-$page_countable = $translates['total'] === 0 || count($translates['body']) < 500;
+
 ?>
     <div class="ml-card">
         <div class="ml-card-body">
             <div class="ml-card-header">
                 <div><?php echo $this->title ?></div>
                 <div style="display: flex">
-                    <div class="ml-btn-group" style="margin-right: 30px">
-                        <?php echo Html::a('<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="none"><path d="M18 7L10 12L18 17V7Z" fill="#000000"/><path d="M6 7H9V12V17H6V7Z" fill="#000000"/></svg>',
-                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => 0], ['class' => 'ml-btn '.($page == 0 ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                        <?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="30px" width="30px" version="1.1" viewBox="20 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path d="M512,381.4l-237.7-118.9L512,143.6V381.4z M274.3,262.5v118.9l-237.7-118.9L274.3,143.6V262.5z"/></svg>',
-                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => $page - 1], ['class' => 'ml-btn '.($page == 0 ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                        <?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="30px" width="30px" version="1.1" viewBox="-20 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path d="M0,381.4l237.7-118.9L0,143.6V381.4z M237.7,262.5v118.9l237.7-118.9L237.7,143.6V262.5z"/></svg>',
-                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => $page + 1], ['class' => 'ml-btn '.($page_countable ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                        <?php echo Html::a('<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="none"><path d="M6 17L14 12L6 7V17Z" fill="#000000"/><path d="M18 7H15V12V17H18V7Z" fill="#000000"/></svg>',
-                            ['index', 'is_static' => 0, 'is_all' => $is_all, 'page' => $translates['total']], ['class' => 'ml-btn '.($page_countable ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                    </div>
                     <?php echo Yii::$app->request->get('is_all') ? Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="grey"><path d="M21 21L3 3V6.33726C3 6.58185 3 6.70414 3.02763 6.81923C3.05213 6.92127 3.09253 7.01881 3.14736 7.10828C3.2092 7.2092 3.29568 7.29568 3.46863 7.46863L9.53137 13.5314C9.70432 13.7043 9.7908 13.7908 9.85264 13.8917C9.90747 13.9812 9.94787 14.0787 9.97237 14.1808C10 14.2959 10 14.4182 10 14.6627V21L14 17V14M8.60139 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L16.8008 11.1992" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                         ['index', 'is_static' => 0]) : Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="red"><path d="M3 4.6C3 4.03995 3 3.75992 3.10899 3.54601C3.20487 3.35785 3.35785 3.20487 3.54601 3.10899C3.75992 3 4.03995 3 4.6 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L14.4686 13.5314C14.2957 13.7043 14.2092 13.7908 14.1474 13.8917C14.0925 13.9812 14.0521 14.0787 14.0276 14.1808C14 14.2959 14 14.4182 14 14.6627V17L10 21V14.6627C10 14.4182 10 14.2959 9.97237 14.1808C9.94787 14.0787 9.90747 13.9812 9.85264 13.8917C9.7908 13.7908 9.70432 13.7043 9.53137 13.5314L3.46863 7.46863C3.29568 7.29568 3.2092 7.2092 3.14736 7.10828C3.09253 7.01881 3.05213 6.92127 3.02763 6.81923C3 6.70414 3 6.58185 3 6.33726V4.6Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                         ['index', 'is_static' => 0, 'is_all' => 1]) ?>
@@ -54,10 +42,10 @@ $page_countable = $translates['total'] === 0 || count($translates['body']) < 500
                         <?php endif; ?>
                     </tr>
                     </thead>
-                    <?php $iteration = ($page * 500) + 1; foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
+                    <?php foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
                         <tbody class="ml-tbody">
                         <tr>
-                            <td rowspan="<?php echo 1 + count($row['translate']) ?>"><?php echo $iteration++ ?></td>
+                            <td rowspan="<?php echo 1 + count($row['translate']) ?>"><?php echo $key + 1 ?></td>
                             <td rowspan="<?php echo 1 + count($row['translate']) ?>" class="ml-click-cell"><a href="<?php echo Url::to(['translate-dynamic', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>" style="<?php echo $row['is_full'] ? '' : 'color: red' ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>
                             <td rowspan="<?php echo 1 + count($row['translate']) ?>" style="color: #979aa6; font-style: italic; font-weight: bold;">{<?php echo $row['table_name']; ?>}</td>
                         </tr>
@@ -76,6 +64,10 @@ $page_countable = $translates['total'] === 0 || count($translates['body']) < 500
                     <?php endforeach; ?>
                 </table>
             </div>
+            <?php echo \yii\widgets\LinkPager::widget([
+                'pagination' => $translates['dataProvider']->pagination,
+            ]);
+            ?>
         </div>
     </div>
 
