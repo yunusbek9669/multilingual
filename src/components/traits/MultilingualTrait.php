@@ -78,10 +78,7 @@ trait MultilingualTrait
 
     private function multilingualAfterDelete(): void
     {
-        $response = $this->deleteLanguageValue();
-        if ($response['status']) {
-            Yii::error("deleteLanguageValue() failed: " . json_encode($this->attributes), ' ' . $response['message'], __METHOD__);
-        }
+        $this->deleteLanguageValue();
         if (method_exists(get_parent_class($this), 'afterDelete')) {
             parent::afterDelete();
         }
@@ -97,12 +94,17 @@ trait MultilingualTrait
         $data = LanguageService::setCustomAttributes($this);
         foreach ($data as $key => $value) {
             try {
-                $db->createCommand()
-                    ->delete($key, [
-                        'table_name' => static::tableName(),
-                        'table_iteration' => $this->id ?? null,
-                    ])
-                    ->execute();
+                if (isset($this->id)) {
+                    $execute = $db->createCommand()
+                        ->delete($key, [
+                            'table_name' => static::tableName(),
+                            'table_iteration' => $this->id,
+                        ])
+                        ->execute();
+                    if ($execute <= 0) {
+                        Yii::error("Failed to delete language value from the {$key} table. {table_name: {$this::tableName()}, table_iteration: {$this->id}}.", ' ' . $response['message']);
+                    }
+                }
             } catch (Exception $e) {
                 $response['message'] = BaseLanguageQuery::modErrToStr($e);
                 $response['code'] = 'error';
@@ -115,6 +117,7 @@ trait MultilingualTrait
     /** Tarjimalarni qo‘shib qo‘yish
      * @param array $post
      * @return array
+     * @throws Exception
      */
     public function setDynamicLanguageValue(array $post = []): array
     {
@@ -125,12 +128,15 @@ trait MultilingualTrait
         ];
         $table_name = static::tableName();
         foreach ($post as $table => $data) {
-            $upsert = BaseLanguageQuery::upsert($table, $table_name, $this->id ?? null, false, $data);
-            if ($upsert <= 0) {
-                $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
-                $response['code'] = 'error';
-                $response['status'] = false;
-                break;
+            if (isset($this->id)) {
+                $upsert = BaseLanguageQuery::upsert($table, $table_name, $this->id, false, $data);
+                if ($upsert <= 0) {
+                    Yii::error("An error occurred while writing {{$table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
+                    $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
+                    $response['code'] = 'error';
+                    $response['status'] = false;
+                    break;
+                }
             }
         }
         return $response;

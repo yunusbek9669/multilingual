@@ -107,7 +107,7 @@ class Multilingual extends ActiveRecord
         if (count($languages) === 1) {
             throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
         }
-        $data = LanguageService::getDefaultTables($languages, $params);
+        $data = LanguageService::getLangTables($languages, $params, true)->getModels() ?? null;
 
         if (empty($data)) {
             throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));

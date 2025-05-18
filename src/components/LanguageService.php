@@ -70,7 +70,7 @@ class LanguageService
                 'table_iteration' => $row['table_iteration'],
                 'is_full' => $row['is_full'],
             ];
-            $values = json_decode($row['translate'], true);
+            $values = json_decode($row['value'], true);
             foreach ($languages as $language) {
                 if (!empty($values[$language['name']])) {
                     foreach ($values[$language['name']] as $attribute => $translation) {
@@ -147,22 +147,23 @@ class LanguageService
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar
      * @throws Exception
      */
-    public static function getLangTables(array $languages, array $params): SqlDataProvider|array
+    public static function getLangTables(array $languages, array $params, bool $export = false): SqlDataProvider|array
     {
         $dataProvider = [];
         $isStatic = (int)($params['is_static'] ?? 0);
         $isAll = (int)($params['is_all'] ?? 0);
 
         $jsonData = self::getJson();
-        $default_lang = array_values(Yii::$app->params['default_language'])[0];
         if (!empty($jsonData['tables']))
         {
             /** lang_* jadvallari bo‘yicha sql sozlamalar yasash uchun */
-            function sqlHelper(array $languages, array $attributes, string $table_name, int $isStatic, int $isAll): array
+            function sqlHelper(array $languages, array $attributes, string $table_name, int $isStatic, int $isAll, bool $export): array
             {
                 $joins = [];
                 $langValues = [];
-                $conditions = [];
+                $commonConditions = [];
+                $isAllConditions = [];
+                $jsonConditions = [];
                 $is_full = new Expression("CASE ");
                 foreach ($languages as $language) {
                     if (isset($language['table'])) {
@@ -182,25 +183,39 @@ class LanguageService
                             $build[] = new Expression("'$attribute', COALESCE($lang_table.value->>'$attribute', '') ");
                             $is_full .= new Expression("WHEN $table_name.$attribute IS NULL OR COALESCE($table_name.$attribute, '') = '' THEN FALSE ");
                             $is_full .= new Expression("WHEN NOT jsonb_path_exists({$lang_table}.value::jsonb, '$.$attribute') THEN FALSE ");
+                            $jsonConditions[$lang_table][] = new Expression("NOT jsonb_path_exists({$lang_table}.value::jsonb, '$.$attribute')");
                         }
+                        $jsonConditions[$lang_table] = implode(' OR ', $jsonConditions[$lang_table]);
                         $langValues[$name] .= implode(", ", $build);
                         $langValues[$name] .= ")";
 
 
                         /** Qo‘shimcha shartlar */
-                        $conditions[$lang_table] = new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
+                        $commonConditions[$lang_table] = new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
                         /** Bo‘sh qiymatlilarni yig‘ish */
                         if ($isAll === 0) {
-                            $conditions[$lang_table] .= new Expression(" AND ($lang_table.is_static IS NULL OR EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE kv.value = '' OR kv.value IS NULL))");
+                            $isAllConditions[$lang_table] = new Expression("({$jsonConditions[$lang_table]} OR (EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE COALESCE(kv.value, '') = '' OR kv.value IS NULL)))");
                         }
                     }
                 }
                 $is_full .= "ELSE TRUE END AS is_full";
+                if (!empty($isAllConditions)) {
+                    $isAllConditions = ['('.implode(' OR ', $isAllConditions).')'];
+                }
+
+                if ($export) {
+                    return [
+                        'joins' => implode(" ", $joins),
+                        'langValues' => [],
+                        'conditions' => implode(' AND ', array_merge($commonConditions, $isAllConditions)),
+                        'is_full' => var_export((bool)$isStatic,true)." as is_static"
+                    ];
+                }
 
                 return [
                     'joins' => implode(" ", $joins),
-                    'langValues' => implode(", ", $langValues),
-                    'conditions' => $conditions,
+                    'langValues' => [implode(", ", $langValues)],
+                    'conditions' => implode(' AND ', array_merge($commonConditions, $isAllConditions)),
                     'is_full' => $is_full
                 ];
             }
@@ -212,7 +227,7 @@ class LanguageService
             foreach ($jsonData['tables'] as $table_name => $attributes)
             {
                 /** lang_* jadvallari bo‘yicha sql sozlamalar */
-                $sqlHelper = sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll);
+                $sqlHelper = sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll, $export);
 
                 /** JSON value */
                 $realValues = [];
@@ -220,17 +235,20 @@ class LanguageService
                     $realValues[] = "'$attribute', $attribute";
                 }
                 $json = implode(", ", $realValues);
-                $default_name = $default_lang['name'];
-                $allValues = join(", ", array_merge(["'$default_name', jsonb_build_object($json)"], [$sqlHelper['langValues']]));
+                $allValues = $json;
+                if (!$export) {
+                    $default_lang = array_values(Yii::$app->params['default_language'])[0];
+                    $allValues = join(", ", array_merge(["'{$default_lang['name']}', jsonb_build_object($json)"], $sqlHelper['langValues']));
+                }
 
                 /** WHERE */
                 $defaultWhere = [];
                 foreach ($jsonData['where'] as $key => $value) {
                     $defaultWhere[] = "$table_name.$key = $value";
                 }
-                $where = implode(" AND ", array_merge($defaultWhere, $sqlHelper['conditions']));
+                $where = implode(" AND ", array_merge($defaultWhere, [$sqlHelper['conditions']]));
 
-                $select[] = "(SELECT '$table_name' AS table_name, $table_name.id AS table_iteration, {$sqlHelper['is_full']}, jsonb_build_object($allValues) AS translate FROM $table_name {$sqlHelper['joins']} WHERE $where ORDER BY $table_name.id ASC)";
+                $select[] = "(SELECT '$table_name' AS table_name, $table_name.id AS table_iteration, {$sqlHelper['is_full']}, jsonb_build_object($allValues) AS value FROM $table_name {$sqlHelper['joins']} WHERE $where ORDER BY $table_name.id ASC)";
                 $countSelect[] = "(SELECT $table_name.id FROM $table_name {$sqlHelper['joins']} WHERE $where)";
             }
             $select = implode(" UNION ALL ", $select);
@@ -250,57 +268,6 @@ class LanguageService
             ]);
         }
         return $dataProvider;
-    }
-
-    /** Bazadagi barcha tarjimon qilinadigan asosiy tablitsalar
-     * @throws Exception
-     */
-    public static function getDefaultTables(array $languages, array $params): array
-    {
-        $result = [];
-        $allRealTables = [];
-
-        /** Tizimdagi tillar bo‘yicha siklga solish */
-        foreach ($languages as $language) {
-            if (!empty($language['table'])) {
-                $query = (new Query())->select(['table_name', 'value'])->from($language['table'])->orderBy(['table_name' => SORT_ASC])->where(['is_static' => false]);
-
-                if (isset($params['category'])) {
-                    $query->andWhere(['table_name' => $params['category']]);
-                }
-
-                $table = $query->createCommand()->setSql('SELECT DISTINCT ON ("table_name") "table_name", "value" FROM "' . $language['table'] . '" WHERE "is_static" = FALSE ORDER BY "table_name" ASC')->queryAll();
-                foreach ($table as $row) {
-                    $allRealTables[$row['table_name']] = json_decode($row['value'], true);
-                }
-            }
-        }
-
-        /** Asl jadvallardan ma‘lumotlarni olish */
-        if (!empty($allRealTables)) {
-            $allSqlParts = [];
-            foreach ($allRealTables as $table_name => $attributes) {
-                $jsonFields = [];
-                foreach (array_keys($attributes) as $key) {
-                    $jsonFields[] = "'$key'";
-                    $jsonFields[] = $key;
-                }
-                $jsonFieldsSql = implode(", ", $jsonFields);
-
-                $allSqlParts[] = "
-                    SELECT
-                      '{$table_name}' AS table_name,
-                      id AS table_iteration,
-                      FALSE AS is_static,
-                      json_build_object($jsonFieldsSql)::json AS value
-                    FROM {$table_name}
-                ";
-            }
-            $finalSql = implode(" UNION ALL ", $allSqlParts) . " ORDER BY table_name, table_iteration";
-
-            $result = Yii::$app->db->createCommand($finalSql)->queryAll();
-        }
-        return $result;
     }
 
     /** lang_* tablitsalarini chaqirib olish (Create, Update) */

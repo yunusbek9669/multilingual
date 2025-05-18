@@ -252,6 +252,9 @@ class BaseLanguageQuery extends ActiveQuery
         return $response;
     }
 
+    /**
+     * @throws Exception
+     */
     public static function upsert(string $table, string $category, int $iteration, bool $isStatic, array $value): int
     {
         return Yii::$app->db->createCommand()

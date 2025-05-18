@@ -67,27 +67,21 @@ class ExcelExportImport
     /** Ma‘lumotlarni excelga export qilish */
     public static function exportToExcelData($data, $fileName): bool|string
     {
-        $messages = (new Query())
-            ->select(['table_name', 'value'])
-            ->from(BaseLanguageList::LANG_TABLE_PREFIX.Yii::$app->language)
-            ->where(['is_static' => true])
-            ->all();
-        $tableNames = Yii::$app->db->schema->getTableNames();
         $k_tableNames = [];
-
-        foreach ($tableNames as $key => $value) {
-            foreach ($messages as $row) {
-                $val = str_replace('_', ' ', ucwords($value, '_'));
-                $k_tableNames[$value] = $key.'-'.$val;
-                if (str_contains($row['value'], $val)) {
-                    foreach (json_decode($row['value'], true) as $k => $v) {
-                        if (str_starts_with($k, $val) && (str_ends_with($k, $val) || str_ends_with($k, self::toPlural($val)))) {
-                            $k_tableNames[$value] = $key.'-'.$v;
-                            break 2;
-                        }
+        $jsonData = LanguageService::getJson()['tables'];
+        $iteration = 1;
+        foreach ($jsonData as $table_name => $attributes) {
+            $val = str_replace('_', ' ', ucwords($table_name, '_'));
+            $k_tableNames[$table_name] = $iteration.'-'.$val;
+            if (in_array($val, $attributes)) {
+                foreach ($attributes as $k => $v) {
+                    if (str_starts_with($k, $val) && (str_ends_with($k, $val) || str_ends_with($k, self::toPlural($val)))) {
+                        $k_tableNames[$table_name] = $iteration.'-'.$v;
+                        break 2;
                     }
                 }
             }
+            $iteration++;
         }
         Settings::setCache(new SimpleCache3());
         $is_static = false;
