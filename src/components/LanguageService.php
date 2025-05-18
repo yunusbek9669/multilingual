@@ -9,6 +9,8 @@ use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\Query;
 use Yunusbek\Multilingual\commands\Messages;
+use Yunusbek\Multilingual\models\BaseLanguageList;
+use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class LanguageService
 {
@@ -103,29 +105,28 @@ class LanguageService
             ],
             'tables' => []
         ];
-        foreach (Yii::$app->params['language_list'] as $language) {
-            if (isset($language['table'])) {
-                $result['tables'][$language['name']] = $language['table'];
-                foreach (array_keys($basePath) as $category) {
-                    if ($category !== 'yii' && !str_contains($category, 'yii/')) {
-                        $category = str_replace('*', '', $category);
-                        $incomplete = (new Query())
-                            ->select(['table_name', 'table_iteration', 'value'])
-                            ->from($language['table'])
-                            ->where([
-                                'table_name' => $category,
-                                'is_static' => (int)$params['is_static'],
-                            ])
-                            ->andWhere(new Expression("EXISTS (SELECT 1 FROM json_each_text({$language['table']}.value) kv WHERE kv.value = '')"))
-                            ->one();
-                        $count = 0;
-                        if (!empty($incomplete)) {
-                            foreach (json_decode($incomplete['value']) as $row) {
-                                $count += (int)empty($row);
-                            }
+        foreach (Yii::$app->params['language_list'] as $key => $language) {
+            $table_name = $language['table'] ?? BaseLanguageList::LANG_TABLE_PREFIX.$key;
+            $result['tables'][$language['name']] = $table_name;
+            foreach (array_keys($basePath) as $category) {
+                if ($category !== 'yii' && !str_contains($category, 'yii/')) {
+                    $category = str_replace('*', '', $category);
+                    $incomplete = (new Query())
+                        ->select(['table_name', 'table_iteration', 'value'])
+                        ->from($table_name)
+                        ->where([
+                            'table_name' => $category,
+                            'is_static' => (int)$params['is_static'],
+                        ])
+                        ->andWhere(new Expression("EXISTS (SELECT 1 FROM json_each_text({$table_name}.value) kv WHERE kv.value = '')"))
+                        ->one();
+                    $count = 0;
+                    if (!empty($incomplete)) {
+                        foreach (json_decode($incomplete['value']) as $row) {
+                            $count += (int)empty($row);
                         }
-                        $result['body'][$language['name']][$category] = $category.' '.'<span class="ml-not-translated ' . ($count > 0 ? 'has' : 'not') . '">'.$count.'</span>';
                     }
+                    $result['body'][$language['name']][$category] = $category.' '.'<span class="ml-not-translated ' . ($count > 0 ? 'has' : 'not') . '">'.$count.'</span>';
                 }
             }
         }

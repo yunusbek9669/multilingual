@@ -12,22 +12,12 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use yii\db\Exception;
-use yii\db\Query;
 use yii\web\UploadedFile;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class ExcelExportImport
 {
-    /** so‘z oxiriga "s" qo‘shish */
-    protected static function toPlural($word): string
-    {
-        if (str_ends_with($word, 'y')) {
-            return substr($word, 0, -1) . 'ies';
-        }
-        return $word . 's';
-    }
-
     /** xarflarni raqam bilan alishtirish */
     protected static function encodeString($input): string
     {
@@ -75,7 +65,7 @@ class ExcelExportImport
             $k_tableNames[$table_name] = $iteration.'-'.$val;
             if (in_array($val, $attributes)) {
                 foreach ($attributes as $k => $v) {
-                    if (str_starts_with($k, $val) && (str_ends_with($k, $val) || str_ends_with($k, self::toPlural($val)))) {
+                    if (str_starts_with($k, $val) && (str_ends_with($k, $val) || str_ends_with($k, BaseLanguageQuery::toPlural($val)))) {
                         $k_tableNames[$table_name] = $iteration.'-'.$v;
                         break 2;
                     }

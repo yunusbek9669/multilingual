@@ -3,22 +3,22 @@
 namespace Yunusbek\Multilingual\commands;
 
 use Yii;
+use yii\base\Exception;
 use yii\console\Controller;
+use yii\console\ExitCode;
+use yii\helpers\BaseConsole;
+use yii\helpers\FileHelper;
 
 class Migrations extends Controller
 {
     public $defaultAction = 'generate';
 
+    /**
+     * @throws Exception
+     */
     public function actionGenerate()
     {
         $migrationClassName = 'm' . gmdate('ymd_His') . '_create_language_list_table';
-
-        $dir = Yii::getAlias('@app/migrations');
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
-
-        $filePath = $dir . '/' . $migrationClassName . '.php';
 
         $migrationCode = <<<PHP
 <?php
@@ -53,11 +53,16 @@ class {$migrationClassName} extends Migration
 }
 PHP;
 
-        if (file_put_contents($filePath, $migrationCode) === false) {
-            echo "An error occurred while creating the migration file!\n";
-            return;
+        $dir = Yii::getAlias('@app/migrations');
+
+        $filePath = $dir . '/' . $migrationClassName . '.php';
+
+        if (FileHelper::createDirectory($dir) === false || file_put_contents($filePath, $migrationCode, LOCK_EX) === false) {
+            $this->stdout("An error occurred while creating the migration file!\n\n", BaseConsole::FG_RED);
+            return ExitCode::UNSPECIFIED_ERROR;
         }
 
         echo "Migration file created successfully. {$filePath}\n";
+        return ExitCode::OK;
     }
 }

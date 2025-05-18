@@ -160,6 +160,7 @@ class BaseLanguageQuery extends ActiveQuery
             'message' => 'success'
         ];
 
+        $tableName = Yii::$app->db->schema->getRawTableName($tableName);
         try {
             $db->createCommand("
                 CREATE TABLE {$tableName} (
@@ -206,6 +207,7 @@ class BaseLanguageQuery extends ActiveQuery
             'code' => 'success',
             'message' => 'success'
         ];
+        $tableName = Yii::$app->db->schema->getRawTableName($tableName);
         $transaction = $db->beginTransaction();
         try {
             $db->createCommand("
@@ -283,5 +285,16 @@ class BaseLanguageQuery extends ActiveQuery
         }
 
         return $string;
+    }
+
+    /** so‘z oxiriga "s" qo‘shish */
+    public static function toPlural($word): string
+    {
+        if (str_ends_with($word, 'y')) {
+            return substr($word, 0, -1) . 'ies';
+        } elseif (str_ends_with($word, 's') || str_ends_with($word, 'x') || str_ends_with($word, 'z') || str_ends_with($word, 'sh') || str_ends_with($word, 'ch')) {
+            return $word . 'es';
+        }
+        return $word . 's';
     }
 }

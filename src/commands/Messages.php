@@ -13,6 +13,7 @@ use yii\helpers\BaseConsole;
 use yii\helpers\Console;
 use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
+use Yunusbek\Multilingual\components\ExcelExportImport;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
@@ -114,10 +115,6 @@ class Messages extends \yii\console\Controller
      */
     public $db = 'db';
     /**
-     * @var string custom name for source message table for "db" format.
-     */
-    public $langTable = '{{%lang_}}';
-    /**
      * @var string File header in generated PHP file with messages. This property is used only if [[$format]] is "php".
      * @since 2.0.13
      */
@@ -134,7 +131,7 @@ class Messages extends \yii\console\Controller
     public function __construct($id, $module, $config = [])
     {
         $filePath = $this->json_file_name.'.json';
-        $this->languages = array_column((new Query())->select(['key'])->from('{{%language_list}}')->all(), 'key');
+        $this->languages = array_unique(array_merge(array_keys(Yii::$app->params['language_list']), array_column((new Query())->select(['key'])->from('{{%language_list}}')->all(), 'key')));
         if (file_exists($filePath)) {
             $jsonContent = file_get_contents($filePath);
             if (json_last_error() === JSON_ERROR_NONE) {
@@ -170,7 +167,6 @@ class Messages extends \yii\console\Controller
             'except',
             'only',
             'db',
-            'langTable',
             'phpFileHeader',
         ]);
     }
@@ -190,7 +186,6 @@ class Messages extends \yii\console\Controller
             'w' => 'overwrite',
             'S' => 'sort',
             't' => 'translator',
-            'm' => 'langTable',
             's' => 'sourcePath',
             'j' => 'json_file_name',
         ]);
@@ -287,6 +282,7 @@ EOD;
      * You may use the "yii message/config" command to generate
      * this file and then customize it for your needs.
      * @throws Exception|InvalidConfigException on failure.
+     * @throws \yii\db\Exception
      */
     public function actionI18n(): void
     {
@@ -310,10 +306,13 @@ EOD;
         }
 
         /** @var Connection $db */
-        $db = Instance::ensure($this->config['db'], Connection::className());
+        $db = Instance::ensure($this->config['db'], Connection::class);
 
         foreach ($this->languages as $language) {
             $langTable = "{{%lang_$language}}";
+            if (!$this->issetTable($langTable)) {
+                BaseLanguageQuery::createLangTable($langTable);
+            }
             $this->saveMessagesToDb(
                 $messages,
                 $db,
@@ -397,6 +396,7 @@ EOD;
 
             $new = [];
             $obsolete = [];
+            $fullyPrepared = [];
             foreach ($messages as $category => $msgs) {
                 $msgs = array_unique($msgs);
                 if (isset($currentValues[$category])) {
@@ -408,12 +408,21 @@ EOD;
 
                     /** delete obsolete messages */
                     $obsolete[$category] = array_diff($currentKeys, $msgs);
+                    foreach ($obsolete[$category] as $obmsg) {
+                        foreach ($this->jsonData['tables'] ?? [] as $table_name => $attributes) {
+                            $table_name = str_replace('_', ' ', ucwords($table_name, '_'));
+                            if ($table_name !== $obmsg) {
+                                $table_name = BaseLanguageQuery::toPlural($table_name);
+                            }
+                            if ($table_name !== $obmsg) {
+                                unset($currentValues[$category][$obmsg]);
+                            }
+                            $obsolete[$category] = array_diff($obsolete[$category], [$obmsg]);
+                        }
+                    }
                     $obsCount = count($obsolete[$category]);
                     if ($obsCount > 0) {
                         $obsoleteCount[$category] = $obsCount;
-                    }
-                    foreach ($obsolete[$category] as $obmsg) {
-                        unset($currentValues[$category][$obmsg]);
                     }
                 } else {
                     /** insert news categories */
@@ -425,14 +434,11 @@ EOD;
                 }
 
                 /** save changes */
-                $values = array_merge($currentValues[$category] ?? [], $new[$category]);
-                ksort($values);
-                $execute = BaseLanguageQuery::upsert($langTable, $category, 0, true, $values);
-                if (!$execute) {
-                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($values)." failed\n", BaseConsole::FG_RED);
-                    break;
-                }
+                $currentValues[$category] = array_merge($currentValues[$category] ?? [], $new[$category]);
+                ksort($currentValues[$category]);
             }
+
+            $execute = $this->attachTransTablesToMessage($langTable, $currentValues, $this->jsonData['tables'] ?? [], $insertCount);
             Yii::$app->cache->getOrSet($langTable, function () use ($currentValues)
             {
                 return $currentValues;
@@ -478,6 +484,7 @@ EOD;
                 $this->stderr('"'.$filePath.'" ', BaseConsole::FG_RED);
                 $this->stderr("file is incorrect\n", BaseConsole::FG_YELLOW);
             }
+            ksort($translateTables);
             foreach ($translateTables as $table_name => $attributes) {
                 if (BaseLanguageList::isTableExists($table_name)) {
                     $schema = $db->getTableSchema($table_name);
@@ -509,7 +516,6 @@ EOD;
                             }
                         }
                         $this->jsonData['tables'][$table_name] = array_values(array_unique($this->jsonData['tables'][$table_name]));
-
                     } else {
                         $this->stderr("\n".'The column ', BaseConsole::FG_YELLOW);
                         $this->stderr('"id" ', BaseConsole::FG_CYAN);
@@ -526,6 +532,7 @@ EOD;
             if (empty($this->jsonData['where'])) {
                 $this->jsonData = ['where' => (object)[]] + $this->jsonData;
             }
+
             $jsonData = json_encode($this->jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             file_put_contents($filePath, $jsonData);
         } catch (\yii\db\Exception $e) {
@@ -547,158 +554,14 @@ EOD;
     }
 
     /**
-     * Saves messages to database.
-     *
-     * @param array $translateTables
-     * @param Connection $db
-     * @param string $langTable
-     */
-    protected function saveAttributesToDb(array $translateTables, Connection $db, string $langTable): void
-    {
-        $this->stdout("Inserting new attributes to the ");
-        $this->stdout('"'.$langTable.'" ', BaseConsole::FG_YELLOW);
-        $this->stdout("table... ");
-
-        $execute = true;
-        $insertCount = [];
-        $deleteCount = [];
-        $obsoleteCount = [];
-        $updateColumnCount = ['add' => [], 'delete' => []];
-        try {
-            foreach ($translateTables as $table_name => $attributes) {
-                $langTableData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => false, 'table_name' => $table_name])->from($langTable)->orderBy('table_iteration')->all($db);
-                if (BaseLanguageList::isTableExists($table_name)) {
-                    $schema = $db->getTableSchema($table_name);
-                    $columns = $schema ? array_keys($schema->columns) : [];
-
-                    if (in_array('id', $columns)) {
-                        $translateTable = (new Query())->select(array_merge(['id'], $attributes))->from($table_name)->orderBy('id')->all($db);
-                        if (!empty($translateTable)) {
-                            $insCount = 0;
-                            $addColumnCount = 0;
-                            $deleteColumnCount = 0;
-                            foreach ($translateTable as $key => $row) {
-                                if (empty($this->findByTableIteration($langTableData, $row['id']))) {
-                                    $values = array_fill_keys($attributes, '');
-                                    $execute = $db->createCommand()->insert($langTable, ['is_static' => false, 'table_name' => $table_name, 'table_iteration' => $row['id'], 'value' => $values])->execute();
-                                    if (!$execute) {
-                                        $this->stderr("\n$langTable ".json_encode($values)." failed", BaseConsole::FG_RED);
-                                        break 2;
-                                    } else {
-                                        $insCount++;
-                                    }
-                                } else {
-                                    $currentLangValues = [];
-                                    if (isset($langTableData[$key])) $currentLangValues = json_decode($langTableData[$key]['value'], true);
-                                    $attributes = array_values(array_unique($attributes));
-                                    if (array_keys($currentLangValues) !== $attributes) {
-                                        $langValues = array_intersect_key(array_merge(array_fill_keys($attributes, null), $currentLangValues), array_flip($attributes));
-                                        $execute = BaseLanguageQuery::upsert($langTable, $table_name, $row['id'], false, $langValues);
-                                        if (!$execute) {
-                                            $this->stderr("\n$langTable ".json_encode($langValues)." failed", BaseConsole::FG_RED);
-                                            break 2;
-                                        } else {
-                                            if (count($attributes) > count($currentLangValues)) {
-                                                $addColumnCount++;
-                                            } else {
-                                                $deleteColumnCount++;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if ($insCount > 0) $insertCount[$table_name] = $insCount;
-                            if ($addColumnCount > 0) $updateColumnCount['add'][$table_name] = $addColumnCount;
-                            if ($deleteColumnCount > 0) $updateColumnCount['delete'][$table_name] = $deleteColumnCount;
-                        } else {
-                            $affectedRows = $db->createCommand()
-                                ->delete($langTable, [
-                                    'is_static' => false,
-                                    'table_name' => $table_name,
-                                ])
-                                ->execute();
-                            if ($affectedRows > 0) {
-                                $deleteCount[$table_name] = $affectedRows;
-                            }
-                        }
-                    } else {
-                        $this->stderr("\n".'The column ', BaseConsole::FG_YELLOW);
-                        $this->stderr('"id" ', BaseConsole::FG_CYAN);
-                        $this->stderr('does not exist in the table ', BaseConsole::FG_YELLOW);
-                        $this->stderr('"'.$table_name.'"'."\n", BaseConsole::FG_RED);
-                        break;
-                    }
-                } else {
-                    $this->stderr("\n".'"'.$table_name.'"', BaseConsole::FG_RED);
-                    $this->stderr(" table doesn't exist"."\n", BaseConsole::FG_YELLOW);
-                    break;
-                }
-            }
-            $obsoleteTableNames = (new Query())->select(['table_name'])->distinct()->where(['is_static' => false])->andWhere(['not in', 'table_name', array_keys($translateTables)])->from($langTable)->column($db);
-            foreach ($obsoleteTableNames as $tableName) {
-                $obsoleteLangTableData = $db->createCommand()
-                    ->delete($langTable, [
-                        'is_static' => false,
-                        'table_name' => $tableName,
-                    ])
-                    ->execute();
-                if ($obsoleteLangTableData > 0) {
-                    $obsoleteCount[$tableName] = $obsoleteLangTableData;
-                }
-            }
-        } catch (\yii\db\Exception $e) {
-            $execute = false;
-            $this->stderr("\n".$e->getMessage(), BaseConsole::FG_RED);
-        }
-        if ((!empty($insertCount) || !empty($updateColumnCount['add']) || !empty($updateColumnCount['delete'])) && $execute) {
-            foreach ($insertCount as $table_name => $count) {
-                $this->stdout("\nInserted $count rows to ", BaseConsole::FG_GREEN);
-                $this->stdout("\"$table_name\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
-                $this->stdout("category successfully.", BaseConsole::FG_GREEN);
-            }
-            foreach ($updateColumnCount['add'] as $table_name => $count) {
-                $this->stdout("\nAdded $count items to ", BaseConsole::FG_GREEN);
-                $this->stdout("\"value\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
-                $this->stdout("attribute from ", BaseConsole::FG_GREEN);
-                $this->stdout("\"$table_name\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
-                $this->stdout("category successfully.", BaseConsole::FG_GREEN);
-            }
-            foreach ($updateColumnCount['delete'] as $table_name => $count) {
-                $this->stdout("\nDeleted $count items to ", BaseConsole::FG_GREEN);
-                $this->stdout("\"value\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
-                $this->stdout("attribute from ", BaseConsole::FG_GREEN);
-                $this->stdout("\"$table_name\" ", BaseConsole::FG_YELLOW, BaseConsole::ITALIC);
-                $this->stdout("category successfully.", BaseConsole::FG_GREEN);
-            }
-        } else {
-            $this->stdout("Nothing to save.");
-        }
-        if (!empty($deleteCount)) {
-            foreach ($deleteCount as $table_name => $item) {
-                $this->stdout("\nDeleted rows for ", BaseConsole::FG_YELLOW);
-                $this->stdout("\"$table_name\"", BaseConsole::FG_CYAN, BaseConsole::ITALIC);
-                $this->stdout(" category: $item.", BaseConsole::FG_YELLOW);
-            }
-        }
-        if (!empty($obsoleteCount)) {
-            foreach ($obsoleteCount as $table_name => $item) {
-                $this->stdout("\nDeleted obsolete ", BaseConsole::FG_YELLOW);
-                $this->stdout("\"$table_name\"", BaseConsole::FG_CYAN, BaseConsole::ITALIC);
-                $this->stdout(" category with $item rows.", BaseConsole::FG_YELLOW);
-            }
-        }
-        $this->stdout("\n");
-    }
-
-    /**
      * Extracts messages from a file.
      *
      * @param string $fileName name of the file to extract messages from
-     * @param string $translator name of the function used to translate messages
+     * @param string|array $translator name of the function used to translate messages
      * This parameter is available since version 2.0.4.
      * @return array
      */
-    protected function extractMessages(string $fileName, $translator): array
+    protected function extractMessages(string $fileName, string|array $translator): array
     {
         $subject = file_get_contents($fileName);
         $messages = [];
@@ -866,6 +729,55 @@ EOD;
         }
 
         return $attributes;
+    }
+
+    /**
+     * Attaches the names of tables to be translated to messages.
+     * @param string $langTable
+     * @param array $messages
+     * @param array $json_list
+     * @param array $insertCount
+     * @return int
+     * @throws \yii\db\Exception
+     */
+    protected function attachTransTablesToMessage(string $langTable, array &$messages, array $json_list, array &$insertCount): int
+    {
+        $execute = 1;
+        $result_category = null;
+        foreach (array_keys($json_list) as $item) {
+            foreach ($messages as $category => $values) {
+                if (in_array($item, $values, true)) {
+                    $result_category = $category;
+                    break;
+                }
+            }
+        }
+        if ($result_category === null) {
+            $result_category = 'multilingual';
+        }
+
+        foreach ($messages as $category => $message) {
+            foreach ($json_list as $table_name => $attributes) {
+                if ($category === $result_category) {
+                    $table_name = str_replace('_', ' ', ucwords($table_name, '_'));
+                    if (!in_array($table_name, array_keys($message))) {
+                        $table_name = BaseLanguageQuery::toPlural($table_name);
+                    }
+                    if (!in_array($table_name, array_keys($message)) && !isset($message[$table_name])) {
+                        $message = array_merge($message, [$table_name => '']);
+                        $insertCount[$category] = ($insertCount[$category] ?? 0) + 1;
+                    }
+                }
+            }
+
+            $execute = BaseLanguageQuery::upsert($langTable, $category, 0, true, $message);
+            if (!$execute) {
+                $this->stderr("\n".'"'.$langTable.'" '.json_encode($category)." failed\n", BaseConsole::FG_RED);
+                break;
+            }
+        }
+
+        return $execute;
     }
 
     protected function parseAttributesFromBuffer(array $buffer)
@@ -1068,5 +980,14 @@ EOD;
                 throw new Exception("The source path {$this->config['sourcePath']} is not a valid directory.");
             }
         }
+    }
+
+    /** This checks if the table exists in the database
+     * @throws \yii\db\Exception
+     */
+    private function issetTable(string $table_name): bool
+    {
+        $table_name = Yii::$app->db->schema->getRawTableName($table_name);
+        return Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")->bindValue(':table', $table_name)->queryScalar();
     }
 }
