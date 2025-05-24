@@ -27,7 +27,7 @@ trait MultilingualTrait
         if (file_exists($this->jsonFile)) {
             $jsonContent = file_get_contents($this->jsonFile);
             if (json_last_error() === JSON_ERROR_NONE) {
-                $this->jsonData = json_decode($jsonContent, true);
+                $this->jsonData = json_decode($jsonContent, true) ?? [];
             }
         }
         $this->bootMultilingual();

@@ -51,6 +51,7 @@ class Multilingual extends ActiveRecord
      * @param string $category
      * @param array $value
      * @return array
+     * @throws Exception
      */
     public static function setStaticLanguageValue(string $langTable, string $category, array $value): array
     {
@@ -104,9 +105,6 @@ class Multilingual extends ActiveRecord
     public static function exportToExcelDefault(array $params): bool|string
     {
         $languages = Yii::$app->params['language_list'];
-        if (count($languages) === 1) {
-            throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
-        }
         $data = LanguageService::getLangTables($languages, $params, true)->getModels() ?? null;
 
         if (empty($data)) {

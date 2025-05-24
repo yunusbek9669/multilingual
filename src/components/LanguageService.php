@@ -32,56 +32,6 @@ class LanguageService
             ->exists();
     }
 
-    /**  Umumiy extend olgan modellarning ma’lumotlari
-     * @throws Exception
-     */
-    public static function getModelsData(array $params): array
-    {
-        $languages = Yii::$app->params['language_list'];
-        $tableResult = [];
-        $default_lang = '';
-        foreach ($languages as $language) {
-            if (!isset($language['table'])) { $default_lang = $language['name']; }
-            $tableResult['language'][$language['name']] = 0;
-        }
-
-        $dataProvider = self::getLangTables($languages, $params);
-        $result = [
-            'header' => [
-                'table_name' => Yii::t('multilingual', 'Table Name'),
-                'attributes' => Yii::t('multilingual', 'Attributes'),
-                'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
-                'language' => $tableResult['language']
-            ],
-            'dataProvider' => $dataProvider,
-        ];
-
-        foreach ($dataProvider->getModels() as $key => $row) {
-            $result['body'][$key] = [
-                'table_name' => $row['table_name'],
-                'table_iteration' => $row['table_iteration'],
-                'is_full' => $row['is_full'],
-            ];
-            $values = json_decode($row['value'], true);
-            foreach ($languages as $language) {
-                if (!empty($values[$language['name']])) {
-                    foreach ($values[$language['name']] as $attribute => $translation) {
-                        $result['body'][$key]['translate'][$attribute][$language['name']] = $translation;
-                        if (isset($language['table']) && empty($translation)) {
-                            $result['header']['language'][$language['name']] += 1;
-                        }
-                    }
-                } else {
-                    foreach ($values[$default_lang] as $attribute => $translation) {
-                        $result['body'][$key]['translate'][$attribute][$language['name']] = '';
-                        $result['header']['language'][$language['name']] += 1;
-                    }
-                }
-            }
-        }
-        return $result;
-    }
-
     /** Bazadagi barcha static qatorlar */
     public static function getI18NData(array $params): array
     {
@@ -135,15 +85,71 @@ class LanguageService
         return ['total' => (int)floor(count($data) / $limit), $lang => $currentItems];
     }
 
+    /**  Umumiy extend olgan modellarning ma’lumotlari
+     * @throws Exception
+     */
+    public static function getModelsData(array $params): array
+    {
+        $languages = Yii::$app->params['language_list'];
+        $tableResult = [];
+        $default_lang = '';
+        foreach ($languages as $language) {
+            if (!isset($language['table'])) { $default_lang = $language['name']; }
+            $tableResult['language'][$language['name']] = 0;
+        }
+
+        $dataProvider = self::getLangTables($languages, $params);
+        $result = [
+            'header' => [
+                'table_name' => Yii::t('multilingual', 'Table Name'),
+                'attributes' => Yii::t('multilingual', 'Attributes'),
+                'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
+                'language' => $tableResult['language']
+            ],
+            'dataProvider' => $dataProvider,
+            'body' => []
+        ];
+
+        if (!empty($dataProvider->getModels())) {
+            foreach ($dataProvider->getModels() as $key => $row) {
+                $result['body'][$key] = [
+                    'table_name' => $row['table_name'],
+                    'table_iteration' => $row['table_iteration'],
+                    'is_full' => $row['is_full'],
+                ];
+                $values = json_decode($row['value'], true);
+                foreach ($languages as $language) {
+                    if (!empty($values[$language['name']])) {
+                        foreach ($values[$language['name']] as $attribute => $translation) {
+                            $result['body'][$key]['translate'][$attribute][$language['name']] = $translation;
+                            if (isset($language['table']) && empty($translation)) {
+                                $result['header']['language'][$language['name']] += 1;
+                            }
+                        }
+                    } else {
+                        foreach ($values[$default_lang] as $attribute => $translation) {
+                            $result['body'][$key]['translate'][$attribute][$language['name']] = '';
+                            $result['header']['language'][$language['name']] += 1;
+                        }
+                    }
+                }
+            }
+        } else {
+            $result['empty'] = Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', ['command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>']);
+        }
+        return $result;
+    }
+
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar
      * @throws Exception
      */
     public static function getLangTables(array $languages, array $params, bool $export = false): SqlDataProvider|array
     {
-        $dataProvider = [];
         $isStatic = (int)($params['is_static'] ?? 0);
         $isAll = (int)($params['is_all'] ?? 0);
 
+        $sql = 'SELECT * FROM language_list WHERE id = -1 ORDER BY id ASC';
+        $totalCount = 0;
         $jsonData = self::getJson();
         if (!empty($jsonData['tables']))
         {
@@ -169,7 +175,11 @@ class LanguageService
                 ];
                 $commonConditions = [];
                 $isAllConditions = [];
-                if (count($languages) > 1) {
+
+                if ($export) {
+                    $result['is_full'] = var_export((bool)$isStatic,true)." as is_static";
+                    $result['langValues'] = [];
+                } elseif (count($languages) > 1) {
                     $jsonConditions = [];
                     $result['is_full'] = new Expression("CASE ");
                     foreach ($languages as $language) {
@@ -207,10 +217,7 @@ class LanguageService
                         $isAllConditions = ['('.implode(' OR ', $isAllConditions).')'];
                     }
                     $result['langValues'] = [implode(", ", $result['langValues'])];
-                    if ($export) {
-                        $result['is_full'] = var_export((bool)$isStatic,true)." as is_static";
-                        $result['langValues'] = [];
-                    }
+
                 }
                 $result['joins'] = implode(" ", $result['joins']);
                 $result['conditions'] = implode(' AND ', array_merge($commonConditions, $isAllConditions));
@@ -258,19 +265,18 @@ class LanguageService
             $countSelect = implode(" UNION ALL ", $countSelect);
             $sql .= "$select) AS combined";
             $countSql .= "$countSelect) AS combined";
-
-            $pagination = new Pagination([
-                'totalCount' => Yii::$app->db->createCommand($countSql)->queryScalar(),
-                'pageSize' => MlConstant::LIMIT,
-            ]);
-
-            $dataProvider = new SqlDataProvider([
-                'sql' => $sql,
-                'totalCount' => $pagination->totalCount,
-                'pagination' => $pagination,
-            ]);
+            $totalCount = Yii::$app->db->createCommand($countSql)->queryScalar();
         }
-        return $dataProvider;
+        $pagination = new Pagination([
+            'totalCount' => $totalCount,
+            'pageSize' => MlConstant::LIMIT,
+        ]);
+
+        return new SqlDataProvider([
+            'sql' => $sql,
+            'totalCount' => $pagination->totalCount,
+            'pagination' => $pagination,
+        ]);
     }
 
     /** lang_* tablitsalarini chaqirib olish (Create, Update) */

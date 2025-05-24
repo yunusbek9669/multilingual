@@ -40,26 +40,34 @@ $this->params['breadcrumbs'][] = $this->title;
                         <?php endif; ?>
                     </tr>
                     </thead>
-                    <?php foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
-                        <tbody class="ml-tbody">
-                        <tr>
-                            <td rowspan="<?php echo 1 + count($row['translate']) ?>"><?php echo $key + 1 ?></td>
-                            <td rowspan="<?php echo 1 + count($row['translate']) ?>" class="ml-click-cell"><a href="<?php echo Url::to(['translate-dynamic', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>" style="<?php echo $row['is_full'] ? '' : 'color: red' ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>
-                            <td rowspan="<?php echo 1 + count($row['translate']) ?>" style="color: #979aa6; font-style: italic; font-weight: bold;">{<?php echo $row['table_name']; ?>}</td>
-                        </tr>
-                        <?php foreach ($row['translate'] as $attribute => $languages): $count = 0; ?>
+                    <?php if (!empty($translates['body'])): ?>
+                        <?php foreach ($translates['body'] as $key => $row): $not_tran_count = 0; ?>
+                            <tbody class="ml-tbody">
                             <tr>
-                                <td style="color: #979aa6; font-style: italic;"><?php echo $attribute; ?></td>
-                                <?php foreach ($languages as $language): $count++; empty($language) && $count !== 1 ? [$not_tran_count++, $color = 'ml-danger'] : (empty($language) && $count === 1 ? $color = 'ml-warning' : $color = '') ?>
-                                    <td class="<?php echo $color ?>"><?php echo $language ?></td>
-                                <?php endforeach; ?>
+                                <td rowspan="<?php echo 1 + count($row['translate']) ?>"><?php echo $key + 1 ?></td>
+                                <td rowspan="<?php echo 1 + count($row['translate']) ?>" class="ml-click-cell"><a href="<?php echo Url::to(['translate-dynamic', 'table_name' => $row['table_name'], 'table_iteration' => $row['table_iteration'], 'attributes' => array_keys($row['translate'])]) ?>" style="<?php echo $row['is_full'] ? '' : 'color: red' ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg></a></td>
+                                <td rowspan="<?php echo 1 + count($row['translate']) ?>" style="color: #979aa6; font-style: italic; font-weight: bold;">{<?php echo $row['table_name']; ?>}</td>
                             </tr>
+                            <?php foreach ($row['translate'] as $attribute => $languages): $count = 0; ?>
+                                <tr>
+                                    <td style="color: #979aa6; font-style: italic;"><?php echo $attribute; ?></td>
+                                    <?php foreach ($languages as $language): $count++; empty($language) && $count !== 1 ? [$not_tran_count++, $color = 'ml-danger'] : (empty($language) && $count === 1 ? $color = 'ml-warning' : $color = '') ?>
+                                        <td class="<?php echo $color ?>"><?php echo $language ?></td>
+                                    <?php endforeach; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                            <tr>
+                                <td colspan="<?php echo 4 + count($translates['header']['language']) ?>" style="padding: 0"></td>
+                            </tr>
+                            </tbody>
                         <?php endforeach; ?>
+                    <?php else: ?>
+                        <tbody style="cursor: text; font-size: 14px">
                         <tr>
-                            <td colspan="<?php echo 4 + count($translates['header']['language']) ?>" style="padding: 0"></td>
+                            <td colspan="<?php echo 4 + count($translates['header']['language']) ?>"><?php echo $translates['empty'] ?></td>
                         </tr>
                         </tbody>
-                    <?php endforeach; ?>
+                    <?php endif; ?>
                 </table>
             </div>
             <?php echo \yii\widgets\LinkPager::widget([
@@ -71,6 +79,27 @@ $this->params['breadcrumbs'][] = $this->title;
 
 <?php
 $js = <<<JS
+    function copyTextFallback(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+    }
+    
+    function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text)
+                .then(() => alert('Nusxalandi!'))
+                .catch(err => alert('Xatolik: ' + err));
+        } else {
+            copyTextFallback(text);
+        }
+    }
+    
     const container = document.querySelector('.ml-table-responsive');
     let isDragging = false;
     let startX, startY;
@@ -149,7 +178,7 @@ $js = <<<JS
         stopDrag();
     });
 JS;
-$this->registerJs($js);
+$this->registerJs($js, \yii\web\View::POS_END);
 
 $css = <<<CSS
 .ml-card {
