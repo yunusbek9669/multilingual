@@ -436,9 +436,14 @@ EOD;
                 /** save changes */
                 $dbValues[$category] = array_merge($dbValues[$category] ?? [], $new[$category]);
                 ksort($dbValues[$category]);
+
+                $execute = $this->saveMessageToDb($langTable, $category, $dbValues[$category], $jsonData, $insertCount);
+                if (!$execute) {
+                    $this->stderr("\n".'"'.$langTable.'" '.json_encode($category)." failed\n", BaseConsole::FG_RED);
+                    break;
+                }
             }
 
-            $execute = $this->attachTransTablesToMessage($langTable, $dbValues, $jsonData, $insertCount);
             Yii::$app->cache->getOrSet($langTable, function () use ($dbValues)
             {
                 return $dbValues;
@@ -734,33 +739,25 @@ EOD;
     /**
      * Attaches the names of tables to be translated to messages.
      * @param string $langTable
-     * @param array $messages
+     * @param string $category
+     * @param array $message
      * @param array $json_list
      * @param array $insertCount
      * @return int
      * @throws \yii\db\Exception
      */
-    protected function attachTransTablesToMessage(string $langTable, array &$messages, array $json_list, array &$insertCount): int
+    protected function saveMessageToDb(string $langTable, string $category, array &$message, array $json_list, array &$insertCount): int
     {
-        $execute = 1;
-        foreach ($messages as $category => $message) {
-            if ($category === MlConstant::MULTILINGUAL) {
-                foreach ($json_list as $table_name) {
-                    if (!in_array($table_name, array_keys($message))) {
-                        $message = array_merge($message, [$table_name => '']);
-                        $insertCount[$category] = ($insertCount[$category] ?? 0) + 1;
-                    }
+        if ($category === MlConstant::MULTILINGUAL) {
+            foreach ($json_list as $table_name) {
+                if (!in_array($table_name, array_keys($message))) {
+                    $message = array_merge($message, [$table_name => '']);
+                    $insertCount[$category] = ($insertCount[$category] ?? 0) + 1;
                 }
-            }
-
-            $execute = BaseLanguageQuery::upsert($langTable, $category, 0, true, $message);
-            if (!$execute) {
-                $this->stderr("\n".'"'.$langTable.'" '.json_encode($category)." failed\n", BaseConsole::FG_RED);
-                break;
             }
         }
 
-        return $execute;
+        return BaseLanguageQuery::upsert($langTable, $category, 0, true, $message);
     }
 
     protected function parseAttributesFromBuffer(array $buffer)
