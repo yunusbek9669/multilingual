@@ -6,6 +6,8 @@ use Yii;
 use yii\base\Model;
 use yii\db\ActiveQuery;
 use yii\db\Exception;
+use Yunusbek\Multilingual\components\MlConstant;
+use Yunusbek\Multilingual\components\LanguageService;
 
 /**
  *
@@ -16,7 +18,7 @@ class BaseLanguageQuery extends ActiveQuery
     public $selectColumns = [];
     protected $joinList = [];
     protected $customAlias = null;
-    protected $langTable = BaseLanguageList::LANG_TABLE_PREFIX;
+    protected $langTable = MlConstant::LANG_PREFIX;
 
     public function __construct($modelClass, $config = [])
     {
@@ -285,16 +287,5 @@ class BaseLanguageQuery extends ActiveQuery
         }
 
         return $string;
-    }
-
-    /** so‘z oxiriga "s" qo‘shish */
-    public static function toPlural($word): string
-    {
-        if (str_ends_with($word, 'y')) {
-            return substr($word, 0, -1) . 'ies';
-        } elseif (str_ends_with($word, 's') || str_ends_with($word, 'x') || str_ends_with($word, 'z') || str_ends_with($word, 'sh') || str_ends_with($word, 'ch')) {
-            return $word . 'es';
-        }
-        return $word . 's';
     }
 }

@@ -8,20 +8,13 @@ use yii\data\SqlDataProvider;
 use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\Query;
-use Yunusbek\Multilingual\commands\Messages;
-use Yunusbek\Multilingual\models\BaseLanguageList;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class LanguageService
 {
-    const LIMIT = 500;
     private static $jsonData = [];
 
     public static function getJson() {
-        $id = 'messages';
-        $module = Yii::$app;
-        $message = new Messages($id, $module);
-        $jsonPath = Yii::getAlias('@app') .'/'. $message->json_file_name.'.json';
+        $jsonPath = Yii::getAlias('@app') .'/'. MlConstant::MULTILINGUAL.'.json';
         if (file_exists($jsonPath)) {
             $jsonContent = file_get_contents($jsonPath);
             if (json_last_error() === JSON_ERROR_NONE) {
@@ -106,7 +99,7 @@ class LanguageService
             'tables' => []
         ];
         foreach (Yii::$app->params['language_list'] as $key => $language) {
-            $table_name = $language['table'] ?? BaseLanguageList::LANG_TABLE_PREFIX.$key;
+            $table_name = $language['table'] ?? MlConstant::LANG_PREFIX.$key;
             $result['tables'][$language['name']] = $table_name;
             foreach (array_keys($basePath) as $category) {
                 if ($category !== 'yii' && !str_contains($category, 'yii/')) {
@@ -140,7 +133,7 @@ class LanguageService
         $table = (new Query())->select([$lang => 'value'])->from($lang)->where(['table_name' => $category, 'is_static' => true])->one();
         $data = json_decode($table[$lang], true);
         asort($data);
-        $limit = self::LIMIT;
+        $limit = MlConstant::LIMIT;
         $currentItems = array_slice($data, (isset($params['page']) ? (int)$params['page'] : 0) * $limit, $limit);
         return ['total' => (int)floor(count($data) / $limit), $lang => $currentItems];
     }
@@ -259,7 +252,7 @@ class LanguageService
 
             $pagination = new Pagination([
                 'totalCount' => Yii::$app->db->createCommand($countSql)->queryScalar(),
-                'pageSize' => self::LIMIT,
+                'pageSize' => MlConstant::LIMIT,
             ]);
 
             $dataProvider = new SqlDataProvider([
@@ -297,5 +290,15 @@ class LanguageService
             }
         }
         return $attributes;
+    }
+
+    /** Jadval nomlarini matnli ro‘yxati */
+    public static function tableTextFormList(array $tables): array
+    {
+        $list = [];
+        foreach ($tables as $table_name => $table) {
+            $list[$table_name] = str_replace('_', ' ', ucwords($table_name, '_'));
+        }
+        return $list;
     }
 }

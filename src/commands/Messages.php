@@ -10,10 +10,10 @@ use yii\db\Connection;
 use yii\db\Query;
 use yii\di\Instance;
 use yii\helpers\BaseConsole;
-use yii\helpers\Console;
 use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
-use Yunusbek\Multilingual\components\ExcelExportImport;
+use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
@@ -316,7 +316,8 @@ EOD;
             $this->saveMessagesToDb(
                 $messages,
                 $db,
-                $langTable
+                $langTable,
+                LanguageService::tableTextFormList($this->jsonData['tables'])
             );
         }
     }
@@ -358,14 +359,15 @@ EOD;
      * @param array $messages
      * @param Connection $db
      * @param string $langTable
+     * @param array $jsonData
      */
-    protected function saveMessagesToDb(array $messages, Connection $db, string $langTable): void
+    protected function saveMessagesToDb(array $messages, Connection $db, string $langTable, array $jsonData): void
     {
-        $currentValues = [];
+        $dbValues = [];
         $langTablesData = (new Query())->select(['is_static', 'table_name', 'table_iteration', 'value'])->where(['is_static' => true])->from($langTable)->all($db);
         foreach ($langTablesData as $row) {
             foreach (json_decode($row['value'], true) as $key => $item) {
-                $currentValues[$row['table_name']][$key] = $item;
+                $dbValues[$row['table_name']][$key] = $item;
             }
         }
         $this->stdout("\nInserting new messages to the ");
@@ -379,7 +381,7 @@ EOD;
             Yii::$app->cache->delete($langTable);
 
             /** delete obsolete categories */
-            $obsoleteCategories = array_diff(array_keys($currentValues), array_keys($messages));
+            $obsoleteCategories = array_diff(array_keys($dbValues), array_keys($messages));
             foreach ($obsoleteCategories as $obsoleteCategory) {
                 $obsoleteCategoryData = $db->createCommand()
                     ->delete($langTable, [
@@ -388,45 +390,43 @@ EOD;
                     ])
                     ->execute();
                 if ($obsoleteCategoryData > 0) {
-                    $obsoleteCount[$obsoleteCategory] = count($currentValues[$obsoleteCategory]);
-                    unset($currentValues[$obsoleteCategory]);
+                    $obsoleteCount[$obsoleteCategory] = count($dbValues[$obsoleteCategory]);
+                    unset($dbValues[$obsoleteCategory]);
                 }
             }
 
 
             $new = [];
-            $obsolete = [];
-            $fullyPrepared = [];
-            foreach ($messages as $category => $msgs) {
-                $msgs = array_unique($msgs);
-                if (isset($currentValues[$category])) {
-                    $currentKeys = array_keys($currentValues[$category]);
-                    asort($msgs);
-                    asort($currentKeys);
+            foreach ($messages as $category => $msgKeys) {
+                if ($category === 'app') continue;
+                $msgKeys = array_unique($msgKeys);
+                if (isset($dbValues[$category])) {
+                    $dbKeys = array_keys($dbValues[$category]);
+                    asort($msgKeys);
+                    asort($dbKeys);
                     /** insert news messages */
-                    $new[$category] = array_fill_keys(array_diff($msgs, $currentKeys), '');
+                    $new[$category] = array_fill_keys(array_diff($msgKeys, $dbKeys), '');
 
                     /** delete obsolete messages */
-                    $obsolete[$category] = array_diff($currentKeys, $msgs);
-                    foreach ($obsolete[$category] as $obmsg) {
-                        foreach ($this->jsonData['tables'] ?? [] as $table_name => $attributes) {
-                            $table_name = str_replace('_', ' ', ucwords($table_name, '_'));
-                            if ($table_name !== $obmsg) {
-                                $table_name = BaseLanguageQuery::toPlural($table_name);
+                    $obsolete = [];
+                    foreach (array_diff($dbKeys, $msgKeys) as $obsMsg) {
+                        if ($category === MlConstant::MULTILINGUAL) {
+                            if (!in_array($obsMsg, $jsonData)) {
+                                $obsolete[] = $obsMsg;
+                                unset($dbValues[$category][$obsMsg]);
                             }
-                            if ($table_name !== $obmsg) {
-                                unset($currentValues[$category][$obmsg]);
-                            }
-                            $obsolete[$category] = array_diff($obsolete[$category], [$obmsg]);
+                        } else {
+                            $obsolete[] = $obsMsg;
+                            unset($dbValues[$category][$obsMsg]);
                         }
                     }
-                    $obsCount = count($obsolete[$category]);
+                    $obsCount = count($obsolete);
                     if ($obsCount > 0) {
                         $obsoleteCount[$category] = $obsCount;
                     }
                 } else {
                     /** insert news categories */
-                    $new[$category] = array_fill_keys($msgs, '');
+                    $new[$category] = array_fill_keys($msgKeys, '');
                 }
                 $insCount = count($new[$category]);
                 if ($insCount > 0) {
@@ -434,14 +434,14 @@ EOD;
                 }
 
                 /** save changes */
-                $currentValues[$category] = array_merge($currentValues[$category] ?? [], $new[$category]);
-                ksort($currentValues[$category]);
+                $dbValues[$category] = array_merge($dbValues[$category] ?? [], $new[$category]);
+                ksort($dbValues[$category]);
             }
 
-            $execute = $this->attachTransTablesToMessage($langTable, $currentValues, $this->jsonData['tables'] ?? [], $insertCount);
-            Yii::$app->cache->getOrSet($langTable, function () use ($currentValues)
+            $execute = $this->attachTransTablesToMessage($langTable, $dbValues, $jsonData, $insertCount);
+            Yii::$app->cache->getOrSet($langTable, function () use ($dbValues)
             {
-                return $currentValues;
+                return $dbValues;
             }, 3600 * 2);
         } catch (\yii\db\Exception $e) {
             $this->stderr("\n".$e->getMessage() . "\n");
@@ -743,27 +743,10 @@ EOD;
     protected function attachTransTablesToMessage(string $langTable, array &$messages, array $json_list, array &$insertCount): int
     {
         $execute = 1;
-        $result_category = null;
-        foreach (array_keys($json_list) as $item) {
-            foreach ($messages as $category => $values) {
-                if (in_array($item, $values, true)) {
-                    $result_category = $category;
-                    break;
-                }
-            }
-        }
-        if ($result_category === null) {
-            $result_category = 'multilingual';
-        }
-
         foreach ($messages as $category => $message) {
-            foreach ($json_list as $table_name => $attributes) {
-                if ($category === $result_category) {
-                    $table_name = str_replace('_', ' ', ucwords($table_name, '_'));
+            if ($category === MlConstant::MULTILINGUAL) {
+                foreach ($json_list as $table_name) {
                     if (!in_array($table_name, array_keys($message))) {
-                        $table_name = BaseLanguageQuery::toPlural($table_name);
-                    }
-                    if (!in_array($table_name, array_keys($message)) && !isset($message[$table_name])) {
                         $message = array_merge($message, [$table_name => '']);
                         $insertCount[$category] = ($insertCount[$category] ?? 0) + 1;
                     }

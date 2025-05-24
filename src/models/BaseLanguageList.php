@@ -10,6 +10,7 @@ use yii\web\UploadedFile;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use Yii;
+use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\ExcelExportImport;
 
 /**
@@ -25,8 +26,6 @@ use Yunusbek\Multilingual\components\ExcelExportImport;
  */
 class BaseLanguageList extends ActiveRecord
 {
-    const LANG_TABLE_PREFIX = 'lang_';
-
     public static function tableName()
     {
         return '{{%language_list}}';
@@ -59,13 +58,13 @@ class BaseLanguageList extends ActiveRecord
             'code' => 'success',
             'message' => 'success'
         ];
-        $this->table = self::LANG_TABLE_PREFIX . $this->key;
+        $this->table = MlConstant::LANG_PREFIX . $this->key;
         if ($this->isNewRecord) {
             if (!$this::isTableExists($this->table)) {
                 $response = BaseLanguageQuery::createLangTable($this->table);
             }
         } else {
-            $oldTableName = self::LANG_TABLE_PREFIX . $this->getOldAttribute('key');
+            $oldTableName = MlConstant::LANG_PREFIX . $this->getOldAttribute('key');
             if ($this->getOldAttribute('key') !== $this->key) {
                 $response = BaseLanguageQuery::updateLangTable($oldTableName, $this->table);
             }

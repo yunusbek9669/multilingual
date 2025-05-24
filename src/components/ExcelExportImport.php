@@ -60,17 +60,8 @@ class ExcelExportImport
         $k_tableNames = [];
         $jsonData = LanguageService::getJson()['tables'];
         $iteration = 1;
-        foreach ($jsonData as $table_name => $attributes) {
-            $val = str_replace('_', ' ', ucwords($table_name, '_'));
-            $k_tableNames[$table_name] = $iteration.'-'.$val;
-            if (in_array($val, $attributes)) {
-                foreach ($attributes as $k => $v) {
-                    if (str_starts_with($k, $val) && (str_ends_with($k, $val) || str_ends_with($k, BaseLanguageQuery::toPlural($val)))) {
-                        $k_tableNames[$table_name] = $iteration.'-'.$v;
-                        break 2;
-                    }
-                }
-            }
+        foreach (LanguageService::tableTextFormList($jsonData) as $table_name => $name) {
+            $k_tableNames[$table_name] = $iteration.'-'.$name;
             $iteration++;
         }
         Settings::setCache(new SimpleCache3());

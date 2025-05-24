@@ -9,6 +9,7 @@ use yii\filters\AccessControl;
 use yii\web\NotFoundHttpException;
 use yii\web\Controller;
 use yii\web\Response;
+use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\Multilingual;
@@ -162,7 +163,7 @@ class LanguageController extends Controller
         return $this->render('_form-static', [
             'table' => LanguageService::getMessages($lang, $category, Yii::$app->request->queryParams),
             'table_name' => $lang,
-            'translating_language' => Yii::$app->params['language_list'][str_replace(BaseLanguageList::LANG_TABLE_PREFIX, '', $lang)]['name'] ?? $lang,
+            'translating_language' => Yii::$app->params['language_list'][str_replace(MlConstant::LANG_PREFIX, '', $lang)]['name'] ?? $lang,
             'category' => $category,
         ]);
     }
