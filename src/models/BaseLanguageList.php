@@ -17,6 +17,7 @@ use Yunusbek\Multilingual\components\ExcelExportImport;
  * This is the model class for table "language_list".
  *
  * @property int $id
+ * @property boolean $rtl
  * @property string|null $name
  * @property string|null $short_name
  * @property string|null $key
@@ -38,6 +39,7 @@ class BaseLanguageList extends ActiveRecord
     {
         return [
             [['name'], 'string'],
+            [['rtl'], 'boolean'],
             [['short_name', 'key'], 'string'],
             [['import_excel'], 'file', 'skipOnEmpty' => true, 'extensions' => 'xlsx'],
             [['image', 'table'], 'string'],

@@ -1,8 +1,6 @@
 <?php
 
-use Yunusbek\Multilingual\models\BaseLanguageList;
-use yii\data\ActiveDataProvider;
-use yii\grid\GridView;
+use Yunusbek\Multilingual\components\MlConstant;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
@@ -37,7 +35,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         <th><?php echo $translates['header']['attributes'] ?></th>
                         <?php if (!empty($translates)): ?>
                             <?php foreach ($translates['header']['language'] as $key => $not_translated): ?>
-                                <th><?php echo $key . ($default_language['name'] === $key ? ' <i class="fas fa-star text-warning"></i>' : ' <span class="ml-not-translated ' . ($not_translated > 0 ? 'has' : 'not') . '">' . $not_translated . '</span>') ?></th>
+                                <th><?php echo $key . ($default_language['name'] === $key ? ' '.MlConstant::STAR : ' <span class="ml-not-translated ' . ($not_translated > 0 ? 'has' : 'not') . '">' . $not_translated . '</span>') ?></th>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tr>

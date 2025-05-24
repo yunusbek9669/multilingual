@@ -4,11 +4,13 @@ namespace Yunusbek\Multilingual\widgets;
 
 use Exception;
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\base\Widget;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\components\MlConstant;
 
 global $css;
 $css = <<<CSS
@@ -40,67 +42,75 @@ class MultilingualAttributes extends Widget
 
     public int|null $col;
 
+    private array $params;
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public function init(): void
+    {
+        parent::init();
+
+        $model = $this->model;
+
+        $tableSchema = $model->getTableSchema();
+
+        if (!in_array('id', array_keys($model->getAttributes()))) {
+            throw new InvalidConfigException("The {{$model::tableName()}} table does not have an id column.");
+        }
+
+        if (is_array($this->attribute)) {
+            foreach ($this->attribute as $attribute) {
+                $this->checkAttribute($tableSchema->columns, $attribute);
+            }
+        } else {
+            $this->checkAttribute($tableSchema->columns, $this->attribute);
+        }
+
+        $col = 'col-12';
+        $this->params = [
+            'tableSchema' => $tableSchema,
+            'model' => $this->model,
+            'form' => $this->form,
+            'col' => !empty($this->col) ? 'col-' . $this->col : $col,
+        ];
+    }
+
     /**
      * @inheritdoc
      * @throws Exception
      */
     public function run(): string
     {
-        $form = $this->form;
+        $dashed_ml = Html::tag('div', '', ['class' => 'dashed-ml']);
 
-        $model = $this->model;
-
-        $attribute = $this->attribute;
-
-        $col = $this->col ?? 12;
-
-        $tableSchema = $model->getTableSchema();
-
-        $params = [
-            'tableSchema' => $tableSchema,
-            'model' => $model,
-            'form' => $form,
-            'col' => $col
-        ];
-
-        if (is_array($attribute)) {
+        if (is_array($this->attribute)) {
             $result = '';
-            foreach ($attribute as $attr) {
-                $params['attribute'] = $attr;
-                $result .= $this->setAttribute($params);
+            foreach ($this->attribute as $attr) {
+                $this->params['attribute'] = $attr;
+                $result .= $this->setAttribute($this->params, $dashed_ml);
             }
         } else {
-            $params['attribute'] = $attribute;
-            $result = $this->setAttribute($params);
+            $this->params['attribute'] = $this->attribute;
+            $result = $this->setAttribute($this->params, $dashed_ml);
         }
         global $css;
         $this->view->registerCss($css);
-        return $result . '<div style="display: flex; color: #888"><div class="dashed-ml"></div></div>';
+        return $result . $this->makeLine($dashed_ml);
     }
 
     /**
      * @throws Exception
      */
-    public function setAttribute(array $params): string
+    public function setAttribute(array $params, string $dashed_ml): string
     {
-        /** @var ActiveRecord $model */
         $form = $params['form'];
         $model = $params['model'];
-        $attribute = $params['attribute'];
-        $columnType = $params['tableSchema']->columns[$attribute]->type;
-        if (!in_array($columnType, ['string', 'text'])) {
-            throw new Exception('The value of attribute - "' . $attribute . '" must be of type string.');
-        }
-        if (!in_array('id', array_keys($model->getAttributes()))) {
-            throw new Exception('The "' . $model::tableName() . '" table does not have an id column.');
-        }
 
         $defaultValue = (new yii\db\Query())
             ->from($model::tableName())
-            ->select($attribute)
-            ->where([
-                'id' => $model->id,
-            ])
+            ->select($params['attribute'])
+            ->where(['id' => $model->id])
             ->scalar();
         $languages = Yii::$app->params['language_list'];
         $defaultLanguage = null;
@@ -110,24 +120,56 @@ class MultilingualAttributes extends Widget
                 break;
             }
         }
-        $label = $model->getAttributeLabel($attribute);
+
+        $label = $model->getAttributeLabel($params['attribute']);
         $defaultLabel = $label . ' (' . $defaultLanguage['name'] . ')';
-        $output = '<div class="col-' . $params['col'] . '">' . $form->field($model, $attribute)->textInput(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue])->label($defaultLabel . ' <i class="fas fa-star text-warning"></i>') . '</div>';
-        foreach (LanguageService::setCustomAttributes($model, $attribute) as $key => $value) {
+
+        $output = Html::tag('div',
+            $form->field($model, $params['attribute'])
+                ->textInput(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue])
+                ->label($defaultLabel . ' '.MlConstant::STAR),
+            ['class' => $params['col']]
+        );
+        foreach (LanguageService::setCustomAttributes($model, $params['attribute']) as $key => $value)
+        {
             preg_match('/lang_(\w+)/', $key, $matches);
             $dynamic_label = $label;
             $language = $languages[$matches[1]];
             if (!empty($language['name'])) {
                 $dynamic_label .= ' (' . $language['name'] . ')';
             }
-            $output .= '<div class="col-' . $params['col'] . '"><div class="form-group highlight-addon">';
+
+            $fg_option = ['class' => 'form-group highlight-addon'];
+            $input_options = ['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"];
+            if (!empty($language['rtl'])) {
+                $input_options['dir'] = 'rtl';
+                $input_options['placeholder'] = $dynamic_label . " ✏️";
+                $fg_option['style'] = "direction: rtl !important; text-align: right !important;";
+            }
+            $output .= Html::beginTag('div', ['class' => $params['col']]);
+            $output .= Html::beginTag('div', $fg_option);
             $output .= Html::label($dynamic_label, $key, ['class' => 'form-label']);
-            $output .= Html::textInput($key, $value, [
-                'placeholder' => $dynamic_label . " 🖊",
-                'class' => 'form-control',
-            ]);
-            $output .= '</div></div>';
+            $output .= Html::textInput($key, $value, $input_options);
+            $output .= Html::endTag('div');
+            $output .= Html::endTag('div');
         }
-        return '<div style="display: flex; color: #888"><div class="dashed-ml"></div>' . $label . '<div class="dashed-ml"></div></div>' . $output;
+        return $this->makeLine($dashed_ml . $label . $dashed_ml) . $output;
+    }
+
+    private function makeLine($dashed_line): string
+    {
+        return Html::beginTag('div', [
+                'style' => 'display: flex; color: #888'
+            ]) . $dashed_line . Html::endTag('div');
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    private function checkAttribute(array $columns, string $attribute): void
+    {
+        if (!in_array($columns[$attribute]->type, ['string', 'text'])) {
+            throw new InvalidConfigException("The value of attribute - {{$attribute}} must be of type string.");
+        }
     }
 }

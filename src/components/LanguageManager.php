@@ -49,6 +49,7 @@ class LanguageManager
                     'image' => $model['image'],
                     'table' => $model['table'],
                     'active' => $isActive,
+                    'rtl' => $model['rtl'],
                 ];
             });
         } catch (Exception $e) {
