@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\components;
 
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\data\Pagination;
 use yii\data\SqlDataProvider;
 use yii\db\Exception;
@@ -11,16 +12,28 @@ use yii\db\Query;
 
 class LanguageService
 {
-    private static $jsonData = [];
+    private static array $jsonData = [];
 
+    /**
+     * @throws InvalidConfigException
+     */
     public static function getJson() {
         $jsonPath = Yii::getAlias('@app') .'/'. MlConstant::MULTILINGUAL.'.json';
         if (file_exists($jsonPath)) {
             $jsonContent = file_get_contents($jsonPath);
             if (json_last_error() === JSON_ERROR_NONE) {
                 self::$jsonData = json_decode($jsonContent, true);
+            } else {
+                throw new InvalidConfigException(Yii::t('multilingual', 'Invalid JSON structure detected in {jsonPath}.', ['jsonPath' => $jsonPath]));
             }
+        } else {
+            throw new InvalidConfigException(Yii::t('multilingual', 'The file {jsonPath} could not be found. Please run the {command} command.', ['jsonPath' => $jsonPath, 'command' => '" php yii ml-extract/i18n "']));
         }
+        foreach (self::$jsonData['tables'] as &$fields) {
+            sort($fields);
+        }
+        unset($fields);
+        ksort(self::$jsonData);
         return self::$jsonData;
     }
 
@@ -142,6 +155,7 @@ class LanguageService
 
     /** Bazadagi barcha tarjimon (lang_*) tablitsalar
      * @throws Exception
+     * @throws InvalidConfigException
      */
     public static function getLangTables(array $languages, array $params, bool $export = false): SqlDataProvider|array
     {
@@ -169,17 +183,16 @@ class LanguageService
             function sqlHelper(array $languages, array $attributes, string $table_name, int $isStatic, int $isAll, bool $export): array
             {
                 $result = [
-                    'joins' => [],
+                    'joins' => '',
                     'langValues' => [],
                     'is_full' => var_export((bool)$isStatic,true)." as is_full",
                 ];
-                $commonConditions = [];
-                $isAllConditions = [];
 
                 if ($export) {
                     $result['is_full'] = var_export((bool)$isStatic,true)." as is_static";
-                    $result['langValues'] = [];
                 } elseif (count($languages) > 1) {
+                    $commonConditions = [];
+                    $isAllConditions = [];
                     $jsonConditions = [];
                     $result['is_full'] = new Expression("CASE ");
                     foreach ($languages as $language) {
@@ -216,11 +229,10 @@ class LanguageService
                     if (!empty($isAllConditions)) {
                         $isAllConditions = ['('.implode(' OR ', $isAllConditions).')'];
                     }
+                    $result['joins'] = implode(" ", $result['joins']);
                     $result['langValues'] = [implode(", ", $result['langValues'])];
-
+                    $result['conditions'] = implode(' AND ', array_merge($commonConditions, $isAllConditions));
                 }
-                $result['joins'] = implode(" ", $result['joins']);
-                $result['conditions'] = implode(' AND ', array_merge($commonConditions, $isAllConditions));
                 return $result;
             }
 
@@ -240,13 +252,6 @@ class LanguageService
                 }
                 $json = implode(", ", $realValues);
                 $allValues = $json;
-                if (!$export) {
-                    $default_lang = array_values(Yii::$app->params['default_language'])[0];
-                    $allValues = "'{$default_lang['name']}', jsonb_build_object($json)";
-                    if (!empty($sqlHelper['langValues'][0])) {
-                        $allValues = join(", ", array_merge([$allValues], $sqlHelper['langValues']));
-                    }
-                }
 
                 /** WHERE */
                 $where = [];
@@ -254,12 +259,31 @@ class LanguageService
                     $where[] = "$table_name.$key = $value";
                 }
                 $where = implode(" AND ", $where);
-                if (!empty($sqlHelper['conditions'])) {
-                    $where = implode(" AND ", array_merge([$where], [$sqlHelper['conditions']]));
+
+                if (!$export) {
+                    $default_lang = array_values(Yii::$app->params['default_language'])[0];
+                    $allValues = "'{$default_lang['name']}', jsonb_build_object($json)";
+                    if (!empty($sqlHelper['langValues'][0])) {
+                        $allValues = join(", ", array_merge([$allValues], $sqlHelper['langValues']));
+                    }
+                    if (!empty($sqlHelper['conditions'])) {
+                        $where = implode(" AND ", array_merge([$where], [$sqlHelper['conditions']]));
+                    }
                 }
 
-                $select[] = "(SELECT '$table_name' AS table_name, $table_name.id AS table_iteration, {$sqlHelper['is_full']}, jsonb_build_object($allValues) AS value FROM $table_name {$sqlHelper['joins']} WHERE $where ORDER BY $table_name.id ASC)";
-                $countSelect[] = "(SELECT $table_name.id FROM $table_name {$sqlHelper['joins']} WHERE $where)";
+                $tableTextFormat = str_replace("'", "''", self::tableTextFormat($table_name, true));
+                $select[] = new Expression("(
+                    SELECT 
+                        '$tableTextFormat' AS table_name, 
+                        $table_name.id AS table_iteration, 
+                        {$sqlHelper['is_full']}, 
+                        jsonb_build_object($allValues) AS value 
+                    FROM $table_name 
+                    {$sqlHelper['joins']} 
+                    WHERE $where 
+                    ORDER BY $table_name.id ASC
+                )");
+                $countSelect[] = new Expression("(SELECT $table_name.id FROM $table_name {$sqlHelper['joins']} WHERE $where)");
             }
             $select = implode(" UNION ALL ", $select);
             $countSelect = implode(" UNION ALL ", $countSelect);
@@ -308,12 +332,21 @@ class LanguageService
     }
 
     /** Jadval nomlarini matnli ro‘yxati */
-    public static function tableTextFormList(array $tables): array
+    public static function tableTextFormList(array $tables, bool $i18n = false): array
     {
         $list = [];
         foreach ($tables as $table_name => $table) {
-            $list[$table_name] = str_replace('_', ' ', ucwords($table_name, '_'));
+            $list[$table_name] = self::tableTextFormat($table_name, $i18n);
         }
         return $list;
+    }
+
+    /** Jadval nomini matnli ro‘yxati */
+    public static function tableTextFormat(string $table_name, bool $i18n = false): string
+    {
+        if ($i18n) {
+            return Yii::t(MlConstant::MULTILINGUAL, str_replace('_', ' ', ucwords($table_name, '_')));
+        }
+        return str_replace('_', ' ', ucwords($table_name, '_'));
     }
 }

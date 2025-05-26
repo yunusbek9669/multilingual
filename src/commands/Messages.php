@@ -146,6 +146,11 @@ class Messages extends \yii\console\Controller
             ];
         }
 
+        foreach ($this->jsonData['tables'] as &$fields) {
+            sort($fields);
+        }
+        unset($fields);
+
         parent::__construct($id, $module, $config);
     }
 
@@ -398,7 +403,6 @@ EOD;
 
             $new = [];
             foreach ($messages as $category => $msgKeys) {
-                if ($category === 'app') continue;
                 $msgKeys = array_unique($msgKeys);
                 if (isset($dbValues[$category])) {
                     $dbKeys = array_keys($dbValues[$category]);
@@ -485,9 +489,8 @@ EOD;
         $attributeCount = [];
         try {
             if ($this->jsonError) {
-                $this->stderr("\n".'The JSON ', BaseConsole::FG_YELLOW);
-                $this->stderr('"'.$filePath.'" ', BaseConsole::FG_RED);
-                $this->stderr("file is incorrect\n", BaseConsole::FG_YELLOW);
+                $this->stderr("\n".'Invalid JSON structure detected in ', BaseConsole::FG_YELLOW);
+                $this->stderr('"'.$filePath.'" '."\n", BaseConsole::FG_RED);
             }
             ksort($translateTables);
             foreach ($translateTables as $table_name => $attributes) {
@@ -537,6 +540,11 @@ EOD;
             if (empty($this->jsonData['where'])) {
                 $this->jsonData = ['where' => (object)[]] + $this->jsonData;
             }
+
+            foreach ($this->jsonData['tables'] as &$fields) {
+                sort($fields);
+            }
+            unset($fields);
 
             $jsonData = json_encode($this->jsonData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
             file_put_contents($filePath, $jsonData);

@@ -11,6 +11,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Protection;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use yii\base\InvalidConfigException;
 use yii\db\Exception;
 use yii\web\UploadedFile;
 use Yunusbek\Multilingual\models\BaseLanguageList;
@@ -54,15 +55,16 @@ class ExcelExportImport
         return $output;
     }
 
-    /** Ma‘lumotlarni excelga export qilish */
+    /** Ma‘lumotlarni excelga export qilish
+     * @throws InvalidConfigException
+     */
     public static function exportToExcelData($data, $fileName): bool|string
     {
-        $k_tableNames = [];
+        $k_n = [];
         $jsonData = LanguageService::getJson()['tables'];
         $iteration = 1;
-        foreach (LanguageService::tableTextFormList($jsonData) as $table_name => $name) {
-            $k_tableNames[$table_name] = $iteration.'-'.$name;
-            $iteration++;
+        foreach (LanguageService::tableTextFormList($jsonData, true) as $table_name => $name) {
+            $k_n[$name] = $iteration++;
         }
         Settings::setCache(new SimpleCache3());
         $is_static = false;
@@ -85,51 +87,36 @@ class ExcelExportImport
                 if (is_array($jsonData)) {
                     $staticJsonKeys[$row['table_name']] = array_unique(array_merge($staticJsonKeys[$row['table_name']], array_keys($jsonData)));
                 }
-            } else {
-                $attributes = [];
-                foreach ($jsonData as $key => $attr) {
-                    $attributes[] = self::encodeString($key);
-                }
-                if (is_array($jsonData)) {
-                    $dynamicJsonKeys = array_unique(array_merge($dynamicJsonKeys, $attributes));
-                }
             }
         }
 
         /** Barcha sarlavhalar: asosiy ustunlar + JSON indekslari */
-        $headers = array_merge($baseHeaders, $dynamicJsonKeys);
-        $sheet->fromArray($headers, NULL, 'A1');
-        $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
-        $sheet->getColumnDimension('A')->setAutoSize(false);
         $sheet->getColumnDimension('B')->setAutoSize(true);
-        $sheet->getColumnDimension('A')->setWidth(9);
-        if ($is_static) {
-            $sheet->getColumnDimension('C')->setAutoSize(true);
-            $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-            $sheet->getStyle('D1')->getFont()->setBold(true);
-            $sheet->setCellValue("D1", "translate here");
-        } else {
-            $sheet->getColumnDimension('C')->setAutoSize(false);
-            $sheet->getColumnDimension('C')->setWidth(15);
-        }
-        $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
-        $sheet->getStyle("C1")->getFont()->setBold(true)->setColor(new Color('777777'));
-        $sheet->getStyle($headerRange)->getFont()->setBold(true);
 
         /** Asosiy ustunlarni (table_name, table_iteration, va JSON kalitlari) himoyalash */
         $sheet->getStyle('A1:B1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+        if ($is_static) {
+            $sheet->getColumnDimension('A')->setAutoSize(false);
+            $sheet->getColumnDimension('A')->setWidth(7);
+            $headers = array_merge($baseHeaders, $dynamicJsonKeys);
+            $sheet->fromArray($headers, NULL, 'A1');
+            $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
+            $sheet->getColumnDimension('C')->setAutoSize(true);
+            $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
+            $sheet->getStyle('D1')->getFont()->setBold(true);
+            $sheet->setCellValue("D1", "translate here");
+            $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
+            $sheet->getStyle("C1")->getFont()->setBold(true)->setColor(new Color('777777'));
+            $sheet->getStyle($headerRange)->getFont()->setBold(true);
 
-        /** Ma'lumotlarni qo'shish */
-        $rowNumber = 2;
-        foreach ($data as $row) {
-            $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-            $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+            /** Ma'lumotlarni qo'shish */
+            $rowNumber = 2;
+            foreach ($data as $row) {
+                $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+                $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-            $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-            $sheet->setCellValue("B{$rowNumber}", $k_tableNames[$row['table_name']]);
-            if ($row['is_static']) {
                 /** JSON qiymatlarini alohida qatorda chiqarish */
                 $jsonData = json_decode($row['value'], true);
                 foreach ($staticJsonKeys[$row['table_name']] as $value) {
@@ -137,7 +124,7 @@ class ExcelExportImport
                     $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
                     $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
-                    $sheet->setCellValue("B{$rowNumber}", $k_tableNames[$row['table_name']]);
+                    $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
                     $sheet->setCellValue("C{$rowNumber}", $value);
 
                     $colLetter = Coordinate::stringFromColumnIndex(4); // A, B, C...
@@ -145,18 +132,29 @@ class ExcelExportImport
                     $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[$value] ?? '');
                     $rowNumber++;
                 }
-            } else {
-                $sheet->setCellValue("C{$rowNumber}", $row['table_iteration']);
-                /** JSON qiymatlarini mos ustunlarga qo'shish */
+            }
+        } else {
+            $sheet->getColumnDimension('A')->setAutoSize(true);
+            $sheet->getColumnDimension('D')->setAutoSize(true);
+            $sheet->getColumnDimension('C')->setAutoSize(true);
+
+            /** Ma'lumotlarni qo'shish */
+            $rowNumber = 1;
+            foreach ($data as $row) {
+                $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+                $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+
                 $jsonData = json_decode($row['value'], true);
-                $colIndex = 3;
-                foreach ($dynamicJsonKeys as $key) {
-                    $colIndex++;
-                    $colLetter = Coordinate::stringFromColumnIndex($colIndex); // A, B, C...
-                    $letterList = array_merge($letterList, [$colLetter]);
-                    $sheet->setCellValue("{$colLetter}{$rowNumber}", $jsonData[self::decodeString($key)] ?? '');
+                foreach ($jsonData as $attribute => $value) {
+                    $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+                    $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
+
+                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$k_n[$row['table_name']].':'.(int)$row['table_iteration']);
+                    $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
+                    $sheet->setCellValue("C{$rowNumber}", $attribute);
+                    $sheet->setCellValue("D{$rowNumber}", $value);
+                    $rowNumber++;
                 }
-                $rowNumber++;
             }
         }
 

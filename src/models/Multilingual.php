@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\models;
 
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use yii\db\Query;
@@ -91,7 +92,7 @@ class Multilingual extends ActiveRecord
             ->bindValue(':is_static', $is_static, \PDO::PARAM_BOOL)->queryAll();
 
         if (empty($data)) {
-            throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
+            throw new InvalidConfigException(Yii::t('multilingual', "The {{$tableName}} table is empty. Please run the {command} command.", ['command' => '" php yii ml-extract/i18n "']));
         }
 
         return ExcelExportImport::exportToExcelData($data, "{$tableName}.xlsx");
@@ -108,7 +109,7 @@ class Multilingual extends ActiveRecord
         $data = LanguageService::getLangTables($languages, $params, true)->getModels() ?? null;
 
         if (empty($data)) {
-            throw new \Exception(Yii::t('multilingual', 'No information was found in the table'));
+            throw new InvalidConfigException(Yii::t('multilingual', 'No information was found in the table'));
         }
 
         return ExcelExportImport::exportToExcelData($data, "default_lang.xlsx");
