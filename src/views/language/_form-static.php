@@ -28,16 +28,6 @@ $page_countable = $table['total'] === 0 || count($table[$table_name]) < 1000;
             <?php echo $this->title ?>
             <div>
                 <div style="display: flex">
-                    <div class="ml-btn-group" style="margin: -.3em 30px .3em 0">
-                        <?php echo Html::a('<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="none"><path d="M18 7L10 12L18 17V7Z" fill="#000000"/><path d="M6 7H9V12V17H6V7Z" fill="#000000"/></svg>',
-                            ['translate-static', 'lang' => $table_name, 'category' => $category, 'page' => 0], ['class' => 'ml-btn '.($page == 0 ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                        <?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="30px" width="30px" version="1.1" viewBox="20 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path d="M512,381.4l-237.7-118.9L512,143.6V381.4z M274.3,262.5v118.9l-237.7-118.9L274.3,143.6V262.5z"/></svg>',
-                            ['translate-static', 'lang' => $table_name, 'category' => $category, 'page' => $page - 1], ['class' => 'ml-btn '.($page == 0 ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                        <?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000" height="30px" width="30px" version="1.1" viewBox="-20 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path d="M0,381.4l237.7-118.9L0,143.6V381.4z M237.7,262.5v118.9l237.7-118.9L237.7,143.6V262.5z"/></svg>',
-                            ['translate-static', 'lang' => $table_name, 'category' => $category, 'page' => $page + 1], ['class' => 'ml-btn '.($page_countable ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                        <?php echo Html::a('<svg xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="none"><path d="M6 17L14 12L6 7V17Z" fill="#000000"/><path d="M18 7H15V12V17H18V7Z" fill="#000000"/></svg>',
-                            ['translate-static', 'lang' => $table_name, 'category' => $category, 'page' => $table['total']], ['class' => 'ml-btn '.($page_countable ? 'disabled' : ''), 'style' => 'width: 45px']) ?>
-                    </div>
                     <?php echo Html::submitButton('<svg fill="currentColor" aria-hidden="true" style="display: inline-block; font-size: inherit; height: 1.3em; overflow: visible; vertical-align: -.25em; width: 1.3em" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 30 30" xml:space="preserve"><path d="M22,4h-2v6c0,0.552-0.448,1-1,1h-9c-0.552,0-1-0.448-1-1V4H6C4.895,4,4,4.895,4,6v18c0,1.105,0.895,2,2,2h18  c1.105,0,2-0.895,2-2V8L22,4z M22,24H8v-6c0-1.105,0.895-2,2-2h10c1.105,0,2,0.895,2,2V24z"/><rect fill="currentColor" height="5" width="2" x="16" y="4"/></svg> ' . Yii::t('multilingual', 'Save'), ['class' => 'btn btn-outline-success font-weight-bolder', 'style' => 'margin: -.5em 0 .5em']) ?>
                 </div>
             </div>

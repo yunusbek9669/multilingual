@@ -100,6 +100,7 @@ class LanguageService
 
     /**  Umumiy extend olgan modellarning ma’lumotlari
      * @throws Exception
+     * @throws InvalidConfigException
      */
     public static function getModelsData(array $params): array
     {

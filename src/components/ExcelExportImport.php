@@ -74,8 +74,6 @@ class ExcelExportImport
         /** Asosiy ustunlar */
         $basicList = ['A', 'B', 'C'];
         $letterList = $basicList;
-        $baseHeaders = ['is_static', 'table_name', 'table_iteration'];
-        $dynamicJsonKeys = [];
         $staticJsonKeys = [];
 
         /** Barcha JSON indekslarini aniqlash */
@@ -98,17 +96,15 @@ class ExcelExportImport
         $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         if ($is_static) {
+            $headers = ['ID', 'Category', 'Keywords', 'Translate here'];
             $sheet->getColumnDimension('A')->setAutoSize(false);
-            $sheet->getColumnDimension('A')->setWidth(7);
-            $headers = array_merge($baseHeaders, $dynamicJsonKeys);
-            $sheet->fromArray($headers, NULL, 'A1');
-            $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
+            $sheet->getColumnDimension('A')->setWidth(3);
             $sheet->getColumnDimension('C')->setAutoSize(true);
             $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
             $sheet->getStyle('D1')->getFont()->setBold(true);
-            $sheet->setCellValue("D1", "translate here");
-            $sheet->getStyle("A1:B1")->getFont()->setBold(true)->setColor(new Color('777777'));
-            $sheet->getStyle("C1")->getFont()->setBold(true)->setColor(new Color('777777'));
+            $sheet->getStyle("A1:C1")->getFont()->setBold(true)->setColor(new Color('777777'));
+            $sheet->fromArray($headers, NULL, 'A1');
+            $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
             $sheet->getStyle($headerRange)->getFont()->setBold(true);
 
             /** Ma'lumotlarni qo'shish */
@@ -134,12 +130,17 @@ class ExcelExportImport
                 }
             }
         } else {
+            $headers = ['ID', 'Table Name', 'Attribute', 'Value'];
             $sheet->getColumnDimension('A')->setAutoSize(true);
             $sheet->getColumnDimension('D')->setAutoSize(true);
             $sheet->getColumnDimension('C')->setAutoSize(true);
+            $sheet->fromArray($headers, NULL, 'A1');
+            $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
+            $sheet->getStyle("A1:C1")->getFont()->setBold(true)->setColor(new Color('777777'));
+            $sheet->getStyle($headerRange)->getFont()->setBold(true);
 
             /** Ma'lumotlarni qo'shish */
-            $rowNumber = 1;
+            $rowNumber = 2;
             foreach ($data as $row) {
                 $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                 $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));

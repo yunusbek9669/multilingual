@@ -9,6 +9,7 @@ use yii\db\Exception;
 use yii\db\Query;
 use Yunusbek\Multilingual\components\ExcelExportImport;
 use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\traits\MultilingualTrait;
 
 
@@ -80,22 +81,21 @@ class Multilingual extends ActiveRecord
     }
 
     /** Tablitsadan excelga export qilish
-     * @param string $tableName
-     * @param bool $is_static
+     * @param array $params
      * @return bool|string
      * @throws Exception
      * @throws \Exception
      */
-    public static function exportToExcel(string $tableName, bool $is_static = true): bool|string
+    public static function exportToExcelI18n(array $params): bool|string
     {
-        $data = Yii::$app->db->createCommand("SELECT * FROM {$tableName} WHERE is_static = :is_static" . ($is_static ? '' : ' AND table_iteration != 0'))
-            ->bindValue(':is_static', $is_static, \PDO::PARAM_BOOL)->queryAll();
+        $default_lang = MlConstant::LANG_PREFIX . key(Yii::$app->params['default_language']);
+        $data = Yii::$app->db->createCommand("SELECT * FROM {$default_lang} WHERE is_static = true AND table_iteration = 0 ORDER BY table_name")->queryAll();
 
         if (empty($data)) {
-            throw new InvalidConfigException(Yii::t('multilingual', "The {{$tableName}} table is empty. Please run the {command} command.", ['command' => '" php yii ml-extract/i18n "']));
+            throw new InvalidConfigException(Yii::t('multilingual', "The table to which I18n should be written is currently empty. Please run the {command} command to fill it.", ['command' => '" php yii ml-extract/i18n "']));
         }
 
-        return ExcelExportImport::exportToExcelData($data, "{$tableName}.xlsx");
+        return ExcelExportImport::exportToExcelData($data, "{$default_lang}.xlsx");
     }
 
     /** Asosiy tablitsalardan excelga export qilish

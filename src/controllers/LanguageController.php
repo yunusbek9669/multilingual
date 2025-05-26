@@ -171,37 +171,13 @@ class LanguageController extends Controller
     /**
      * @throws \Exception
      */
-    public function actionExportToExcel(string $table_name = null, bool $is_static = false)
+    public function actionExportToExcelDefault(bool $is_static)
     {
-        $response = Multilingual::exportToExcel($table_name, $is_static);
-        if (Yii::$app->request->isAjax) {
-            return $response;
+        if ($is_static) {
+            $response = Multilingual::exportToExcelI18n(Yii::$app->request->queryParams);
         } else {
-            $url = json_decode($response)->fileUrl;
-            $file = Yii::getAlias("@webroot{$url}");
-            if (file_exists($file)) {
-                header('Content-Description: File Transfer');
-                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); // Excel fayl turi
-                header('Content-Disposition: attachment; filename="' . basename($file) . '"'); // Fayl nomi
-                header('Expires: 0'); // Yaroqlilik muddati
-                header('Cache-Control: must-revalidate');
-                header('Pragma: public');
-                header('Content-Length: ' . filesize($file)); // Fayl hajmi
-
-                // Faylni o'qish va yuklab berish
-                readfile($file);
-                exit;
-            }
-            return true;
+            $response = Multilingual::exportToExcelDefault(Yii::$app->request->queryParams);
         }
-    }
-
-    /**
-     * @throws \Exception
-     */
-    public function actionExportToExcelDefault()
-    {
-        $response = Multilingual::exportToExcelDefault(Yii::$app->request->queryParams);
         if (Yii::$app->request->isAjax) {
             return $response;
         } else {
