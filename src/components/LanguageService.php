@@ -190,7 +190,6 @@ class LanguageService
                 ];
 
                 if ($export) {
-                    $result['joins'] = '';
                     $result['is_full'] = var_export((bool)$isStatic,true)." as is_static";
                 } elseif (count($languages) > 1) {
                     $commonConditions = [];
@@ -203,7 +202,7 @@ class LanguageService
                             $lang_table = $language['table'];
 
                             /** JOIN yasab berish uchun */
-                            $result['joins'][$lang_table] = "LEFT JOIN $lang_table AS $lang_table ON $table_name.id = $lang_table.table_iteration AND '$table_name' = $lang_table.table_name";
+                            $result['joins'][$lang_table] = new Expression("LEFT JOIN $lang_table AS $lang_table ON $table_name.id = $lang_table.table_iteration AND '$table_name' = $lang_table.table_name");
 
                             /** is_full:BOOLEAN to‘liq tarjima qilinganligini tekshirish */
                             $result['is_full'] .= new Expression("WHEN {$lang_table}.value::jsonb = '{}' OR EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE kv.value = '' OR kv.value IS NULL) THEN FALSE ");
@@ -231,10 +230,10 @@ class LanguageService
                     if (!empty($isAllConditions)) {
                         $isAllConditions = ['('.implode(' OR ', $isAllConditions).')'];
                     }
-                    $result['joins'] = implode(" ", $result['joins']);
                     $result['langValues'] = [implode(", ", $result['langValues'])];
                     $result['conditions'] = implode(' AND ', array_merge($commonConditions, $isAllConditions));
                 }
+                $result['joins'] = implode(" ", $result['joins']);
                 return $result;
             }
 
