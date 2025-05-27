@@ -184,12 +184,13 @@ class LanguageService
             function sqlHelper(array $languages, array $attributes, string $table_name, int $isStatic, int $isAll, bool $export): array
             {
                 $result = [
-                    'joins' => '',
+                    'joins' => [],
                     'langValues' => [],
                     'is_full' => var_export((bool)$isStatic,true)." as is_full",
                 ];
 
                 if ($export) {
+                    $result['joins'] = '';
                     $result['is_full'] = var_export((bool)$isStatic,true)." as is_static";
                 } elseif (count($languages) > 1) {
                     $commonConditions = [];

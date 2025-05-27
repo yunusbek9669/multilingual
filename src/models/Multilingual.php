@@ -95,7 +95,7 @@ class Multilingual extends ActiveRecord
             throw new InvalidConfigException(Yii::t('multilingual', "The table to which I18n should be written is currently empty. Please run the {command} command to fill it.", ['command' => '" php yii ml-extract/i18n "']));
         }
 
-        return ExcelExportImport::exportToExcelData($data, "{$default_lang}.xlsx");
+        return ExcelExportImport::exportToExcelData($data, "i18n.xlsx");
     }
 
     /** Asosiy tablitsalardan excelga export qilish
@@ -112,6 +112,6 @@ class Multilingual extends ActiveRecord
             throw new InvalidConfigException(Yii::t('multilingual', 'No information was found in the table'));
         }
 
-        return ExcelExportImport::exportToExcelData($data, "default_lang.xlsx");
+        return ExcelExportImport::exportToExcelData($data, "db_lang.xlsx");
     }
 }

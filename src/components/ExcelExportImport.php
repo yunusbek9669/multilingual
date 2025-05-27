@@ -192,11 +192,12 @@ class ExcelExportImport
     /** Exceldan tablitsaga import qilish
      * @param BaseLanguageList $model
      * @return array
+     * @throws InvalidConfigException
      */
     public static function importFromExcel(BaseLanguageList $model): array
     {
         $db = Yii::$app->db;
-        $tableNames = $db->schema->getTableNames();
+        $jsonData = LanguageService::getJson()['tables'];
         $response = [
             'status' => true,
             'code' => 'success',
@@ -204,7 +205,8 @@ class ExcelExportImport
         ];
         $excel_file = UploadedFile::getInstance($model, 'import_excel');
         if ($excel_file) {
-            if ($model->validate()) {
+            if ($model->validate())
+            {
                 $table = $model->table;
                 $transaction = $db->beginTransaction();
                 try {
@@ -220,50 +222,49 @@ class ExcelExportImport
 
                     unlink($filePath);
 
-                    if (!empty($data)) {
-                        $attributes = [];
-                        $hash_attributes = array_slice($data[0], 3);
-                        foreach ($hash_attributes as $attribute) {
-                            $attributes[] = self::decodeString(trim($attribute));
-                        }
+                    if (!empty($data))
+                    {
                         unset($data[0]);
-                        if (!empty($data)) {
-                            /** static tarjimalr uchun */
-                            $static = [];
-                            foreach ($data as $row) {
-                                if ($row[0] == '1') {
-                                    $static[$row[1]][$tableNames[(int)$row[2]]] = $row[3];
-                                }
-                            }
-                            foreach ($static as $category => $values) {
-                                $upsert = BaseLanguageQuery::upsert($table, $category, 0, true, $values);
-                                if ($upsert <= 0) {
-                                    $json = json_encode($values);
-                                    $response['status'] = false;
-                                    $response['code'] = 'error';
-                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $category, 'json' => $json]);
-                                    break;
-                                }
-                            }
 
-                            /** dynamic tarjimalr uchun */
-                            $dynamic = array_filter($data, function ($item) {
-                                return $item[0] === '0';
-                            });
-                            foreach ($dynamic as $row) {
-                                $filteredArray = array_slice($row, 3);
-                                $values = array_combine($attributes, $filteredArray);
-                                $values = array_filter($values, function ($value) {
-                                    return $value !== null;
-                                });
-                                $upsert = BaseLanguageQuery::upsert($table, $tableNames[(int)$row[1]], (int)$row[2], false, $values);
-                                if ($upsert <= 0) {
-                                    $json = json_encode($values);
-                                    $response['status'] = false;
-                                    $response['code'] = 'error';
-                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $row[1], 'json' => $json]);
-                                    break;
+                        $static = [];
+                        $dynamic = [];
+                        foreach ($data as $row) {
+                            if (!empty($row[0])) {
+                                $keys = explode(':', $row[0]);
+                                if ($keys[0] == '1') {
+                                    $static[$row[1]][$row[2]] = trim($row[3]);
+                                } elseif ($keys[0] == '0') {
+                                    $dynamic[array_keys($jsonData)[(int)$keys[1]]][$keys[2]] = trim($row[3]);
                                 }
+                            }
+                        }
+
+                        /** static tarjimalr uchun */
+                        foreach ($static as $category => $values) {
+                            $upsert = BaseLanguageQuery::upsert($table, $category, 0, true, $values);
+                            if ($upsert <= 0) {
+                                $json = json_encode($values);
+                                $response['status'] = false;
+                                $response['code'] = 'error';
+                                $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $category, 'json' => $json]);
+                                break;
+                            }
+                        }
+
+                        /** dynamic tarjimalr uchun */
+                        foreach ($dynamic as $row) {
+                            $filteredArray = array_slice($row, 3);
+                            $values = array_combine($row, $filteredArray);
+                            $values = array_filter($values, function ($value) {
+                                return $value !== null;
+                            });
+                            $upsert = BaseLanguageQuery::upsert($table, $row[(int)$row[1]], (int)$row[2], false, $values);
+                            if ($upsert <= 0) {
+                                $json = json_encode($values);
+                                $response['status'] = false;
+                                $response['code'] = 'error';
+                                $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $row[1], 'json' => $json]);
+                                break;
                             }
                         }
                     }
