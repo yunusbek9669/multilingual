@@ -19,42 +19,6 @@ use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class ExcelExportImport
 {
-    /** xarflarni raqam bilan alishtirish */
-    protected static function encodeString($input): string
-    {
-        $map = array_combine(range('a', 'z'), range(1, 26));
-        $input = strtolower($input);
-        $output = '';
-
-        for ($i = 0; $i < strlen($input); $i++) {
-            $char = $input[$i];
-            if (isset($map[$char])) {
-                $output .= $map[$char] . '-';
-            } else {
-                $output .= $char . '-';
-            }
-        }
-
-        return rtrim($output, '-');
-    }
-
-    /** raqamlarni xarf bilan alishtirish */
-    protected static function decodeString($encoded): string
-    {
-        $reverseMap = array_combine(range(1, 26), range('a', 'z'));
-        $parts = explode('-', $encoded);
-        $output = '';
-
-        foreach ($parts as $part) {
-            if (ctype_digit($part) && isset($reverseMap[(int)$part])) {
-                $output .= $reverseMap[(int)$part];
-            } else {
-                $output .= $part;
-            }
-        }
-        return $output;
-    }
-
     /** Ma‘lumotlarni excelga export qilish
      * @throws InvalidConfigException
      */
@@ -63,8 +27,8 @@ class ExcelExportImport
         $k_n = [];
         $jsonData = LanguageService::getJson()['tables'];
         $iteration = 1;
-        foreach (LanguageService::tableTextFormList($jsonData, true) as $table_name => $name) {
-            $k_n[$name] = $iteration++;
+        foreach ($jsonData as $table_name => $attributes) {
+            $k_n[$table_name] = $iteration++;
         }
         Settings::setCache(new SimpleCache3());
         $is_static = false;
@@ -130,6 +94,7 @@ class ExcelExportImport
                 }
             }
         } else {
+            $default_lang = reset(Yii::$app->params['default_language']);
             $headers = ['ID', 'Table Name', 'Attribute', 'Value'];
             $sheet->getColumnDimension('A')->setAutoSize(true);
             $sheet->getColumnDimension('D')->setAutoSize(true);
@@ -145,13 +110,14 @@ class ExcelExportImport
                 $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                 $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
+                $attribute_index = 0;
                 $jsonData = json_decode($row['value'], true);
-                foreach ($jsonData as $attribute => $value) {
+                foreach ($jsonData[$default_lang['name']] as $attribute => $value) {
                     $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                     $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$k_n[$row['table_name']].':'.(int)$row['table_iteration']);
-                    $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
+                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$k_n[$row['table_name']].':'.(int)$row['table_iteration'].':'.($attribute_index++));
+                    $sheet->setCellValue("B{$rowNumber}", $row['table_translated']);
                     $sheet->setCellValue("C{$rowNumber}", $attribute);
                     $sheet->setCellValue("D{$rowNumber}", $value);
                     $rowNumber++;
@@ -193,11 +159,11 @@ class ExcelExportImport
      * @param BaseLanguageList $model
      * @return array
      * @throws InvalidConfigException
+     * @throws Exception
      */
     public static function importFromExcel(BaseLanguageList $model): array
     {
         $db = Yii::$app->db;
-        $jsonData = LanguageService::getJson()['tables'];
         $response = [
             'status' => true,
             'code' => 'success',
@@ -224,56 +190,65 @@ class ExcelExportImport
 
                     if (!empty($data))
                     {
+                        $jsonData = LanguageService::getJson()['tables'];
                         unset($data[0]);
 
                         $static = [];
                         $dynamic = [];
                         foreach ($data as $row) {
                             if (!empty($row[0])) {
+                                $value = trim($row[3]);
                                 $keys = explode(':', $row[0]);
                                 if ($keys[0] == '1') {
-                                    $static[$row[1]][$row[2]] = trim($row[3]);
-                                } elseif ($keys[0] == '0') {
-                                    $dynamic[array_keys($jsonData)[(int)$keys[1]]][$keys[2]] = trim($row[3]);
+                                    $static[$row[1]][$row[2]] = $value;
+                                } elseif ($keys[0] == '0' && !empty($value)) {
+                                    $table_name = array_keys($jsonData)[(int)$keys[1]];
+                                    $attribute = $jsonData[$table_name][(int)$keys[3]] ?? null;
+                                    if ($attribute === null) continue;
+                                    $dynamic[$table_name][$keys[2]][$attribute] = $value;
                                 }
                             }
                         }
 
                         /** static tarjimalr uchun */
-                        foreach ($static as $category => $values) {
-                            $upsert = BaseLanguageQuery::upsert($table, $category, 0, true, $values);
-                            if ($upsert <= 0) {
-                                $json = json_encode($values);
-                                $response['status'] = false;
-                                $response['code'] = 'error';
-                                $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $category, 'json' => $json]);
-                                break;
+                        if (!empty($static)) {
+                            foreach ($static as $category => $values) {
+                                $upsert = BaseLanguageQuery::upsert($table, $category, 0, true, $values);
+                                if ($upsert <= 0) {
+                                    $json = json_encode($values);
+                                    $response['status'] = false;
+                                    $response['code'] = 'error';
+                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $category, 'json' => $json]);
+                                    break;
+                                }
                             }
                         }
 
                         /** dynamic tarjimalr uchun */
-                        foreach ($dynamic as $row) {
-                            $filteredArray = array_slice($row, 3);
-                            $values = array_combine($row, $filteredArray);
-                            $values = array_filter($values, function ($value) {
-                                return $value !== null;
-                            });
-                            $upsert = BaseLanguageQuery::upsert($table, $row[(int)$row[1]], (int)$row[2], false, $values);
-                            if ($upsert <= 0) {
-                                $json = json_encode($values);
-                                $response['status'] = false;
-                                $response['code'] = 'error';
-                                $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $row[1], 'json' => $json]);
-                                break;
+                        if (!empty($dynamic)) {
+                            foreach ($dynamic as $table_name => $row) {
+                                foreach ($row as $table_iteration => $values) {
+                                    $upsert = BaseLanguageQuery::upsert($table, $table_name, $table_iteration, false, $values);
+                                    if ($upsert <= 0) {
+                                        $json = json_encode($values);
+                                        $response['status'] = false;
+                                        $response['code'] = 'error';
+                                        $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $table_name, 'json' => $json]);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
                     Yii::$app->cache->flush();
-                    $transaction->commit();
                 } catch (Exception $e) {
                     $response['status'] = false;
                     $response['code'] = 'error';
                     $response['message'] = $e->getMessage();
+                }
+                if ($response['status']) {
+                    $transaction->commit();
+                } else {
                     $transaction->rollBack();
                 }
             } else {

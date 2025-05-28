@@ -120,25 +120,26 @@ class LanguageService
                 'table_iteration' => Yii::t('multilingual', 'Table Iteration'),
                 'language' => $tableResult['language']
             ],
-            'dataProvider' => $dataProvider,
+            'pagination' => $dataProvider->pagination,
             'body' => []
         ];
 
         if (!empty($dataProvider->getModels())) {
             foreach ($dataProvider->getModels() as $key => $row) {
-                $result['body'][$key] = $row;
+                $index = $key + 1 + ($dataProvider->pagination->page * $dataProvider->pagination->pageSize);
+                $result['body'][$index] = $row;
                 $values = json_decode($row['value'], true);
                 foreach ($languages as $language) {
                     if (!empty($values[$language['name']])) {
                         foreach ($values[$language['name']] as $attribute => $translation) {
-                            $result['body'][$key]['translate'][$attribute][$language['name']] = $translation;
+                            $result['body'][$index]['translate'][$attribute][$language['name']] = $translation;
                             if (isset($language['table']) && empty($translation)) {
                                 $result['header']['language'][$language['name']] += 1;
                             }
                         }
-                    } else {
+                    } elseif (!empty($values[$default_lang])) {
                         foreach ($values[$default_lang] as $attribute => $translation) {
-                            $result['body'][$key]['translate'][$attribute][$language['name']] = '';
+                            $result['body'][$index]['translate'][$attribute][$language['name']] = '';
                             $result['header']['language'][$language['name']] += 1;
                         }
                     }
@@ -267,11 +268,18 @@ class LanguageService
                 $allValues = jsonBuilder($table_name, $default_lang['name'], $attributes);
 
                 /** WHERE */
-                $where = [];
+                $and_where = [];
                 foreach ($jsonData['where'] as $key => $value) {
-                    $where[] = "$table_name.$key = $value";
+                    $and_where[] = "$table_name.$key = $value";
                 }
-                $where = implode(" AND ", $where);
+                $and_where = implode(" AND ", $and_where);
+
+                $or_where = [];
+                foreach ($attributes as $attribute) {
+                    $or_where[] = "($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '')";
+                }
+                $or_where = implode(" OR ", $or_where);
+                $where = "$and_where AND ($or_where)";
 
                 if (!$export) {
                     if (!empty($sqlHelper['json_builder'])) {

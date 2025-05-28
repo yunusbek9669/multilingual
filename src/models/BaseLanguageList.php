@@ -2,6 +2,7 @@
 
 namespace Yunusbek\Multilingual\models;
 
+use yii\base\InvalidConfigException;
 use yii\base\InvalidParamException;
 use yii\behaviors\TimestampBehavior;
 use yii\behaviors\AttributeBehavior;
@@ -52,6 +53,7 @@ class BaseLanguageList extends ActiveRecord
     /**
      * @throws InvalidParamException
      * @throws Exception
+     * @throws InvalidConfigException
      */
     public function beforeSave($insert)
     {
@@ -94,6 +96,7 @@ class BaseLanguageList extends ActiveRecord
         }
         if (!$response['status']) {
             $this->addError($response['code'], $response['message']);
+            Yii::$app->session->setFlash('error', $response['message']);
             return false;
         }
         return parent::beforeSave($insert);
