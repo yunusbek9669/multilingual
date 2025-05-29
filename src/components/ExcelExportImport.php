@@ -25,9 +25,9 @@ class ExcelExportImport
     public static function exportToExcelData($data, $fileName): bool|string
     {
         $k_n = [];
-        $jsonData = LanguageService::getJson()['tables'];
-        $iteration = 1;
-        foreach ($jsonData as $table_name => $attributes) {
+        $jsonTables = LanguageService::getJson()['tables'];
+        $iteration = 0;
+        foreach ($jsonTables as $table_name => $attributes) {
             $k_n[$table_name] = $iteration++;
         }
         Settings::setCache(new SimpleCache3());
@@ -110,13 +110,13 @@ class ExcelExportImport
                 $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                 $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-                $attribute_index = 0;
                 $jsonData = json_decode($row['value'], true);
                 foreach ($jsonData[$default_lang['name']] as $attribute => $value) {
                     $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                     $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$k_n[$row['table_name']].':'.(int)$row['table_iteration'].':'.($attribute_index++));
+                    $attribute_index = array_flip($jsonTables[$row['table_name']])[$attribute];
+                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$k_n[$row['table_name']].':'.(int)$row['table_iteration'].':'.$attribute_index);
                     $sheet->setCellValue("B{$rowNumber}", $row['table_translated']);
                     $sheet->setCellValue("C{$rowNumber}", $attribute);
                     $sheet->setCellValue("D{$rowNumber}", $value);
@@ -195,13 +195,20 @@ class ExcelExportImport
 
                         $static = [];
                         $dynamic = [];
-                        foreach ($data as $row) {
-                            if (!empty($row[0])) {
+                        foreach ($data as $row)
+                        {
+                            if (!empty($row[0]))
+                            {
                                 $value = trim($row[3]);
                                 $keys = explode(':', $row[0]);
+
+                                /** static tarjimalr uchun */
                                 if ($keys[0] == '1') {
                                     $static[$row[1]][$row[2]] = $value;
-                                } elseif ($keys[0] == '0' && !empty($value)) {
+                                }
+
+                                /** dynamic tarjimalr uchun */
+                                elseif ($keys[0] == '0' && !empty($value)) {
                                     $table_name = array_keys($jsonData)[(int)$keys[1]];
                                     $attribute = $jsonData[$table_name][(int)$keys[3]] ?? null;
                                     if ($attribute === null) continue;

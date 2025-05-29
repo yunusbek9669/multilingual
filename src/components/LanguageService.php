@@ -129,6 +129,7 @@ class LanguageService
                 $index = $key + 1 + ($dataProvider->pagination->page * $dataProvider->pagination->pageSize);
                 $result['body'][$index] = $row;
                 $values = json_decode($row['value'], true);
+                ksort($values);
                 foreach ($languages as $language) {
                     if (!empty($values[$language['name']])) {
                         foreach ($values[$language['name']] as $attribute => $translation) {
@@ -210,14 +211,12 @@ class LanguageService
                 $result = [
                     'joins' => [],
                     'json_builder' => [],
-                    'is_full' => var_export((bool)$isStatic,true)." as is_full",
+                    'is_full' => $export ? var_export((bool)$isStatic,true)." as is_static" : var_export((bool)$isStatic,true)." as is_full",
                 ];
 
-                if ($export) {
-                    $result['is_full'] = var_export((bool)$isStatic,true)." as is_static";
-                } elseif (count($languages) > 1) {
+                if (count($languages) > 1) {
+                    $is_full = [];
                     $conditions = [];
-                    $result['is_full'] = new Expression("CASE ");
                     foreach ($languages as $language) {
                         if (isset($language['table'])) {
                             $name = $language['name'];
@@ -227,14 +226,18 @@ class LanguageService
                             /** JOIN yasab berish uchun */
                             $result['joins'][$lang_table] = new Expression("LEFT JOIN $lang_table AS $lang_table ON $table_name.id = $lang_table.table_iteration AND '$table_name' = $lang_table.table_name");
 
-                            /** is_full:BOOLEAN to‘liq tarjima qilinganligini tekshirish */
-                            $result['is_full'] .= new Expression("WHEN {$lang_table}.value::jsonb = '{}' THEN FALSE ");
+                            if (!$export) {
+                                /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
+                                foreach ($attributes as $attribute) {
+                                    isFull($result, $attribute, $lang_table, $table_name);
+                                }
 
-                            /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
-                            foreach ($attributes as $attribute) {
-                                isFull($result, $attribute, $lang_table, $table_name);
+                                /** value ustunida tarjimalarni json holatda yasash */
+                                $result['json_builder'][$name] = jsonBuilder($table_name, $name, $attributes, $lang_table);
+
+                                /** is_full:BOOLEAN to‘liq tarjima qilinganligini tekshirish */
+                                $is_full[] = new Expression("WHEN {$lang_table}.value::jsonb = '{}' THEN FALSE ");
                             }
-                            $result['json_builder'][$name] = jsonBuilder($table_name, $name, $attributes, $lang_table);;
 
                             /** Qo‘shimcha shartlar */
                             $conditions[$lang_table] = new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
@@ -246,7 +249,10 @@ class LanguageService
                         }
                     }
 
-                    $result['is_full'] .= "ELSE TRUE END AS is_full";
+                    if (!$export) {
+                        $is_full = implode(' ', $is_full);
+                        $result['is_full'] = new Expression("CASE {$is_full} ELSE TRUE END AS is_full");
+                    }
                     $result['conditions'] = implode(' ', $conditions);
                 }
                 $result['json_builder'] = implode(", ", $result['json_builder']);
@@ -254,8 +260,6 @@ class LanguageService
                 return $result;
             }
 
-            $sql = "SELECT * FROM (";
-            $countSql = "SELECT COUNT(*) FROM (";
             $select = [];
             $countSelect = [];
             foreach ($jsonData['tables'] as $table_name => $attributes)
@@ -263,11 +267,18 @@ class LanguageService
                 /** lang_* jadvallari bo‘yicha sql sozlamalar */
                 $sqlHelper = sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll, $export);
 
-                /** JSON value */
+
+                /** JSON value::begin */
                 $default_lang = array_values(Yii::$app->params['default_language'])[0];
                 $allValues = jsonBuilder($table_name, $default_lang['name'], $attributes);
+                if (!empty($sqlHelper['json_builder'])) {
+                    $allValues = $allValues.', '.$sqlHelper['json_builder'];
+                }
+                /** JSON value::end */
 
-                /** WHERE */
+
+
+                /** WHERE::begin */
                 $and_where = [];
                 foreach ($jsonData['where'] as $key => $value) {
                     $and_where[] = "$table_name.$key = $value";
@@ -281,14 +292,11 @@ class LanguageService
                 $or_where = implode(" OR ", $or_where);
                 $where = "$and_where AND ($or_where)";
 
-                if (!$export) {
-                    if (!empty($sqlHelper['json_builder'])) {
-                        $allValues = $allValues.', '.$sqlHelper['json_builder'];
-                    }
-                    if (!empty($sqlHelper['conditions'])) {
-                        $where = implode(" AND ", array_merge([$where], [$sqlHelper['conditions']]));
-                    }
+                if (!empty($sqlHelper['conditions'])) {
+                    $where = implode(" AND ", array_merge([$where], [$sqlHelper['conditions']]));
                 }
+                /** WHERE::end */
+
 
                 $tableTextFormat = str_replace("'", "''", self::tableTextFormat($table_name, true));
                 $select[] = new Expression("(
@@ -307,8 +315,8 @@ class LanguageService
             }
             $select = implode(" UNION ALL ", $select);
             $countSelect = implode(" UNION ALL ", $countSelect);
-            $sql .= "$select) AS combined";
-            $countSql .= "$countSelect) AS combined";
+            $sql = new Expression("SELECT * FROM ({$select}) AS combined");
+            $countSql = new Expression("SELECT COUNT(*) FROM ({$countSelect}) AS combined");
             $totalCount = Yii::$app->db->createCommand($countSql)->queryScalar();
         }
         $pagination = new Pagination([
