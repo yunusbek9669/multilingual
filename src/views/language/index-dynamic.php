@@ -96,6 +96,10 @@ $js = <<<JS
             const url = new URL(window.location.href);
             url.searchParams.set('per-page', perPage);
             window.location.href = url.toString();
+        } else if (!isNaN(perPage) && perPage > 0 && perPage > 5000) {
+            updatePerPage(5000)
+        } else if (!isNaN(perPage) && perPage <= 0) {
+            updatePerPage(1)
         }
     }
     
