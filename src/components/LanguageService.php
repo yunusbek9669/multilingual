@@ -9,9 +9,12 @@ use yii\data\SqlDataProvider;
 use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\Query;
+use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 
 class LanguageService
 {
+    use SqlHelperTrait;
+
     private static array $jsonData = [];
 
     /**
@@ -166,135 +169,25 @@ class LanguageService
         $jsonData = self::getJson();
         if (!empty($jsonData['tables']))
         {
-            /** tarjima qilinadigan jadvallar attributelari uchun */
-            function isFull(array &$result, string $attribute, string $lang_table, string $table_name): void
-            {
-                $result['is_full'] .= new Expression("
-                    WHEN COALESCE({$table_name}.{$attribute}, '') <> '' AND (NOT jsonb_path_exists({$lang_table}.value::jsonb, '$.{$attribute}') OR COALESCE({$lang_table}.value::jsonb ->> '{$attribute}', '') = '') THEN FALSE 
-                    WHEN {$lang_table}.value IS NULL THEN FALSE 
-                ");
-            }
-
-            /** tarjima qilinadigan jadvallar attributelari uchun */
-            function setExists(string $lang_table): string
-            {
-                return new Expression("EXISTS (SELECT 1 FROM json_each_text({$lang_table}.value) kv WHERE COALESCE(kv.value, '') = '')");
-            }
-
-            /** tarjima qilinadigan ustunlarni bitta jsonga saralab olish */
-            function jsonBuilder(string $table_name, string $lang_name, array $attributes, string $lang_table = null): string
-            {
-                $selects = [];
-                foreach ($attributes as $attribute) {
-                    $value = "{$table_name}.{$attribute}";
-                    if (!empty($lang_table)) {
-                        $value = "COALESCE({$lang_table}.value->>'{$attribute}', '')";
-                    }
-                    $selects[] = new Expression("SELECT
-                        '{$attribute}' AS key,
-                        CASE WHEN {$table_name}.{$attribute} IS NOT NULL AND {$table_name}.{$attribute} <> '' THEN {$value} END AS value
-                    ");
-                }
-                $selects = implode(' UNION ALL ', $selects);
-                return new Expression("
-                    '{$lang_name}', (
-                        SELECT jsonb_object_agg(key, value)
-                        FROM ({$selects}) as fields
-                        WHERE value IS NOT NULL
-                    )"
-                );
-            }
-
-            /** lang_* jadvallari bo‘yicha sql sozlamalar yasash uchun */
-            function sqlHelper(array $languages, array $attributes, string $table_name, int $isStatic, int $isAll, bool $export): array
-            {
-                $result = [
-                    'joins' => [],
-                    'json_builder' => [],
-                    'is_full' => $export ? var_export((bool)$isStatic,true)." as is_static" : var_export((bool)$isStatic,true)." as is_full",
-                ];
-
-                if (count($languages) > 1) {
-                    $is_full = [];
-                    $conditions = [];
-                    foreach ($languages as $language) {
-                        if (isset($language['table'])) {
-                            $name = $language['name'];
-                            $lang_table = $language['table'];
-                            $exists = setExists($lang_table);
-
-                            /** JOIN yasab berish uchun */
-                            $result['joins'][$lang_table] = new Expression("LEFT JOIN $lang_table AS $lang_table ON $table_name.id = $lang_table.table_iteration AND '$table_name' = $lang_table.table_name");
-
-                            if (!$export) {
-                                /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
-                                foreach ($attributes as $attribute) {
-                                    isFull($result, $attribute, $lang_table, $table_name);
-                                }
-
-                                /** value ustunida tarjimalarni json holatda yasash */
-                                $result['json_builder'][$name] = jsonBuilder($table_name, $name, $attributes, $lang_table);
-
-                                /** is_full:BOOLEAN to‘liq tarjima qilinganligini tekshirish */
-                                $is_full[] = new Expression("WHEN {$lang_table}.value::jsonb = '{}' THEN FALSE ");
-                            }
-
-                            /** Qo‘shimcha shartlar */
-                            $conditions[$lang_table] = new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
-
-                            /** Faqat bo‘sh qiymatlilarni yig‘ish */
-                            if ($isAll === 0) {
-                                $conditions[$lang_table] .= new Expression(" AND ($lang_table.is_static IS NULL OR {$exists})");
-                            }
-                        }
-                    }
-
-                    if (!$export) {
-                        $is_full = implode(' ', $is_full);
-                        $result['is_full'] = new Expression("CASE {$is_full} ELSE TRUE END AS is_full");
-                    }
-                    $result['conditions'] = implode(' ', $conditions);
-                }
-                $result['json_builder'] = implode(", ", $result['json_builder']);
-                $result['joins'] = implode(" ", $result['joins']);
-                return $result;
-            }
-
             $select = [];
             $countSelect = [];
             foreach ($jsonData['tables'] as $table_name => $attributes)
             {
                 /** lang_* jadvallari bo‘yicha sql sozlamalar */
-                $sqlHelper = sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll, $export);
+                $sqlHelper = self::sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll, $export);
 
 
                 /** JSON value::begin */
                 $default_lang = array_values(Yii::$app->params['default_language'])[0];
-                $allValues = jsonBuilder($table_name, $default_lang['name'], $attributes);
+                $allValues = self::jsonBuilder($table_name, $default_lang['name'], $attributes);
                 if (!empty($sqlHelper['json_builder'])) {
                     $allValues = $allValues.', '.$sqlHelper['json_builder'];
                 }
                 /** JSON value::end */
 
 
-
                 /** WHERE::begin */
-                $and_where = [];
-                foreach ($jsonData['where'] as $key => $value) {
-                    $and_where[] = "$table_name.$key = $value";
-                }
-                $and_where = implode(" AND ", $and_where);
-
-                $or_where = [];
-                foreach ($attributes as $attribute) {
-                    $or_where[] = "($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '')";
-                }
-                $or_where = implode(" OR ", $or_where);
-                $where = "$and_where AND ($or_where)";
-
-                if (!empty($sqlHelper['conditions'])) {
-                    $where = implode(" AND ", array_merge([$where], [$sqlHelper['conditions']]));
-                }
+                $where = self::whereBuilder($jsonData, $table_name, $attributes, $sqlHelper);
                 /** WHERE::end */
 
 

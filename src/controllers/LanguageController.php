@@ -70,7 +70,7 @@ class LanguageController extends Controller
      * @throws Exception
      * @throws NotFoundHttpException
      */
-    public function actionTranslateDynamic(string $table_name, int $table_iteration, array $attributes): Response|array|string
+    public function actionTranslateDynamic(string $table_name, int $table_iteration, array $attributes, string $page = null): Response|array|string
     {
         $model = $this->findModel($table_name, $table_iteration);
         $request = Yii::$app->request;
@@ -109,7 +109,11 @@ class LanguageController extends Controller
                     return $response;
                 }
                 Yii::$app->session->setFlash($response['code'], $response['message']);
-                return $this->redirect(['index', 'is_static' => 0]);
+                $url = ['index', 'is_static' => 0];
+                if (!empty($page)) {
+                    $url = array_merge(['index'], json_decode($page, true));
+                }
+                return $this->redirect($url);
             }
         }
 
