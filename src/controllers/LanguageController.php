@@ -137,8 +137,8 @@ class LanguageController extends Controller
         if ($request->isPost) {
             $response = [
                 'status' => true,
-                'code' => 'error',
-                'message' => Yii::t('multilingual', 'Error')
+                'code' => 'success',
+                'message' => Yii::t('multilingual', 'Saved Successfully')
             ];
             $transaction = Yii::$app->db->beginTransaction();
             try {
@@ -146,15 +146,12 @@ class LanguageController extends Controller
             } catch (\Exception $e) {
                 $response['message'] = $e->getMessage();
                 $response['errors'] = $e->getTrace();
+                $response['code'] = 'error';
                 $response['status'] = false;
             }
             if ($response['status']) {
-                $response['status'] = true;
-                $response['code'] = 'success';
-                $response['message'] = Yii::t('multilingual', 'Saved Successfully');
                 $transaction->commit();
             } else {
-                $response['code'] = 'error';
                 $transaction->rollBack();
             }
             if (Yii::$app->request->isAjax) {

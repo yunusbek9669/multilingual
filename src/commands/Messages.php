@@ -753,6 +753,7 @@ EOD;
      * @param array $insertCount
      * @return int
      * @throws \yii\db\Exception
+     * @throws InvalidConfigException
      */
     protected function saveMessageToDb(string $langTable, string $category, array &$message, array $json_list, array &$insertCount): int
     {
@@ -765,7 +766,7 @@ EOD;
             }
         }
 
-        return BaseLanguageQuery::upsert($langTable, $category, 0, true, $message);
+        return BaseLanguageQuery::singleUpsert($langTable, $category, 0, true, $message);
     }
 
     protected function parseAttributesFromBuffer(array $buffer)

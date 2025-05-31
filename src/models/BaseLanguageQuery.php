@@ -3,11 +3,12 @@
 namespace Yunusbek\Multilingual\models;
 
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\base\Model;
 use yii\db\ActiveQuery;
 use yii\db\Exception;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\components\traits\JsonTrait;
 
 /**
  *
@@ -15,13 +16,19 @@ use Yunusbek\Multilingual\components\LanguageService;
  */
 class BaseLanguageQuery extends ActiveQuery
 {
-    public $selectColumns = [];
-    protected $joinList = [];
-    protected $customAlias = null;
-    protected $langTable = MlConstant::LANG_PREFIX;
+    use JsonTrait;
+    public array $selectColumns = [];
+    protected array $joinList = [];
+    protected string|null $customAlias = null;
+    private array $jsonData = [];
+    protected string $langTable = MlConstant::LANG_PREFIX;
 
+    /**
+     * @throws InvalidConfigException
+     */
     public function __construct($modelClass, $config = [])
     {
+        $this->jsonData = self::getJson();
         parent::__construct($modelClass, $config);
         $this->langTable .= Yii::$app->language;
     }
@@ -258,17 +265,41 @@ class BaseLanguageQuery extends ActiveQuery
 
     /**
      * @throws Exception
+     * @throws InvalidConfigException
      */
-    public static function upsert(string $table, string $category, int $iteration, bool $isStatic, array $value): int
+    public static function singleUpsert(string $table, string $category, int $iteration, bool $isStatic, array $value): int
     {
+        $real_keys = self::getJson()['tables'][$category];
+
+        $existing = Yii::$app->db->createCommand("
+            SELECT value FROM {$table}
+            WHERE table_name = :category AND table_iteration = :iteration
+            LIMIT 1
+        ")->bindValues([
+            ':category' => $category,
+            ':iteration' => $iteration,
+        ])->queryOne();
+
+        $existingValue = isset($existing['value']) ? json_decode($existing['value'], true) : [];
+
+        foreach ($value as $key => $val) {
+            $existingValue[$key] = $val;
+        }
+
+        $filteredValue = array_filter(
+            $existingValue,
+            fn($k) => in_array($k, $real_keys, true),
+            ARRAY_FILTER_USE_KEY
+        );
+
         return Yii::$app->db->createCommand()
             ->upsert($table, [
                 'table_name' => $category,
                 'table_iteration' => $iteration,
                 'is_static' => $isStatic,
-                'value' => $value,
+                'value' => $filteredValue
             ], [
-                'value' => $value
+                'value' => $filteredValue
             ])
             ->execute();
     }

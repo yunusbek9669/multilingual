@@ -9,36 +9,13 @@ use yii\data\SqlDataProvider;
 use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\Query;
+use Yunusbek\Multilingual\components\traits\JsonTrait;
 use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 
 class LanguageService
 {
     use SqlHelperTrait;
-
-    private static array $jsonData = [];
-
-    /**
-     * @throws InvalidConfigException
-     */
-    public static function getJson() {
-        $jsonPath = Yii::getAlias('@app') .'/'. MlConstant::MULTILINGUAL.'.json';
-        if (file_exists($jsonPath)) {
-            $jsonContent = file_get_contents($jsonPath);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                self::$jsonData = json_decode($jsonContent, true);
-            } else {
-                throw new InvalidConfigException(Yii::t('multilingual', 'Invalid JSON structure detected in {jsonPath}.', ['jsonPath' => $jsonPath]));
-            }
-        } else {
-            throw new InvalidConfigException(Yii::t('multilingual', 'The file {jsonPath} could not be found. Please run the {command} command.', ['jsonPath' => $jsonPath, 'command' => '" php yii ml-extract/i18n "']));
-        }
-        foreach (self::$jsonData['tables'] as &$fields) {
-            sort($fields);
-        }
-        unset($fields);
-        ksort(self::$jsonData);
-        return self::$jsonData;
-    }
+    use JsonTrait;
 
     public static function checkTable(string $table = null): bool
     {

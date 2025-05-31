@@ -6,7 +6,6 @@ use Yii;
 use yii\base\InvalidConfigException;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
-use yii\db\Query;
 use Yunusbek\Multilingual\components\ExcelExportImport;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\components\MlConstant;
@@ -45,39 +44,6 @@ class Multilingual extends ActiveRecord
     public function afterDelete()
     {
         $this->multilingualAfterDelete();
-    }
-
-
-    /** Static ma'lumotlarni tarjima qilish
-     * @param string $langTable
-     * @param string $category
-     * @param array $value
-     * @return array
-     * @throws Exception
-     */
-    public static function setStaticLanguageValue(string $langTable, string $category, array $value): array
-    {
-        $response = [
-            'status' => true,
-            'code' => 'success',
-            'message' => 'success'
-        ];
-        $table = (new Query())->select('value')->from($langTable)->where(['table_name' => $category, 'is_static' => true])->one();
-        $allMessages = json_decode($table['value'], true);
-        ksort($allMessages);
-        ksort($value);
-        $upsert = BaseLanguageQuery::upsert($langTable, $category, 0, true, array_replace($allMessages, $value));
-        if ($upsert <= 0) {
-            $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
-            $response['code'] = 'error';
-            $response['status'] = false;
-        } else {
-            $data = Yii::$app->cache->get($langTable);
-            $data[$category] = $value;
-            Yii::$app->cache->set($langTable, $data);
-        }
-
-        return $response;
     }
 
     /** Tablitsadan excelga export qilish

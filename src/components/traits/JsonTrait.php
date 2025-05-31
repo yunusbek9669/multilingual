@@ -1,0 +1,42 @@
+<?php
+
+namespace Yunusbek\Multilingual\components\traits;
+
+use Yii;
+use yii\base\InvalidConfigException;
+use yii\db\Exception;
+use Yunusbek\Multilingual\commands\Messages;
+use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\models\BaseLanguageQuery;
+
+trait JsonTrait
+{
+    private static array $json = [];
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public static function getJson()
+    {
+        $id = 'messages';
+        $module = Yii::$app;
+        $message = new Messages($id, $module);
+        $jsonFile = Yii::getAlias('@app') .'/'. $message->json_file_name.'.json';
+        if (file_exists($jsonFile)) {
+            $jsonContent = file_get_contents($jsonFile);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                self::$json = json_decode($jsonContent, true) ?? [];
+            } else {
+                throw new InvalidConfigException(Yii::t('multilingual', 'Invalid JSON structure detected in {jsonPath}.', ['jsonPath' => $jsonFile]));
+            }
+        } else {
+            throw new InvalidConfigException(Yii::t('multilingual', 'The file {jsonPath} could not be found. Please run the {command} command.', ['jsonPath' => $jsonFile, 'command' => '" php yii ml-extract/i18n "']));
+        }
+        foreach (self::$json['tables'] ?? [] as &$fields) {
+            sort($fields);
+        }
+        unset($fields);
+        ksort(self::$json);
+        return self::$json;
+    }
+}

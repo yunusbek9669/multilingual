@@ -4,30 +4,27 @@ namespace Yunusbek\Multilingual\components\traits;
 
 use Yii;
 use yii\db\Exception;
-use Yunusbek\Multilingual\commands\Messages;
+use yii\base\InvalidConfigException;
+use yii\db\Query;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 trait MultilingualTrait
 {
+    use JsonTrait;
     private bool $where = true;
     private array $jsonData = [];
-    private string $jsonFile;
-    public function getPath($controllerInstance): void
-    {
-        $this->jsonFile = Yii::getAlias('@app') .'/'. $controllerInstance->json_file_name.'.json';
-    }
 
+    /**
+     * @throws InvalidConfigException
+     */
     public function __construct()
     {
-        $id = 'messages';
-        $module = Yii::$app;
-        $message = new Messages($id, $module);
-        $this->getPath($message);
-        if (file_exists($this->jsonFile)) {
-            $jsonContent = file_get_contents($this->jsonFile);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $this->jsonData = json_decode($jsonContent, true) ?? [];
+        $this->jsonData = self::getJson();
+        foreach ($this->jsonData['where'] ?? [] as $attribute => $value) {
+            if (isset($this->$attribute) && $this->$attribute != $value) {
+                $this->where = false;
+                break;
             }
         }
         $this->bootMultilingual();
@@ -52,6 +49,7 @@ trait MultilingualTrait
 
     /**
      * @throws Exception
+     * @throws InvalidConfigException
      */
     protected function multilingualAfterSave(): void
     {
@@ -64,7 +62,7 @@ trait MultilingualTrait
         $post = Yii::$app->request->post('Language');
         if (!empty($post)) {
             $response = $this->setDynamicLanguageValue($post);
-        } elseif (!$this->where()) {
+        } elseif (!$this->where) {
             $response = $this->deleteLanguageValue();
         }
 
@@ -118,6 +116,7 @@ trait MultilingualTrait
      * @param array $post
      * @return array
      * @throws Exception
+     * @throws InvalidConfigException
      */
     public function setDynamicLanguageValue(array $post = []): array
     {
@@ -129,7 +128,7 @@ trait MultilingualTrait
         $table_name = static::tableName();
         foreach ($post as $table => $data) {
             if (isset($this->id)) {
-                $upsert = BaseLanguageQuery::upsert($table, $table_name, $this->id, false, $data);
+                $upsert = BaseLanguageQuery::singleUpsert($table, $table_name, $this->id, false, $data);
                 if ($upsert <= 0) {
                     Yii::error("An error occurred while writing {{$table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
                     $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
@@ -142,14 +141,37 @@ trait MultilingualTrait
         return $response;
     }
 
-    protected function where(): bool
+
+    /** Static ma'lumotlarni tarjima qilish
+     * @param string $langTable
+     * @param string $category
+     * @param array $value
+     * @return array
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
+    public static function setStaticLanguageValue(string $langTable, string $category, array $value): array
     {
-        foreach ($this->jsonData['where'] ?? [] as $attribute => $value) {
-            if ($this->$attribute != $value) {
-                $this->where = false;
-                break;
-            }
+        $response = [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success'
+        ];
+        $table = (new Query())->select('value')->from($langTable)->where(['table_name' => $category, 'is_static' => true])->one();
+        $allMessages = json_decode($table['value'], true);
+        ksort($allMessages);
+        ksort($value);
+        $upsert = BaseLanguageQuery::singleUpsert($langTable, $category, 0, true, array_replace($allMessages, $value));
+        if ($upsert <= 0) {
+            $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
+            $response['code'] = 'error';
+            $response['status'] = false;
+        } else {
+            $data = Yii::$app->cache->get($langTable);
+            $data[$category] = $value;
+            Yii::$app->cache->set($langTable, $data);
         }
-        return $this->where;
+
+        return $response;
     }
 }

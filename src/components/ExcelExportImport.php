@@ -14,18 +14,20 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use yii\base\InvalidConfigException;
 use yii\db\Exception;
 use yii\web\UploadedFile;
+use Yunusbek\Multilingual\components\traits\JsonTrait;
 use Yunusbek\Multilingual\models\BaseLanguageList;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 class ExcelExportImport
 {
+    use JsonTrait;
     /** Ma‘lumotlarni excelga export qilish
      * @throws InvalidConfigException
      */
     public static function exportToExcelData($data, $fileName): bool|string
     {
         $k_n = [];
-        $jsonTables = LanguageService::getJson()['tables'];
+        $jsonTables = self::getJson()['tables'];
         $iteration = 0;
         foreach ($jsonTables as $table_name => $attributes) {
             $k_n[$table_name] = $iteration++;
@@ -190,7 +192,7 @@ class ExcelExportImport
 
                     if (!empty($data))
                     {
-                        $jsonData = LanguageService::getJson()['tables'];
+                        $jsonData = self::getJson()['tables'];
                         unset($data[0]);
 
                         $static = [];
