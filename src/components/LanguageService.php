@@ -214,7 +214,7 @@ class LanguageService
         }
         $pagination = new Pagination([
             'totalCount' => $totalCount,
-            'pageSize' => MlConstant::LIMIT,
+            'pageSize' => $params['per-page'] ?? MlConstant::LIMIT,
         ]);
 
         return new SqlDataProvider([
