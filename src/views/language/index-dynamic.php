@@ -22,7 +22,7 @@ $per_page = $page['per-page'] ?? MlConstant::LIMIT;
                     <?php echo Html::input('search', null, $per_page,
                         [
                             'class' => 'form-control px-1',
-                            'style' => 'width: 60px',
+                            'style' => 'width: 60px; margin-right: 10px; margin-top: 1px;',
                             'type' => 'number',
                             'max' => 5000,
                             'onblur' => 'updatePerPage(this.value)',
