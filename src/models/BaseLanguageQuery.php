@@ -47,20 +47,19 @@ class BaseLanguageQuery extends ActiveQuery
         if (Yii::$app->params['table_available'] ?? false) {
             $current_table = $current_table ?? $this->modelClass::tableName();
             $alias = $this->customAlias ?? $current_table;
+            $ml_attributes = $this->jsonData['tables'][$current_table] ?? [];
             if (empty($this->select)) {
-                $this->setFullSelect($joinType, $current_table, $alias);
+                $this->setFullSelect($joinType, $current_table, $alias, $ml_attributes);
             } else {
-                $tableSchema = Yii::$app->db->getTableSchema($current_table);
-                $stringColumns = array_filter($tableSchema->columns, fn($column) => in_array($column->type, ['string', 'text', 'safe']));
                 foreach ($this->select as $attribute_name => $column) {
                     if (!str_contains($column, 'COUNT') && !empty($this->join)) {
                         $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
                         if (!empty($full) && $this->customAlias === explode('.', $full)[0]) {
-                            $this->setFullSelect($joinType, $current_table, $alias);
+                            $this->setFullSelect($joinType, $current_table, $alias, $ml_attributes);
                         } else {
                             $this->setSingleSelect($joinType, $this->join, $this->modelClass::tableName(), $attribute_name, $column);
                         }
-                    } elseif (isset($stringColumns[$column])) {
+                    } elseif (in_array($column, $ml_attributes)) {
                         $this->setSingleSelectNotAlias($joinType, $current_table, $alias, $column);
                     }
                 }
@@ -89,14 +88,14 @@ class BaseLanguageQuery extends ActiveQuery
         $this->addJoin($joinType, $joinTable, $current_table, $alias);
     }
 
-    protected function setFullSelect(string $joinType, string $current_table, string $alias): void
+    protected function setFullSelect(string $joinType, string $current_table, string $alias, array $ml_attributes): void
     {
         $collectColumns = [];
         $nonTranslatableColumns = [];
         $joinTable = $current_table . '_' . $this->langTable;
         $columns = Yii::$app->db->getTableSchema($current_table)->columns;
         foreach ($columns as $attribute_name => $column) {
-            if (in_array($column->type, ['string', 'text', 'safe'])) {
+            if (in_array($attribute_name, $ml_attributes)) {
                 $collectColumns[$attribute_name] = $this->coalesce($joinTable, $attribute_name, $alias . '.' . $attribute_name);
             } else {
                 $nonTranslatableColumns[] = "{$alias}.{$attribute_name}";
@@ -208,7 +207,6 @@ class BaseLanguageQuery extends ActiveQuery
 
     /**
      * lang_* table nomini yangilash
-     * @throws Exception
      */
     public static function updateLangTable(string $oldTableName, string $tableName): array
     {
