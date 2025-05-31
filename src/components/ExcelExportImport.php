@@ -222,7 +222,7 @@ class ExcelExportImport
                         /** static tarjimalr uchun */
                         if (!empty($static)) {
                             foreach ($static as $category => $values) {
-                                $upsert = BaseLanguageQuery::upsert($table, $category, 0, true, $values);
+                                $upsert = BaseLanguageQuery::singleUpsert($table, $category, 0, true, $values);
                                 if ($upsert <= 0) {
                                     $json = json_encode($values);
                                     $response['status'] = false;
@@ -236,15 +236,12 @@ class ExcelExportImport
                         /** dynamic tarjimalr uchun */
                         if (!empty($dynamic)) {
                             foreach ($dynamic as $table_name => $row) {
-                                foreach ($row as $table_iteration => $values) {
-                                    $upsert = BaseLanguageQuery::upsert($table, $table_name, $table_iteration, false, $values);
-                                    if ($upsert <= 0) {
-                                        $json = json_encode($values);
-                                        $response['status'] = false;
-                                        $response['code'] = 'error';
-                                        $response['message'] = Yii::t('multilingual', 'Error saving {category}, {json}', ['category' => $table_name, 'json' => $json]);
-                                        break;
-                                    }
+                                $upsert = BaseLanguageQuery::batchUpsert($table, $table_name, $row);
+                                if ($upsert <= 0) {
+                                    $response['status'] = false;
+                                    $response['code'] = 'error';
+                                    $response['message'] = Yii::t('multilingual', 'Error saving {category}', ['category' => $table_name]);
+                                    break;
                                 }
                             }
                         }

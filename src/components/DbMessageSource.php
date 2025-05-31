@@ -3,15 +3,20 @@
 namespace Yunusbek\Multilingual\components;
 
 use Yii;
+use yii\db\Exception;
 use yii\db\Query;
 use yii\i18n\MessageSource;
+use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 
 class DbMessageSource extends MessageSource
 {
+    use SqlHelperTrait;
+
     private $_messages = [];
 
     /**
      * Tarjima ma’lumotlarini joriy til jadvalidan bir marta yuklash va keshga saqlash.
+     * @throws Exception
      */
     protected function loadMessages($category, $language)
     {
@@ -21,11 +26,12 @@ class DbMessageSource extends MessageSource
 
     /**
      * Barcha tarjimalarni **bitta so‘rov bilan** bazadan olib kelish va keshga saqlash.
+     * @throws Exception
      */
     private function fetchAllMessages($language)
     {
         $tableName = "lang_{$language}";
-        if (Yii::$app->params['table_available']) {
+        if (self::issetTable($tableName)) {
             return Yii::$app->cache->getOrSet($tableName, function () use ($tableName) {
                 $rows = (new Query())
                     ->select(['table_name', 'value'])

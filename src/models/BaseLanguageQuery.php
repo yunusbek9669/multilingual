@@ -9,6 +9,7 @@ use yii\db\ActiveQuery;
 use yii\db\Exception;
 use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\traits\JsonTrait;
+use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 
 /**
  *
@@ -17,6 +18,7 @@ use Yunusbek\Multilingual\components\traits\JsonTrait;
 class BaseLanguageQuery extends ActiveQuery
 {
     use JsonTrait;
+    use SqlHelperTrait;
     public array $selectColumns = [];
     protected array $joinList = [];
     protected string|null $customAlias = null;
@@ -269,39 +271,94 @@ class BaseLanguageQuery extends ActiveQuery
      */
     public static function singleUpsert(string $table, string $category, int $iteration, bool $isStatic, array $value): int
     {
-        $real_keys = self::getJson()['tables'][$category];
+        if (!$isStatic) {
+            $real_keys = self::getJson()['tables'][$category];
 
-        $existing = Yii::$app->db->createCommand("
-            SELECT value FROM {$table}
-            WHERE table_name = :category AND table_iteration = :iteration
-            LIMIT 1
-        ")->bindValues([
-            ':category' => $category,
-            ':iteration' => $iteration,
-        ])->queryOne();
+            $existing = Yii::$app->db->createCommand("
+                SELECT value FROM {$table}
+                WHERE table_name = :category AND table_iteration = :iteration
+                LIMIT 1
+            ")->bindValues([
+                ':category' => $category,
+                ':iteration' => $iteration,
+            ])->queryOne();
 
-        $existingValue = isset($existing['value']) ? json_decode($existing['value'], true) : [];
+            $existingValue = isset($existing['value']) ? json_decode($existing['value'], true) : [];
 
-        foreach ($value as $key => $val) {
-            $existingValue[$key] = $val;
+            foreach ($value as $key => $val) {
+                $existingValue[$key] = $val;
+            }
+
+            $value = array_filter(
+                $existingValue,
+                fn($k) => in_array($k, $real_keys, true),
+                ARRAY_FILTER_USE_KEY
+            );
         }
-
-        $filteredValue = array_filter(
-            $existingValue,
-            fn($k) => in_array($k, $real_keys, true),
-            ARRAY_FILTER_USE_KEY
-        );
 
         return Yii::$app->db->createCommand()
             ->upsert($table, [
                 'table_name' => $category,
                 'table_iteration' => $iteration,
                 'is_static' => $isStatic,
-                'value' => $filteredValue
+                'value' => $value
             ], [
-                'value' => $filteredValue
+                'value' => $value
             ])
             ->execute();
+    }
+
+    /**
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
+    public static function batchUpsert(string $table, string $category, array $newData): int
+    {
+        $real_keys = self::getJson()['tables'][$category];
+
+        $ids = array_keys($newData);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_values(array_merge([$category], $ids));
+        array_unshift($params, null);
+        unset($params[0]);
+
+        $existingRows = Yii::$app->db->createCommand("
+            SELECT table_iteration, value
+            FROM {$table}
+            WHERE table_name = ? AND table_iteration IN ($placeholders)
+        ", $params)->queryAll();
+
+        $existingMap = [];
+        foreach ($existingRows as $row) {
+            $existingMap[$row['table_iteration']] = json_decode($row['value'], true) ?? [];
+        }
+
+        $rowsToInsert = [];
+        foreach ($newData as $table_iteration => $newValue)
+        {
+            $old = $existingMap[$table_iteration] ?? [];
+
+            foreach ($newValue as $k => $v) {
+                $old[$k] = $v;
+            }
+
+            $filtered = array_filter(
+                $old,
+                fn($k) => in_array($k, $real_keys, true),
+                ARRAY_FILTER_USE_KEY
+            );
+
+            $rowsToInsert[] = [
+                $category,
+                $table_iteration,
+                false,
+                json_encode($filtered, JSON_UNESCAPED_UNICODE)
+            ];
+        }
+
+        $result = self::batchBulk(['table_name', 'table_iteration', 'is_static', 'value'], $rowsToInsert, $table);
+
+        return Yii::$app->db->createCommand($result['sql'], $result['params'])->execute();
     }
 
 

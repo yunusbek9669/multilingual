@@ -14,7 +14,7 @@ use yii\helpers\FileHelper;
 use yii\helpers\VarDumper;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\models\BaseLanguageList;
+use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 /**
@@ -31,6 +31,8 @@ use Yunusbek\Multilingual\models\BaseLanguageQuery;
  */
 class Messages extends \yii\console\Controller
 {
+    use SqlHelperTrait;
+
     /**
      * @var string controller default action ID.
      */
@@ -315,7 +317,7 @@ EOD;
 
         foreach ($this->languages as $language) {
             $langTable = "{{%lang_$language}}";
-            if (!$this->issetTable($langTable)) {
+            if (self::issetTable($langTable)) {
                 BaseLanguageQuery::createLangTable($langTable);
             }
             $this->saveMessagesToDb(
@@ -494,7 +496,7 @@ EOD;
             }
             ksort($translateTables);
             foreach ($translateTables as $table_name => $attributes) {
-                if (BaseLanguageList::isTableExists($table_name)) {
+                if (self::issetTable($table_name)) {
                     $schema = $db->getTableSchema($table_name);
                     $columns = $schema ? array_keys($schema->columns) : [];
                     if (in_array('id', $columns)) {
@@ -969,14 +971,5 @@ EOD;
                 throw new Exception("The source path {$this->config['sourcePath']} is not a valid directory.");
             }
         }
-    }
-
-    /** This checks if the table exists in the database
-     * @throws \yii\db\Exception
-     */
-    private function issetTable(string $table_name): bool
-    {
-        $table_name = Yii::$app->db->schema->getRawTableName($table_name);
-        return Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")->bindValue(':table', $table_name)->queryScalar();
     }
 }

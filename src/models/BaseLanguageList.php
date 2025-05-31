@@ -13,6 +13,7 @@ use yii\db\Exception;
 use Yii;
 use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\ExcelExportImport;
+use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 
 /**
  * This is the model class for table "language_list".
@@ -28,6 +29,8 @@ use Yunusbek\Multilingual\components\ExcelExportImport;
  */
 class BaseLanguageList extends ActiveRecord
 {
+    use SqlHelperTrait;
+
     public static function tableName()
     {
         return '{{%language_list}}';
@@ -64,7 +67,7 @@ class BaseLanguageList extends ActiveRecord
         ];
         $this->table = MlConstant::LANG_PREFIX . $this->key;
         if ($this->isNewRecord) {
-            if (!$this::isTableExists($this->table)) {
+            if (self::issetTable($this->table)) {
                 $response = BaseLanguageQuery::createLangTable($this->table);
             }
         } else {
@@ -113,11 +116,5 @@ class BaseLanguageList extends ActiveRecord
         $db = Yii::$app->db;
         $db->createCommand("DROP INDEX IF EXISTS idx_{$this->table}_table_name_iteration")->execute();
         $db->createCommand("DROP TABLE {$this->table}")->execute();
-    }
-
-    public static function isTableExists($tableName): bool
-    {
-        $schema = Yii::$app->db->schema;
-        return in_array($tableName, $schema->getTableNames());
     }
 }

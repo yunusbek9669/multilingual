@@ -7,6 +7,7 @@ use yii\db\Exception;
 use yii\base\InvalidConfigException;
 use yii\db\Query;
 use Yunusbek\Multilingual\components\LanguageService;
+use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 trait MultilingualTrait
@@ -59,7 +60,7 @@ trait MultilingualTrait
             'message' => Yii::t('multilingual', 'Error')
         ];
 
-        $post = Yii::$app->request->post('Language');
+        $post = Yii::$app->request->post(MlConstant::MULTILINGUAL);
         if (!empty($post)) {
             $response = $this->setDynamicLanguageValue($post);
         } elseif (!$this->where) {
@@ -125,16 +126,18 @@ trait MultilingualTrait
             'code' => 'success',
             'message' => 'success',
         ];
-        $table_name = static::tableName();
-        foreach ($post as $table => $data) {
-            if (isset($this->id)) {
-                $upsert = BaseLanguageQuery::singleUpsert($table, $table_name, $this->id, false, $data);
-                if ($upsert <= 0) {
-                    Yii::error("An error occurred while writing {{$table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
-                    $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $table]);
-                    $response['code'] = 'error';
-                    $response['status'] = false;
-                    break;
+        foreach ($post as $lang_table => $data) {
+            foreach ($data as $table_index => $datum) {
+                $table_name = array_keys($this->jsonData['tables'])[$table_index] ?? null;
+                if (isset($this->id) && !empty($table_name)) {
+                    $upsert = BaseLanguageQuery::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
+                    if ($upsert <= 0) {
+                        Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
+                        $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
+                        $response['code'] = 'error';
+                        $response['status'] = false;
+                        break;
+                    }
                 }
             }
         }
