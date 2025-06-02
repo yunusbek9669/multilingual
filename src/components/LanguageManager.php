@@ -5,12 +5,12 @@ namespace Yunusbek\Multilingual\components;
 use Yii;
 use yii\db\Exception;
 use yii\helpers\ArrayHelper;
-use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 use Yunusbek\Multilingual\models\BaseLanguageList;
+use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 class LanguageManager
 {
-    use SqlHelperTrait;
+    use SqlRequestTrait;
 
     /**
      * @throws Exception

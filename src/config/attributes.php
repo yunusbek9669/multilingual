@@ -2,7 +2,7 @@
 
 return [
     'sourcePath' => '@app/',
-    'translator' => 'MultilingualAttributes::widget',
+    'translator' => 'MlFields::widget',
     'sort' => false,
     'is_static' => false,
     'only' => ['*.php'],

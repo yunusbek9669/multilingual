@@ -2,30 +2,10 @@
 
 namespace Yunusbek\Multilingual\components\traits;
 
-use Yii;
-use yii\db\DataReader;
-use yii\db\Exception;
 use yii\db\Expression;
-use Yunusbek\Multilingual\commands\Messages;
-use Yunusbek\Multilingual\components\LanguageService;
-use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 trait SqlHelperTrait
 {
-    /**
-     * @param string|null $table_name
-     * @throws Exception
-     */
-    public static function issetTable(string $table_name = null): bool|DataReader|int|string|null
-    {
-        if (empty($table_name)) {
-            $table_name = MlConstant::LANG_PREFIX . Yii::$app->language;
-        }
-        $table_name = Yii::$app->db->schema->getRawTableName($table_name);
-        return Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")->bindValue(':table', $table_name)->queryScalar();
-    }
-
     /** tarjima qilinadigan ustunlarni bitta jsonga saralab olish */
     private static function jsonBuilder(string $table_name, string $lang_name, array $attributes, string $lang_table = null): string
     {

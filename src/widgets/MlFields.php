@@ -31,7 +31,7 @@ $css = <<<CSS
 }
 CSS;
 
-class MultilingualAttributes extends Widget
+class MlFields extends Widget
 {
     public ActiveForm $form;
 
@@ -56,6 +56,12 @@ class MultilingualAttributes extends Widget
         $tableSchema = $model->getTableSchema();
 
         if (!in_array('id', array_keys($model->getAttributes()))) {
+            throw new InvalidConfigException("The {{$model::tableName()}} table does not have an id column.");
+        }
+        vd($this->table_name);
+        prd($model::tableName());
+
+        if ($model::tableName() !== $this->table_name) { //TODO model bilan table nameni tekshirish
             throw new InvalidConfigException("The {{$model::tableName()}} table does not have an id column.");
         }
 
@@ -122,7 +128,7 @@ class MultilingualAttributes extends Widget
         }
 
         $label = $model->getAttributeLabel($params['attribute']);
-        $defaultLabel = $label . ' (' . $defaultLanguage['name'] . ')';
+        $defaultLabel = $label . " ({$defaultLanguage['name']})";
 
         $output = Html::tag('div',
             $form->field($model, $params['attribute'])
@@ -136,7 +142,7 @@ class MultilingualAttributes extends Widget
             $dynamic_label = $label;
             $language = $languages[$matches[1]];
             if (!empty($language['name'])) {
-                $dynamic_label .= ' (' . $language['name'] . ')';
+                $dynamic_label .= " ({$language['name']})";
             }
 
             $fg_option = ['class' => 'form-group highlight-addon'];

@@ -142,7 +142,7 @@ The part to be applied in the form page:
 ```php
 <?php $form = ActiveForm::begin(); ?>
     #...
-    <?php echo \Yunusbek\Multilingual\widgets\MultilingualAttributes::widget([
+    <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
         'form' => $form,
         'model' => $model,
         'table_name' => 'model_table_name', # set the model table name to output model attributes to the lang_* table.

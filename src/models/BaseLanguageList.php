@@ -2,18 +2,14 @@
 
 namespace Yunusbek\Multilingual\models;
 
-use yii\base\InvalidConfigException;
-use yii\base\InvalidParamException;
-use yii\behaviors\TimestampBehavior;
-use yii\behaviors\AttributeBehavior;
-use yii\db\BaseActiveRecord;
-use yii\web\UploadedFile;
-use yii\db\ActiveRecord;
-use yii\db\Exception;
 use Yii;
+use yii\db\Exception;
+use yii\db\ActiveRecord;
+use yii\web\UploadedFile;
+use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\ExcelExportImport;
-use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
+use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 /**
  * This is the model class for table "language_list".
@@ -29,7 +25,7 @@ use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
  */
 class BaseLanguageList extends ActiveRecord
 {
-    use SqlHelperTrait;
+    use SqlRequestTrait;
 
     public static function tableName()
     {
@@ -54,7 +50,6 @@ class BaseLanguageList extends ActiveRecord
     }
 
     /**
-     * @throws InvalidParamException
      * @throws Exception
      * @throws InvalidConfigException
      */

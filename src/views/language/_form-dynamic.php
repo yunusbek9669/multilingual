@@ -22,7 +22,7 @@ $page = Yii::$app->request->get('page');
     <?php $form = ActiveForm::begin(); ?>
 
     <div class="row">
-        <?php echo \Yunusbek\Multilingual\widgets\MultilingualAttributes::widget([
+        <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
             'form' => $form,
             'model' => $model,
             'attribute' => $attributes,

@@ -3,14 +3,14 @@
 namespace Yunusbek\Multilingual\components;
 
 use Yii;
-use yii\db\Exception;
 use yii\db\Query;
+use yii\db\Exception;
 use yii\i18n\MessageSource;
-use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
+use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 class DbMessageSource extends MessageSource
 {
-    use SqlHelperTrait;
+    use SqlRequestTrait;
 
     private $_messages = [];
 

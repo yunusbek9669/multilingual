@@ -3,19 +3,18 @@
 namespace Yunusbek\Multilingual\commands;
 
 use Yii;
-use yii\base\InvalidConfigException;
-use yii\console\Exception;
-use yii\console\ExitCode;
-use yii\db\Connection;
 use yii\db\Query;
 use yii\di\Instance;
-use yii\helpers\BaseConsole;
-use yii\helpers\FileHelper;
+use yii\db\Connection;
+use yii\console\ExitCode;
+use yii\console\Exception;
 use yii\helpers\VarDumper;
-use Yunusbek\Multilingual\components\LanguageService;
+use yii\helpers\FileHelper;
+use yii\helpers\BaseConsole;
+use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
 use Yunusbek\Multilingual\models\BaseLanguageQuery;
+use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 /**
  * Usage:
@@ -31,7 +30,7 @@ use Yunusbek\Multilingual\models\BaseLanguageQuery;
  */
 class Messages extends \yii\console\Controller
 {
-    use SqlHelperTrait;
+    use SqlRequestTrait;
 
     /**
      * @var string controller default action ID.
@@ -324,7 +323,7 @@ EOD;
                 $messages,
                 $db,
                 $langTable,
-                LanguageService::tableTextFormList($this->jsonData['tables'])
+                self::tableTextFormList($this->jsonData['tables'])
             );
         }
     }
@@ -367,6 +366,7 @@ EOD;
      * @param Connection $db
      * @param string $langTable
      * @param array $jsonData
+     * @throws InvalidConfigException
      */
     protected function saveMessagesToDb(array $messages, Connection $db, string $langTable, array $jsonData): void
     {
@@ -717,10 +717,10 @@ EOD;
         foreach ($tokens as $token) {
             if (is_array($token) && ($token[0] === T_NAME_FULLY_QUALIFIED || $token[0] === T_STRING)) {
                 switch ($token[1]) {
-                    case '\Yunusbek\Multilingual\widgets\MultilingualAttributes':
-                    case 'Multilingual\widgets\MultilingualAttributes':
-                    case 'widgets\MultilingualAttributes':
-                    case 'MultilingualAttributes':
+                    case '\Yunusbek\Multilingual\widgets\MlFields':
+                    case 'Multilingual\widgets\MlFields':
+                    case 'widgets\MlFields':
+                    case 'MlFields':
                         $inWidgetCall = true;
                         break;
                 }
@@ -844,7 +844,7 @@ EOD;
                             $this->stderr("Attribute ", BaseConsole::FG_YELLOW);
                             $this->stderr('"table_name" ', BaseConsole::FG_RED);
                             $this->stderr("not found in ", BaseConsole::FG_YELLOW);
-                            $this->stderr("MultilingualAttributes::", BaseConsole::FG_GREY);
+                            $this->stderr("MlFields::", BaseConsole::FG_GREY);
                             $this->stderr("widget", BaseConsole::FG_CYAN);
                             die($this->stderr("().\n", BaseConsole::FG_GREY));
                         }
@@ -859,7 +859,7 @@ EOD;
                                     $this->stderr("Attribute ", BaseConsole::FG_YELLOW);
                                     $this->stderr('"table_name" ', BaseConsole::FG_RED);
                                     $this->stderr("not found in ", BaseConsole::FG_YELLOW);
-                                    $this->stderr("MultilingualAttributes::", BaseConsole::FG_GREY);
+                                    $this->stderr("MlFields::", BaseConsole::FG_GREY);
                                     $this->stderr("widget", BaseConsole::FG_CYAN);
                                     die($this->stderr("().\n", BaseConsole::FG_GREY));
                                 }
