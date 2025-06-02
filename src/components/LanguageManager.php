@@ -20,16 +20,16 @@ class LanguageManager
         if (empty(Yii::$app->params['language_list'])) {
             throw new Exception(<<<MESSAGE
                 Please add the "language_list" parameter to the (config/params.php) file in your project.
-                [
-                ____'language_list' => [
-                ________'en' => [
-                ____________'name' => 'Default Language',
-                ____________'short_name' => 'Def',
-                ____________'image' => '/path/to/default/language/flag.jpg',
-                ____________'active' => false,
-                ________]
-                ____]
-                ]
+                |—[
+                |——'language_list' => [
+                |———'en' => [
+                |————'name' => 'Default Language',
+                |————'short_name' => 'Def',
+                |————'image' => '/path/to/default/language/flag.jpg',
+                |————'active' => false,
+                |———]
+                |——]
+                |—]
                 MESSAGE
             );
         }

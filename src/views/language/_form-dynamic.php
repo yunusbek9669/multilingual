@@ -24,6 +24,7 @@ $page = Yii::$app->request->get('page');
     <div class="row">
         <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
             'form' => $form,
+            'table_name' => $model::tableName(),
             'model' => $model,
             'attribute' => $attributes,
         ]) ?>

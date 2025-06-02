@@ -51,19 +51,37 @@ class MlFields extends Widget
     {
         parent::init();
 
-        $model = $this->model;
+        if (!isset($this->model)) {
+            throw new InvalidConfigException('"model" is not defined!');
+        }
 
-        $tableSchema = $model->getTableSchema();
+        if (!isset($this->form)) {
+            throw new InvalidConfigException('"form" is not defined!');
+        }
+
+        $model = $this->model;
 
         if (!in_array('id', array_keys($model->getAttributes()))) {
             throw new InvalidConfigException("The {{$model::tableName()}} table does not have an id column.");
         }
-        vd($this->table_name);
-        prd($model::tableName());
 
-        if ($model::tableName() !== $this->table_name) { //TODO model bilan table nameni tekshirish
-            throw new InvalidConfigException("The {{$model::tableName()}} table does not have an id column.");
+        if (!isset($this->table_name)) {
+            throw new InvalidConfigException('"table_name" is important for the multilingual.json file to be saved correctly, it cannot be retrieved from "$model::tableName()" via the console command "php yii ml-extract/attributes".');
         }
+
+        if ($model::tableName() !== $this->table_name) {
+            throw new InvalidConfigException("Invalid 'table_name' entered! \n".'$model::tableName()'." is not equal to {$this->table_name}.");
+        }
+
+        if (!isset($this->attribute)) {
+            throw new InvalidConfigException("'attribute' is not defined!\n |—'attribute' => 'your_attribute_name' or
+            |—'attribute' => [
+            |——'your_attribute_name_1',
+            |——'your_attribute_name_2'
+            |—]\n must be entered in the form");
+        }
+
+        $tableSchema = $model->getTableSchema();
 
         if (is_array($this->attribute)) {
             foreach ($this->attribute as $attribute) {
