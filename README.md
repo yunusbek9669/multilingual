@@ -1,8 +1,13 @@
-multilingual
+Multilingual
 ===========================
 
-Multilingual package for Yii2 projects
-> Note: This package translates dynamic data in the project's Database.
+A fully featured multilingual management package for Yii2 projects.
+
+> ✅ Dynamically translate database content  
+> ✅ Support for multiple languages with individual tables (lang_*)  
+> ✅ Form-level multilingual fields  
+> ✅ Static translations (i18n) integration  
+> ✅ Excel-based bulk import/export of translations
 >
 
 Installation
@@ -160,10 +165,33 @@ The part to be applied in the form page:
 
 Run the following commands to extract the attributes of the models and the static information of the project to the ```lang_*``` table.:
 
+### Console commands
+
+The package includes the following console commands:
 ```sh
 php yii ml-extract/i18n
+```
+- `ml-extract/i18n` – Extracts static messages used in the app to the database.
+
+
+```sh
 php yii ml-extract/attributes
 ```
+- `ml-extract/attributes` - It collects all the tables and columns called in the MlFields widget into a `multilingual.json` file.
+````json
+{
+  "where": {
+    "status": 1
+  },
+  "tables": {
+    "manuals_application_type": ["name"],
+    "manuals_collateral_type": ["name"],
+    "manuals_department_relevant_type": ["name", "short_name"],
+    ...
+  }
+}
+````
+`where` applies to all tables. You can extend this system to support per-table filters in future releases.
 
 Necessary additions
 ===========================
@@ -182,8 +210,18 @@ echo Html::a(Yii::t('multilingual', 'All i18n'), ['/multilingual/language/index'
 
 Instruction manual
 ------------
+### Excel-based Translation Import
 
-This is an Excel file downloaded from an existing language
+You can bulk-import translations for a new language via an Excel file.
+
+Steps:
+1. Download an existing translation as Excel.
+2. Translate its contents for the new language.
+3. Upload the translated Excel file.
+4. Set the path of this Excel file to the `import_excel` attribute of the `language_list` table.
+
+> ✅ The package will automatically parse the file and save the translations to the appropriate `lang_*` table.
+
 
 ![This is an Excel file downloaded from an existing language](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/excel1.jpg)
 

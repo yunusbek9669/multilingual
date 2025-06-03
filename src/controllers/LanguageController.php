@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\controllers;
 
 use Yii;
+use yii\base\InvalidConfigException;
 use yii\db\ActiveRecord;
 use yii\db\Exception;
 use yii\filters\AccessControl;
@@ -42,6 +43,7 @@ class LanguageController extends Controller
      * @param int $is_static
      * @return string
      * @throws Exception
+     * @throws InvalidConfigException
      */
     public function actionIndex(int $is_static): string
     {
@@ -66,6 +68,7 @@ class LanguageController extends Controller
      * @param string $table_name
      * @param integer $table_iteration
      * @param array $attributes
+     * @param string|null $page
      * @return Response|array|string
      * @throws Exception
      * @throws NotFoundHttpException

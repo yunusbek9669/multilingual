@@ -69,9 +69,7 @@ class LanguageService
         $table = (new Query())->select([$lang => 'value'])->from($lang)->where(['table_name' => $category, 'is_static' => true])->one();
         $data = json_decode($table[$lang], true);
         asort($data);
-        $limit = MlConstant::LIMIT;
-        $currentItems = array_slice($data, (isset($params['page']) ? (int)$params['page'] : 0) * $limit, $limit);
-        return ['total' => (int)floor(count($data) / $limit), $lang => $currentItems];
+        return [$lang => $data];
     }
 
     /**  Umumiy extend olgan modellarning ma’lumotlari

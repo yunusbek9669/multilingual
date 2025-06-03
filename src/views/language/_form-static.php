@@ -17,7 +17,6 @@ $this->params['breadcrumbs'][] = $this->title;
 
 $is_all = Yii::$app->request->get('is_all', 0);
 $page = Yii::$app->request->get('page', 0);
-$page_countable = $table['total'] === 0 || count($table[$table_name]) < 1000;
 ?>
 
     <div style="padding: 2rem 3rem; background-color: white">

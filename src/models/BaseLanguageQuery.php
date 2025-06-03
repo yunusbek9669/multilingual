@@ -22,15 +22,10 @@ class BaseLanguageQuery extends ActiveQuery
     public array $selectColumns = [];
     protected array $joinList = [];
     protected string|null $customAlias = null;
-    private array $jsonData = [];
     protected string $langTable = MlConstant::LANG_PREFIX;
 
-    /**
-     * @throws InvalidConfigException
-     */
     public function __construct($modelClass, $config = [])
     {
-        $this->jsonData = self::getJson();
         parent::__construct($modelClass, $config);
         $this->langTable .= Yii::$app->language;
     }
@@ -42,12 +37,15 @@ class BaseLanguageQuery extends ActiveQuery
         return $this;
     }
 
+    /**
+     * @throws InvalidConfigException
+     */
     public function joinWithLang(string $joinType = 'leftJoin', string $current_table = null): static
     {
         if (Yii::$app->params['table_available'] ?? false) {
             $current_table = $current_table ?? $this->modelClass::tableName();
             $alias = $this->customAlias ?? $current_table;
-            $ml_attributes = $this->jsonData['tables'][$current_table] ?? [];
+            $ml_attributes = self::getJson()['tables'][$current_table] ?? [];
             if (empty($this->select)) {
                 $this->setFullSelect($joinType, $current_table, $alias, $ml_attributes);
             } else {
