@@ -13,7 +13,7 @@ use yii\helpers\FileHelper;
 use yii\helpers\BaseConsole;
 use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
+use Yunusbek\Multilingual\models\MlActiveQuery;
 use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 /**
@@ -317,7 +317,7 @@ EOD;
         foreach ($this->languages as $language) {
             $langTable = "{{%lang_$language}}";
             if (self::issetTable($langTable)) {
-                BaseLanguageQuery::createLangTable($langTable);
+                self::createLangTable($langTable);
             }
             $this->saveMessagesToDb(
                 $messages,
@@ -768,7 +768,7 @@ EOD;
             }
         }
 
-        return BaseLanguageQuery::singleUpsert($langTable, $category, 0, true, $message);
+        return self::singleUpsert($langTable, $category, 0, true, $message);
     }
 
     protected function parseAttributesFromBuffer(array $buffer)

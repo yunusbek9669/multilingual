@@ -2,10 +2,101 @@
 
 namespace Yunusbek\Multilingual\components\traits;
 
+use Yii;
 use yii\db\Expression;
 
 trait SqlHelperTrait
 {
+    use JsonTrait;
+
+    private array $selectColumns = [];
+    private array $joinList = [];
+    private string|null $customAlias = null;
+
+    /** ========= Auto Join helper::begin ========= */
+
+    protected function setSingleSelectNotAlias(string $joinType, string $current_table, string $alias, string $current_column): void
+    {
+        $collectColumns = [];
+        $joinTable = $current_table . '_' . $this->langTable;
+        $collectColumns[$current_column] = $this->coalesce($joinTable, $current_column, $alias . '.' . $current_column);
+        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
+        $this->addSelect($collectColumns);
+        $this->addJoin($joinType, $joinTable, $current_table, $alias);
+    }
+
+    protected function setFullSelect(string $joinType, string $current_table, string $alias, array $ml_attributes): void
+    {
+        $collectColumns = [];
+        $nonTranslatableColumns = [];
+        $joinTable = $current_table . '_' . $this->langTable;
+        $columns = Yii::$app->db->getTableSchema($current_table)->columns;
+        foreach ($columns as $attribute_name => $column) {
+            if (in_array($attribute_name, $ml_attributes)) {
+                $collectColumns[$attribute_name] = $this->coalesce($joinTable, $attribute_name, $alias . '.' . $attribute_name);
+            } else {
+                $nonTranslatableColumns[] = "{$alias}.{$attribute_name}";
+            }
+        }
+        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
+        $this->addSelect(array_merge($nonTranslatableColumns, $collectColumns));
+        $this->addJoin($joinType, $joinTable, $current_table, $alias);
+    }
+
+    protected function setSingleSelect(string $joinType, array $joins, string $rootTable, string $attribute_name, string $column): void
+    {
+        $explode = explode('.', $column);
+        $collectColumns = [];
+        foreach ($joins as $join) {
+            if (isset($join[1][$explode[0]])) {
+                $current_table = $join[1][$explode[0]];
+                $joinTable = $current_table . '_' . $this->langTable;
+                $collectColumns[$attribute_name] = $this->coalesce($joinTable, $explode[1], $column);
+                $this->addSelect($collectColumns);
+                $this->addJoin($joinType, $joinTable, $current_table, $explode[0]);
+                break;
+            }
+        }
+        $this->joinList = array_merge($this->joinList, $collectColumns);
+        if (empty($collectColumns) && !in_array($attribute_name, array_keys($this->joinList)) && $explode[0] === $this->customAlias) {
+            $joinTable = $rootTable . '_' . $this->langTable;
+            $collectColumns[$attribute_name] = $this->coalesce($joinTable, $explode[1], $column);
+            $this->addSelect($collectColumns);
+            $this->addJoin($joinType, $joinTable, $rootTable, $explode[0]);
+        }
+        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
+    }
+
+    protected function coalesce(string $table, string $attribute, string $qualified_column_name): string
+    {
+        return "COALESCE(NULLIF(json_extract_path_text({$table}.value, '{$attribute}'), ''), {$qualified_column_name})";
+    }
+
+    protected function addJoin(string $joinType, string $joinTable, string $current_table, string $alias): void
+    {
+        $this->$joinType(
+            [$joinTable => $this->langTable],
+            "$joinTable.table_name = :table_name_$current_table AND $joinTable.table_iteration = {$alias}.id",
+            [":table_name_$current_table" => $current_table]
+        );
+    }
+
+    public function orderBy($columns)
+    {
+        if (is_array($columns) && isset($this->selectColumns)) {
+            foreach ($columns as $column => $value) {
+                if (!empty($this->selectColumns[$column])) {
+                    $columns[$this->selectColumns[$column]] = $value;
+                    unset($columns[$column]);
+                }
+            }
+        }
+        $this->orderBy = $this->normalizeOrderBy($columns);
+        return $this;
+    }
+    /** ========= Auto Join helper::end ========= */
+
+
     /** tarjima qilinadigan ustunlarni bitta jsonga saralab olish */
     private static function jsonBuilder(string $table_name, string $lang_name, array $attributes, string $lang_table = null): string
     {

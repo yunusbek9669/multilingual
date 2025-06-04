@@ -63,12 +63,12 @@ class BaseLanguageList extends ActiveRecord
         $this->table = MlConstant::LANG_PREFIX . $this->key;
         if ($this->isNewRecord) {
             if (self::issetTable($this->table)) {
-                $response = BaseLanguageQuery::createLangTable($this->table);
+                $response = self::createLangTable($this->table);
             }
         } else {
             $oldTableName = MlConstant::LANG_PREFIX . $this->getOldAttribute('key');
             if ($this->getOldAttribute('key') !== $this->key) {
-                $response = BaseLanguageQuery::updateLangTable($oldTableName, $this->table);
+                $response = self::updateLangTable($oldTableName, $this->table);
             }
         }
 

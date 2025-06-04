@@ -15,11 +15,13 @@ use yii\base\InvalidConfigException;
 use yii\db\Exception;
 use yii\web\UploadedFile;
 use Yunusbek\Multilingual\components\traits\JsonTrait;
+use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 use Yunusbek\Multilingual\models\BaseLanguageList;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
+use Yunusbek\Multilingual\models\MlActiveQuery;
 
 class ExcelExportImport
 {
+    use SqlRequestTrait;
     use JsonTrait;
     /** Ma‘lumotlarni excelga export qilish
      * @throws InvalidConfigException
@@ -222,7 +224,7 @@ class ExcelExportImport
                         /** static tarjimalr uchun */
                         if (!empty($static)) {
                             foreach ($static as $category => $values) {
-                                $upsert = BaseLanguageQuery::singleUpsert($table, $category, 0, true, $values);
+                                $upsert = self::singleUpsert($table, $category, 0, true, $values);
                                 if ($upsert <= 0) {
                                     $json = json_encode($values);
                                     $response['status'] = false;
@@ -236,7 +238,7 @@ class ExcelExportImport
                         /** dynamic tarjimalr uchun */
                         if (!empty($dynamic)) {
                             foreach ($dynamic as $table_name => $row) {
-                                $upsert = BaseLanguageQuery::batchUpsert($table, $table_name, $row);
+                                $upsert = self::batchUpsert($table, $table_name, $row);
                                 if ($upsert <= 0) {
                                     $response['status'] = false;
                                     $response['code'] = 'error';

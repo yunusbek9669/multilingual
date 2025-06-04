@@ -8,11 +8,12 @@ use yii\base\InvalidConfigException;
 use yii\db\Query;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
+use Yunusbek\Multilingual\models\MlActiveQuery;
 
 trait MultilingualTrait
 {
     use JsonTrait;
+    use SqlRequestTrait;
     private bool $where = true;
     private array $jsonData = [];
 
@@ -32,9 +33,9 @@ trait MultilingualTrait
     }
 
     /** Avto tarjimani ulash */
-    public static function find(): BaseLanguageQuery
+    public static function find(): MlActiveQuery
     {
-        return new BaseLanguageQuery(static::class);
+        return new MlActiveQuery(static::class);
     }
 
     public function bootMultilingual(): void
@@ -105,7 +106,7 @@ trait MultilingualTrait
                     }
                 }
             } catch (Exception $e) {
-                $response['message'] = BaseLanguageQuery::modErrToStr($e);
+                $response['message'] = self::errToStr($e);
                 $response['code'] = 'error';
                 $response['status'] = false;
             }
@@ -130,7 +131,7 @@ trait MultilingualTrait
             foreach ($data as $table_index => $datum) {
                 $table_name = array_keys($this->jsonData['tables'])[$table_index] ?? null;
                 if (isset($this->id) && !empty($table_name)) {
-                    $upsert = BaseLanguageQuery::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
+                    $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
                     if ($upsert <= 0) {
                         Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
                         $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
@@ -164,7 +165,7 @@ trait MultilingualTrait
         $allMessages = json_decode($table['value'], true);
         ksort($allMessages);
         ksort($value);
-        $upsert = BaseLanguageQuery::singleUpsert($langTable, $category, 0, true, array_replace($allMessages, $value));
+        $upsert = self::singleUpsert($langTable, $category, 0, true, array_replace($allMessages, $value));
         if ($upsert <= 0) {
             $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
             $response['code'] = 'error';

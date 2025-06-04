@@ -117,4 +117,219 @@ trait SqlRequestTrait
         }
         return str_replace('_', ' ', ucwords($table_name, '_'));
     }
+
+
+
+    /**
+     * yangi lang_* table yaratish
+     */
+    public static function createLangTable(string $tableName): array
+    {
+        $db = Yii::$app->db;
+        $response = [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success'
+        ];
+
+        $tableName = Yii::$app->db->schema->getRawTableName($tableName);
+        try {
+            $db->createCommand("
+                CREATE TABLE {$tableName} (
+                    table_name VARCHAR(50) NOT NULL,
+                    table_iteration INT NOT NULL,
+                    is_static BOOLEAN DEFAULT FALSE,
+                    value JSON NOT NULL,
+                    PRIMARY KEY (table_name, table_iteration, is_static)
+                ) PARTITION BY LIST (is_static);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE INDEX idx_{$tableName}_table_name_iteration 
+                ON {$tableName} (table_name, table_iteration);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE static_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (TRUE);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE dynamic_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (FALSE);
+            ")->execute();
+        } catch (\Throwable $e) {
+            $response['code'] = 'error';
+            $response['status'] = false;
+            $response['message'] = "Jadval yaratishda xato: " . self::errToStr($e);
+        }
+
+        return $response;
+    }
+
+    /**
+     * lang_* table nomini yangilash
+     */
+    public static function updateLangTable(string $oldTableName, string $tableName): array
+    {
+        $db = Yii::$app->db;
+        $response = [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success'
+        ];
+        $tableName = Yii::$app->db->schema->getRawTableName($tableName);
+        $transaction = $db->beginTransaction();
+        try {
+            $db->createCommand("
+                CREATE TABLE {$tableName} (
+                    table_name VARCHAR(50) NOT NULL,
+                    table_iteration INT NOT NULL,
+                    is_static BOOLEAN DEFAULT FALSE,
+                    value JSON NOT NULL,
+                    PRIMARY KEY (table_name, table_iteration, is_static)
+                ) PARTITION BY LIST (is_static);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE INDEX idx_{$tableName}_table_name_iteration 
+                ON {$tableName} (table_name, table_iteration);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE static_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (TRUE);
+            ")->execute();
+
+            $db->createCommand("
+                CREATE TABLE dynamic_{$tableName} PARTITION OF {$tableName}
+                FOR VALUES IN (FALSE);
+            ")->execute();
+
+            $db->createCommand("
+                INSERT INTO {$tableName} (table_name, table_iteration, value, is_static)
+                SELECT table_name, table_iteration, value, is_static 
+                FROM {$oldTableName};
+            ")->execute();
+
+            $db->createCommand("DROP INDEX IF EXISTS idx_{$oldTableName}_table_name_iteration")->execute();
+            $db->createCommand("DROP TABLE {$oldTableName}")->execute();
+
+            $transaction->commit();
+        } catch (\Throwable $e) {
+            $transaction->rollBack();
+            $response['message'] = "Jadvalni yangilashda xato: " . self::errToStr($e);
+            $response['status'] = false;
+            $response['code'] = 'error';
+        }
+        return $response;
+    }
+
+    /**
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
+    public static function singleUpsert(string $table, string $category, int $iteration, bool $isStatic, array $value): int
+    {
+        if (!$isStatic) {
+            $real_keys = self::getJson()['tables'][$category];
+
+            $existing = Yii::$app->db->createCommand("
+                SELECT value FROM {$table}
+                WHERE table_name = :category AND table_iteration = :iteration
+                LIMIT 1
+            ")->bindValues([
+                ':category' => $category,
+                ':iteration' => $iteration,
+            ])->queryOne();
+
+            $existingValue = isset($existing['value']) ? json_decode($existing['value'], true) : [];
+
+            foreach ($value as $key => $val) {
+                $existingValue[$key] = $val;
+            }
+
+            $value = array_filter(
+                $existingValue,
+                fn($k) => in_array($k, $real_keys, true),
+                ARRAY_FILTER_USE_KEY
+            );
+        }
+
+        return Yii::$app->db->createCommand()
+            ->upsert($table, [
+                'table_name' => $category,
+                'table_iteration' => $iteration,
+                'is_static' => $isStatic,
+                'value' => $value
+            ], [
+                'value' => $value
+            ])
+            ->execute();
+    }
+
+    /**
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
+    public static function batchUpsert(string $table, string $category, array $newData): int
+    {
+        $real_keys = self::getJson()['tables'][$category];
+
+        $ids = array_keys($newData);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_values(array_merge([$category], $ids));
+        array_unshift($params, null);
+        unset($params[0]);
+
+        $existingRows = Yii::$app->db->createCommand("
+            SELECT table_iteration, value
+            FROM {$table}
+            WHERE table_name = ? AND table_iteration IN ($placeholders)
+        ", $params)->queryAll();
+
+        $existingMap = [];
+        foreach ($existingRows as $row) {
+            $existingMap[$row['table_iteration']] = json_decode($row['value'], true) ?? [];
+        }
+
+        $rowsToInsert = [];
+        foreach ($newData as $table_iteration => $newValue)
+        {
+            $old = $existingMap[$table_iteration] ?? [];
+
+            foreach ($newValue as $k => $v) {
+                $old[$k] = $v;
+            }
+
+            $filtered = array_filter(
+                $old,
+                fn($k) => in_array($k, $real_keys, true),
+                ARRAY_FILTER_USE_KEY
+            );
+
+            $rowsToInsert[] = [
+                $category,
+                $table_iteration,
+                false,
+                json_encode($filtered, JSON_UNESCAPED_UNICODE)
+            ];
+        }
+
+        $result = self::batchBulk(['table_name', 'table_iteration', 'is_static', 'value'], $rowsToInsert, $table);
+
+        return Yii::$app->db->createCommand($result['sql'], $result['params'])->execute();
+    }
+
+
+    public static function errToStr($model): string
+    {
+        $errors = $model->getErrors();
+        $string = "";
+        foreach ($errors as $error) {
+            $string = $error[0] . " " . PHP_EOL . $string;
+        }
+
+        return $string;
+    }
 }

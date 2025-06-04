@@ -4,10 +4,7 @@ namespace Yunusbek\Multilingual\components\traits;
 
 use Yii;
 use yii\base\InvalidConfigException;
-use yii\db\Exception;
 use Yunusbek\Multilingual\commands\Messages;
-use Yunusbek\Multilingual\components\LanguageService;
-use Yunusbek\Multilingual\models\BaseLanguageQuery;
 
 trait JsonTrait
 {
