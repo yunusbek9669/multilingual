@@ -84,7 +84,7 @@ class MlQuery extends Query
 
     private function separateAlias($table): void
     {
-        if (preg_match('/^(\w+)\s+(\w+)$/', $table, $matches)) {
+        if (preg_match('/^([\w.]+)\s+(?:as\s+)?(\w+)$/i', $table, $matches)) {
             $this->customAlias = $matches[2];
             $this->current_table = $matches[1];
         } else {
