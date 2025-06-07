@@ -13,8 +13,8 @@ use Yunusbek\Multilingual\components\MlConstant;
 
 trait SqlRequestTrait
 {
-    use SqlHelperTrait;
     use JsonTrait;
+    use SqlHelperTrait;
 
     /**
      * @param string|null $table_name

@@ -3,16 +3,15 @@
 namespace Yunusbek\Multilingual\components\traits;
 
 use Yii;
+use yii\db\Query;
 use yii\db\Exception;
 use yii\base\InvalidConfigException;
-use yii\db\Query;
-use Yunusbek\Multilingual\components\LanguageService;
-use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\models\MlActiveQuery;
+use Yunusbek\Multilingual\components\MlConstant;
+use Yunusbek\Multilingual\components\LanguageService;
 
 trait MultilingualTrait
 {
-    use JsonTrait;
     use SqlRequestTrait;
     private bool $where = true;
     private array $jsonData = [];
@@ -22,8 +21,7 @@ trait MultilingualTrait
      */
     public function __construct()
     {
-        $this->jsonData = self::getJson();
-        foreach ($this->jsonData['where'] ?? [] as $attribute => $value) {
+        foreach (self::getJson()['where'] ?? [] as $attribute => $value) {
             if (isset($this->$attribute) && $this->$attribute != $value) {
                 $this->where = false;
                 break;
@@ -44,6 +42,9 @@ trait MultilingualTrait
         $this->on(self::EVENT_AFTER_UPDATE, [$this, 'multilingualAfterSave']);
     }
 
+    /**
+     * @throws InvalidConfigException
+     */
     public function afterDelete()
     {
         $this->multilingualAfterDelete();
@@ -76,6 +77,9 @@ trait MultilingualTrait
         }
     }
 
+    /**
+     * @throws InvalidConfigException
+     */
     private function multilingualAfterDelete(): void
     {
         $this->deleteLanguageValue();
@@ -84,7 +88,9 @@ trait MultilingualTrait
         }
     }
 
-    /** Tarjimalarni o‘chirish */
+    /** Tarjimalarni o‘chirish
+     * @throws InvalidConfigException
+     */
     public function deleteLanguageValue(): array
     {
         $db = Yii::$app->db;
@@ -129,7 +135,7 @@ trait MultilingualTrait
         ];
         foreach ($post as $lang_table => $data) {
             foreach ($data as $table_index => $datum) {
-                $table_name = array_keys($this->jsonData['tables'])[$table_index] ?? null;
+                $table_name = array_keys(self::getJson()['tables'])[$table_index] ?? null;
                 if (isset($this->id) && !empty($table_name)) {
                     $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
                     if ($upsert <= 0) {
