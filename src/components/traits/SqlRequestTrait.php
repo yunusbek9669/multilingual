@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\components\traits;
 
 use Yii;
+use yii\base\Model;
 use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\DataReader;
@@ -47,6 +48,8 @@ trait SqlRequestTrait
             $countSelect = [];
             foreach ($jsonData['tables'] as $table_name => $attributes)
             {
+                if (isset($params['table-name']) && $params['table-name'] !== $table_name) { continue; }
+
                 /** lang_* jadvallari bo‘yicha sql sozlamalar */
                 $sqlHelper = self::sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll, $export);
 
@@ -324,6 +327,11 @@ trait SqlRequestTrait
 
     public static function errToStr($model): string
     {
+        if (!$model instanceof Model)
+        {
+            $explode = explode("\n", trim($model->getMessage()));
+            return $explode[0] ?? $model;
+        }
         $errors = $model->getErrors();
         $string = "";
         foreach ($errors as $error) {

@@ -1,5 +1,6 @@
 <?php
 
+use Yunusbek\Multilingual\components\helpers\ServiceHelper;
 use Yunusbek\Multilingual\components\MlConstant;
 use yii\helpers\Html;
 use yii\helpers\Url;
@@ -13,12 +14,25 @@ $this->title = Yii::t('multilingual', 'Translating column values in the database
 $this->params['breadcrumbs'][] = $this->title;
 $page = Yii::$app->request->get();
 $per_page = $page['per-page'] ?? MlConstant::LIMIT;
+
+$options = [null => 'Tozalash'];
+foreach (ServiceHelper::getJson()['tables'] as $key => $value) {
+    $options[$key] = ServiceHelper::tableTextFormat($key, true, );
+}
 ?>
     <div class="ml-card">
         <div class="ml-card-body">
             <div class="ml-card-header">
                 <div><?php echo $this->title ?></div>
                 <div style="display: flex">
+                    <?php echo Html::tag('select',
+                        Html::renderSelectOptions(Yii::$app->request->get('table-name'), $options),
+                        [
+                            'class' => 'form-control px-1',
+                            'style' => 'margin-right: 10px; margin-top: 1px;',
+                            'onchange' => 'selectTable(this.value)',
+                        ]
+                    ); ?>
                     <?php echo Html::input('search', null, $per_page,
                         [
                             'class' => 'form-control px-1',
@@ -90,6 +104,15 @@ $per_page = $page['per-page'] ?? MlConstant::LIMIT;
 
 <?php
 $js = <<<JS
+    function selectTable(value) {
+        const url = new URL(window.location.href);
+        if (value !== '') {
+            url.searchParams.set('table-name', value);
+        } else {
+            url.searchParams.delete('table-name');
+        }
+        window.location.href = url.toString();
+    }
     function updatePerPage(value) {
         const perPage = parseInt(value);
         if (!isNaN(perPage) && perPage > 0 && perPage <= 5000) {

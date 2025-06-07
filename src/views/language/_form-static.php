@@ -46,7 +46,7 @@ $page = Yii::$app->request->get('page', 0);
                     <tr>
                         <td><?php echo $iteration++ ?></td>
                         <td style="font-style: italic; white-space: pre-wrap;"><span style="background-color: rgba(105,255,0,0.31); color: rgb(96,96,96);"><?php echo $key ?></span></td>
-                        <td><input type="text" name="<?php echo $table_name.'['.$key.']' ?>" value="<?php echo $value ?>" class="ml-form-control <?php echo empty($value) ? 'ml-danger' : '' ?>"></td>
+                        <td><input type="text" name="<?php echo $table_name.'['.htmlspecialchars($key).']' ?>" value="<?php echo $value ?>" class="ml-form-control <?php echo empty($value) ? 'ml-danger' : '' ?>"></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

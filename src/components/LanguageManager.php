@@ -45,7 +45,7 @@ class LanguageManager
             $Multilingual = BaseLanguageList::find()->asArray()->orderBy(['name' => SORT_ASC])->all();
             $result = ArrayHelper::map($Multilingual, 'key', function ($model) use ($key, &$hasActive) {
                 $isActive = $key === $model['key'];
-                if ($isActive) $hasActive = true;
+                if ($isActive) { $hasActive = true; }
                 return [
                     'name' => $model['name'],
                     'short_name' => $model['short_name'],

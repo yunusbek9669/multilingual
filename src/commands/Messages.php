@@ -543,6 +543,7 @@ EOD;
                 $this->jsonData = ['where' => (object)[]] + $this->jsonData;
             }
 
+            ksort($this->jsonData['tables']);
             foreach ($this->jsonData['tables'] as &$fields) {
                 sort($fields);
             }

@@ -3,9 +3,8 @@
 namespace Yunusbek\Multilingual\models;
 
 use Yii;
-use yii\db\Connection;
-use yii\db\Exception;
 use yii\db\Query;
+use yii\db\Connection;
 use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
@@ -40,16 +39,9 @@ class MlQuery extends Query
      * @param Connection|null $db the database connection used to generate the SQL statement.
      * If this parameter is not given, the `db` application component will be used.
      * @return array the query results. If the query results in nothing, an empty array will be returned.
-     * @throws Exception
      */
-//    public function all($db = null): array
-//    {
-//        if ($this->emulateExecution) {
-//            return [];
-//        }
-//
-//        $rows = $this->createCommand($db)->queryAll();
-//
-//        return $this->populate($rows);
-//    }
+    public function all($db = null): array
+    {
+        return parent::all($db);
+    }
 }
