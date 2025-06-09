@@ -22,7 +22,7 @@ trait JsonTrait
         if (file_exists($jsonFile)) {
             $jsonContent = file_get_contents($jsonFile);
             if (json_last_error() === JSON_ERROR_NONE) {
-                self::$json = json_decode($jsonContent, true) ?? [];
+                self::$json = json_decode($jsonContent, true) ?? ['tables' => []];
             } else {
                 throw new InvalidConfigException(Yii::t('multilingual', 'Invalid JSON structure detected in {jsonPath}.', ['jsonPath' => $jsonFile]));
             }

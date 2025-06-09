@@ -142,6 +142,15 @@ class YourModel extends yii\db\ActiveRecord
 }
 ```
 
+For query commands using ```(new Query())->from('table_name')```:
+
+To use multilingual support, simply replace ```new \yii\db\Query()``` with ```new \Yunusbek\Multilingual\models\MlQuery()```
+
+so your query will look like:
+```php
+(new MlQuery())->from('table_name')//-> and your conditions...
+```
+
 The part to be applied in the form page:
 
 ```php

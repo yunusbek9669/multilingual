@@ -15,7 +15,7 @@ $this->params['breadcrumbs'][] = $this->title;
 $page = Yii::$app->request->get();
 $per_page = $page['per-page'] ?? MlConstant::LIMIT;
 
-$options = [null => 'Tozalash'];
+$options = [0 => Yii::t('multilingual', 'Clear')];
 foreach (ServiceHelper::getJson()['tables'] as $key => $value) {
     $options[$key] = ServiceHelper::tableTextFormat($key, true, );
 }
@@ -106,7 +106,7 @@ foreach (ServiceHelper::getJson()['tables'] as $key => $value) {
 $js = <<<JS
     function selectTable(value) {
         const url = new URL(window.location.href);
-        if (value !== '') {
+        if (value !== '0') {
             url.searchParams.set('table-name', value);
         } else {
             url.searchParams.delete('table-name');
@@ -390,6 +390,14 @@ thead, tbody, tfoot, tr, td, th {
 .ml-btn-group .ml-btn:last-child {
     border-top-right-radius: 0.25rem;
     border-bottom-right-radius: 0.25rem;
+}
+select[onchange="selectTable(this.value)"] option[selected] {
+    color: #31708f;
+    background-color: #d9edf7;
+}
+select[onchange="selectTable(this.value)"] option[value="0"] {
+    color: #979797;
+    background-color: #eaeaea;
 }
 CSS;
 $this->registerCss($css);

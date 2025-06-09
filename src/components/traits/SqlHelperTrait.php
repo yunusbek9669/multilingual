@@ -420,6 +420,7 @@ trait SqlHelperTrait
                         /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
                         foreach ($attributes as $attribute) {
                             self::isFull($result, $attribute, $lang_table, $table_name);
+                            $exists .= new Expression(" OR ($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '' AND COALESCE(json_extract_path_text({$lang_table}.value, '{$attribute}'), '') = '')");
                         }
 
                         /** value ustunida tarjimalarni json holatda yasash */
