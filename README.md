@@ -156,14 +156,14 @@ class YourModel extends yii\db\ActiveRecord
 ```sql
 SELECT
     -- Replace `your_table_name.attribute_name` with a multilingual fallback expression
-    COALESCE(NULLIF(lang_en.value->>'attribute_name', ''), your_table_name.attribute_name) AS attribute_name
+    COALESCE(NULLIF(your_real_table_name_lang_en.value->>'attribute_name', ''), your_table_name.attribute_name) AS attribute_name
 FROM
     your_real_table_name AS your_table_name
 
 -- Add JOIN with the multilingual table to fetch translations
-LEFT JOIN lang_en AS your_table_name_lang_en
-    ON your_table_name_lang_en.table_name = 'your_real_table_name'
-    AND your_table_name_lang_en.table_iteration = your_table_name.id
+LEFT JOIN lang_en AS your_real_table_name_lang_en
+    ON your_real_table_name_lang_en.table_name = 'your_real_table_name'
+    AND your_real_table_name_lang_en.table_iteration = your_table_name.id
 
 WHERE
     -- Add your filtering conditions here
