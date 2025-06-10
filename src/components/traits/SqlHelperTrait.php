@@ -31,7 +31,7 @@ trait SqlHelperTrait
      * @param string|null $current_table
      * @return SqlHelperTrait
      */
-    public function joinWithLang(string $joinType = 'leftJoin', string $current_table = null): static
+    private function joinWithLang(string $joinType = 'leftJoin', string $current_table = null): static
     {
         if (Yii::$app->params['table_available'] ?? false) {
             $current_table = $current_table ?? $this->current_table;
@@ -68,7 +68,7 @@ trait SqlHelperTrait
      * @param array|null $joins
      * @return void
      */
-    protected function setSingleSelectExpression(string $joinType, string $rootTable, string $column, string|int $attribute_name = null, array $joins = null): void
+    private function setSingleSelectExpression(string $joinType, string $rootTable, string $column, string|int $attribute_name = null, array $joins = null): void
     {
         $collectColumns = [];
         if (is_array($joins)) {
@@ -106,7 +106,7 @@ trait SqlHelperTrait
      * @param string $alias
      * @param string $current_column
      */
-    protected function setSingleSelectNotAlias(string $joinType, string $current_table, string $alias, string $current_column): void
+    private function setSingleSelectNotAlias(string $joinType, string $current_table, string $alias, string $current_column): void
     {
         $collectColumns = [];
         $joinLangTable = $current_table . '_' . $this->langTable;
@@ -151,7 +151,7 @@ trait SqlHelperTrait
      * @param string $column
      * @return void
      */
-    protected function setSingleSelect(string $joinType, array $joins, string $rootTable, string $attribute_name, string $column): void
+    private function setSingleSelect(string $joinType, array $joins, string $rootTable, string $attribute_name, string $column): void
     {
         $explode = explode('.', $column);
         $collectColumns = [];
@@ -185,9 +185,10 @@ trait SqlHelperTrait
      * @param string $qualified_column_name
      * @return string
      */
-    protected function coalesce(string $table, string $attribute, string $qualified_column_name): string
+    private function coalesce(string $table, string $attribute, string $qualified_column_name): string
     {
-        return "COALESCE(NULLIF(json_extract_path_text({$table}.value, '{$attribute}'), ''), {$qualified_column_name})";
+        return "COALESCE(NULLIF({$table}.value->>'{$attribute}', ''), {$qualified_column_name})";
+//        return "COALESCE(NULLIF(json_extract_path_text({$table}.value, '{$attribute}'), ''), {$qualified_column_name})"; //muqobil usul
     }
 
     /**
@@ -198,7 +199,7 @@ trait SqlHelperTrait
      * @param string $alias
      * @return void
      */
-    protected function addJoin(string $joinType, string $joinTable, string $current_table, string $alias): void
+    private function addJoin(string $joinType, string $joinTable, string $current_table, string $alias): void
     {
         $this->$joinType(
             [$joinTable => $this->langTable],

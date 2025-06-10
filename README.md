@@ -130,8 +130,10 @@ echo \Yunusbek\Multilingual\widgets\MultilingualLanguageList::widget() //['optio
 ````
 >![All added dynamic languages.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/language_list.jpg)
 
-The ```MultilingualTrait``` must be used in models that support multilingual (translatable) content.
 
+Translation guides:
+---
+> ✅   The ```MultilingualTrait``` must be used in models that support multilingual (translatable) content.
 ```php
 use Yunusbek\Multilingual\components\traits\MultilingualTrait;
 
@@ -141,17 +143,37 @@ class YourModel extends yii\db\ActiveRecord
     #...model settings.
 }
 ```
-
-For query commands using ```(new Query())->from('table_name')```:
-
-To use multilingual support, simply replace ```new \yii\db\Query()``` with ```new \Yunusbek\Multilingual\models\MlQuery()```
-
-so your query will look like:
+---
+> ✅   For query commands using ```(new Query())->from('table_name')```:
+>
+>To use multilingual support, simply replace ```new \yii\db\Query()``` with ```new \Yunusbek\Multilingual\models\MlQuery()```
 ```php
-(new MlQuery())->from('table_name')//-> and your conditions...
+(new MlQuery())->from('table_name')//-> then your conditions...
 ```
+---
+> ✅   If you are writing raw SQL conditions (e.g., where, select, join, etc.) instead of using Yii2's ORM syntax, you need to include the following code to ensure that the multilingual feature works properly.
+>
+> In your `SELECT` clause, replace your normal attribute usage like this `your_table_name.attribute_name` with `COALESCE(NULLIF(lang_en.value->>'attribute_name', ''), your_table_name.attribute_name) AS attribute_name`
+```sql
+SELECT
+    -- Replace `your_table_name.attribute_name` with a multilingual fallback expression
+    COALESCE(NULLIF(lang_en.value->>'attribute_name', ''), your_table_name.attribute_name) AS attribute_name
+FROM
+    your_real_table_name AS your_table_name
 
-The part to be applied in the form page:
+-- Add JOIN with the multilingual table to fetch translations
+LEFT JOIN lang_en AS your_table_name_lang_en
+    ON your_table_name_lang_en.table_name = 'your_real_table_name'
+    AND your_table_name_lang_en.table_iteration = your_table_name.id
+
+WHERE
+    -- Add your filtering conditions here
+```
+---
+
+### Form fields:
+
+Add MlFields widget to your form — it will auto-generate inputs for newly added languages.
 
 ```php
 <?php $form = ActiveForm::begin(); ?>

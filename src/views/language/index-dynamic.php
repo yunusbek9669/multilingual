@@ -1,6 +1,6 @@
 <?php
 
-use Yunusbek\Multilingual\components\helpers\ServiceHelper;
+use Yunusbek\Multilingual\components\helpers\MlHelper;
 use Yunusbek\Multilingual\components\MlConstant;
 use yii\helpers\Html;
 use yii\helpers\Url;
@@ -16,8 +16,8 @@ $page = Yii::$app->request->get();
 $per_page = $page['per-page'] ?? MlConstant::LIMIT;
 
 $options = [0 => Yii::t('multilingual', 'Clear')];
-foreach (ServiceHelper::getJson()['tables'] as $key => $value) {
-    $options[$key] = ServiceHelper::tableTextFormat($key, true, );
+foreach (MlHelper::getJson()['tables'] as $key => $value) {
+    $options[$key] = MlHelper::tableTextFormat($key, true, );
 }
 ?>
     <div class="ml-card">
