@@ -153,7 +153,6 @@ class YourModel extends yii\db\ActiveRecord
 ---
 > ✅   If you are writing raw SQL conditions (e.g., where, select, join, etc.) instead of using Yii2's ORM syntax, you need to include the following code to ensure that the multilingual feature works properly.
 >
-> In your `SELECT` clause, replace your normal attribute usage like this `your_table_name.attribute_name` with `COALESCE(NULLIF(lang_en.value->>'attribute_name', ''), your_table_name.attribute_name) AS attribute_name`
 ```sql
 SELECT
     -- Replace `your_table_name.attribute_name` with a multilingual fallback expression
