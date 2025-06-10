@@ -164,6 +164,7 @@ FROM
 LEFT JOIN lang_en AS your_real_table_name_lang_en
     ON your_real_table_name_lang_en.table_name = 'your_real_table_name'
     AND your_real_table_name_lang_en.table_iteration = your_table_name.id
+    AND your_real_table_name_lang_en.is_static = false
 
 WHERE
     -- Add your filtering conditions here
