@@ -203,7 +203,7 @@ trait SqlHelperTrait
     {
         $this->$joinType(
             [$joinTable => $this->langTable],
-            "is_static = false AND $joinTable.table_name = :table_name_$current_table AND $joinTable.table_iteration = {$alias}.id",
+            "$joinTable.is_static = false AND $joinTable.table_name = :table_name_$current_table AND $joinTable.table_iteration = {$alias}.id",
             [":table_name_$current_table" => $current_table]
         );
         $this->join = array_map('unserialize', array_unique(array_map('serialize', $this->join)));
