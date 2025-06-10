@@ -39,6 +39,8 @@ class MlFields extends Widget
     public string $table_name;
 
     public string|array $attribute;
+    public array $wrapperOptions = [];
+    public array $options = [];
 
     public int|null $col;
 
@@ -81,6 +83,16 @@ class MlFields extends Widget
             |—]\n must be entered in the form");
         }
 
+        if (!empty($this->options) && isset($this->options['class'])) {
+            $this->options['class'] .= ' form-control';
+        }
+
+        if (!empty($this->wrapperOptions) && isset($this->wrapperOptions['class'])) {
+            $this->wrapperOptions['class'] .= ' highlight-addon';
+        } else {
+            $this->wrapperOptions = ['class' => 'form-group highlight-addon'];
+        }
+
         $tableSchema = $model->getTableSchema();
 
         if (is_array($this->attribute)) {
@@ -96,6 +108,8 @@ class MlFields extends Widget
             'tableSchema' => $tableSchema,
             'model' => $this->model,
             'form' => $this->form,
+            'options' => $this->options,
+            'wrapperOptions' => $this->wrapperOptions,
             'col' => !empty($this->col) ? 'col-' . $this->col : $col,
         ];
     }
@@ -149,8 +163,8 @@ class MlFields extends Widget
         $defaultLabel = $label . " ({$defaultLanguage['name']})";
 
         $output = Html::tag('div',
-            $form->field($model, $params['attribute'])
-                ->textInput(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue])
+            $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
+                ->textInput(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
                 ->label($defaultLabel . ' '.MlConstant::STAR),
             ['class' => $params['col']]
         );
@@ -163,12 +177,12 @@ class MlFields extends Widget
                 $dynamic_label .= " ({$language['name']})";
             }
 
-            $fg_option = ['class' => 'form-group highlight-addon'];
-            $input_options = ['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"];
+            $fg_option = $params['wrapperOptions'];
+            $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"], $params['options']);
             if (!empty($language['rtl'])) {
                 $input_options['dir'] = 'rtl';
                 $input_options['placeholder'] = $dynamic_label . " ✏️";
-                $fg_option['style'] = "direction: rtl !important; text-align: right !important;";
+                $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
             }
             $output .= Html::beginTag('div', ['class' => $params['col']]);
             $output .= Html::beginTag('div', $fg_option);
