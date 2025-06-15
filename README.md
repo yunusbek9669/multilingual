@@ -256,11 +256,11 @@ Steps:
 > ✅ The package will automatically parse the file and save the translations to the appropriate `lang_*` table.
 
 
-![This is an Excel file downloaded from an existing language](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/excel1.jpg)
+![This is an Excel file downloaded from an existing language](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/dinamic.jpg)
 
 This is a translated Excel file for the language that needs to be added.
 
-![This is a translated Excel file for the language that needs to be added.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/excel2.jpg)
+![This is a translated Excel file for the language that needs to be added.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/static.jpg)
 
 > When adding a new language, you can save the path of the translated Excel file above to the ```import_excel``` attribute in the ```language_list``` table.
 > 
