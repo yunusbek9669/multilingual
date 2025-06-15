@@ -138,7 +138,7 @@ class ExcelExportImport
         $sheet->getStyle('D2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
 
         /** Himoyani yoqish */
-        $spreadsheet->getActiveSheet()->getProtection()->setSheet(true);
+        $spreadsheet->getActiveSheet()->getProtection()->setSheet(true)->setPassword(MlConstant::MULTILINGUAL.MlConstant::LANG_PREFIX.MlConstant::STAR.MlConstant::LIMIT);
 
         /** Faylni saqlash */
         $writer = new Xlsx($spreadsheet);
