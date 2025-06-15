@@ -421,7 +421,8 @@ trait SqlHelperTrait
                         /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
                         foreach ($attributes as $attribute) {
                             self::isFull($result, $attribute, $lang_table, $table_name);
-                            $exists .= new Expression(" OR ($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '' AND COALESCE(json_extract_path_text({$lang_table}.value, '{$attribute}'), '') = '')");
+//                            $exists .= new Expression(" OR ($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '' AND COALESCE(json_extract_path_text({$lang_table}.value, '{$attribute}'), '') = '')");
+                            $exists .= new Expression(" OR ($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '' AND COALESCE({$lang_table}.value->>'{$attribute}', '') = '')");
                         }
 
                         /** value ustunida tarjimalarni json holatda yasash */
@@ -432,12 +433,13 @@ trait SqlHelperTrait
                     }
 
                     /** Qo‘shimcha shartlar */
-                    $conditions[$lang_table] = new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
-
+                    $conditions[$lang_table] = "(";
+                    $conditions[$lang_table] .= new Expression("($lang_table.is_static IS NULL OR $lang_table.is_static::int = $isStatic)");
                     /** Faqat bo‘sh qiymatlilarni yig‘ish */
                     if ($isAll === 0) {
                         $conditions[$lang_table] .= new Expression(" AND ($lang_table.is_static IS NULL OR {$exists})");
                     }
+                    $conditions[$lang_table] .= ')';
                 }
             }
 
@@ -445,7 +447,7 @@ trait SqlHelperTrait
                 $is_full = implode(' ', $is_full);
                 $result['is_full'] = new Expression("CASE {$is_full} ELSE TRUE END AS is_full");
             }
-            $result['conditions'] = implode(' ', $conditions);
+            $result['conditions'] = implode(' OR ', $conditions);
         }
         $result['json_builder'] = implode(", ", $result['json_builder']);
         $result['joins'] = implode(" ", $result['joins']);

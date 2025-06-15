@@ -62,7 +62,7 @@ class BaseLanguageList extends ActiveRecord
         ];
         $this->table = MlConstant::LANG_PREFIX . $this->key;
         if ($this->isNewRecord) {
-            if (self::issetTable($this->table)) {
+            if (!self::issetTable($this->table)) {
                 $response = self::createLangTable($this->table);
             }
         } else {
@@ -109,7 +109,15 @@ class BaseLanguageList extends ActiveRecord
         }
 
         $db = Yii::$app->db;
-        $db->createCommand("DROP INDEX IF EXISTS idx_{$this->table}_table_name_iteration")->execute();
-        $db->createCommand("DROP TABLE {$this->table}")->execute();
+        $transaction = $db->beginTransaction();
+        try {
+            $db->createCommand("DROP INDEX IF EXISTS idx_{$this->table}_table_name_iteration")->execute();
+            $db->createCommand("DROP TABLE {$this->table}")->execute();
+            $transaction->commit();
+            Yii::$app->session->setFlash('success', Yii::t('multilingual', 'Muvaffaqiyatli oʻchirib tashlandi'));
+        } catch (Exception $e) {
+            $transaction->rollBack();
+            Yii::$app->session->setFlash('error', Yii::t('multilingual', 'Jadvalni o‘chirishda xatolik yuz berdi.') .': '. self::errToStr($e));
+        }
     }
 }

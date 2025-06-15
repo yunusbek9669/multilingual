@@ -7,6 +7,7 @@ use yii\base\InvalidConfigException;
 use yii\db\Exception;
 use yii\db\Expression;
 use yii\db\Query;
+use yii\helpers\Url;
 use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 class LanguageService
@@ -40,22 +41,23 @@ class LanguageService
             foreach (array_keys($basePath) as $category) {
                 if ($category !== 'yii' && !str_contains($category, 'yii/')) {
                     $category = str_replace('*', '', $category);
-                    $incomplete = (new Query())
-                        ->select(['table_name', 'table_iteration', 'value'])
-                        ->from($table_name)
-                        ->where([
-                            'table_name' => $category,
-                            'is_static' => (int)$params['is_static'],
-                        ])
+                    $incomplete = (new Query())->select(['table_name', 'table_iteration', 'value'])->from($table_name)
+                        ->where(['table_name' => $category, 'is_static' => (int)$params['is_static']])
                         ->andWhere(new Expression("EXISTS (SELECT 1 FROM json_each_text({$table_name}.value) kv WHERE COALESCE(kv.value, '') = '')"))
                         ->one();
                     $count = 0;
                     if (!empty($incomplete)) {
-                        foreach (json_decode($incomplete['value']) as $row) {
-                            $count += (int)empty($row);
+                        foreach (json_decode($incomplete['value']) as $row) { $count += (int)empty($row); }
+                        $data = '<a href="'. Url::to(['translate-static', 'lang' => $table_name, 'category' => $category]) .'"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg> '.$category.' <span class="ml-not-translated ' . ($count > 0 ? 'has' : 'not') . '">'.$count.'</span></a>';
+                    } else {
+                        $exists = (new Query())->from($table_name)->where(['table_name' => $category, 'is_static' => (int)$params['is_static']])->exists();
+                        if ($exists) {
+                            $data = '<a href="'. Url::to(['translate-static', 'lang' => $table_name, 'category' => $category]) .'"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M498 142l-46 46c-5 5-13 5-17 0L324 77c-5-5-5-12 0-17l46-46c19-19 49-19 68 0l60 60c19 19 19 49 0 68zm-214-42L22 362 0 484c-3 16 12 30 28 28l122-22 262-262c5-5 5-13 0-17L301 100c-4-5-12-5-17 0zM124 340c-5-6-5-14 0-20l154-154c6-5 14-5 20 0s5 14 0 20L144 340c-6 5-14 5-20 0zm-36 84h48v36l-64 12-32-31 12-65h36v48z"></path></svg> '.$category.' <span class="ml-not-translated not">'.$count.'</span></a>';
+                        } else {
+                            $data = Yii::t('multilingual', 'No messages to translate were found. Please run the {command} command.', ['command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/i18n</code>']);
                         }
                     }
-                    $result['body'][$language['name']][$category] = $category.' '.'<span class="ml-not-translated ' . ($count > 0 ? 'has' : 'not') . '">'.$count.'</span>';
+                    $result['body'][$language['name']][$category] = $data;
                 }
             }
         }
