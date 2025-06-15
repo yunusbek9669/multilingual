@@ -192,6 +192,7 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
 > All added languages will automatically be displayed on the form page. From here you can type in the translation of all your newly added languages.
 > 
 >⭐ Default language;
+> 
 >and subsequent form inputs are automatically created for newly added languages;
 >
 >![All added languages will be displayed on the form page.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/form.jpg)
