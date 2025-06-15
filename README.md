@@ -252,7 +252,7 @@ Steps:
 3. Upload the translated Excel file.
 4. Set the path of this Excel file to the `import_excel` attribute of the `language_list` table.
 
-> ✅ The package will automatically parse the file and save the translations to the appropriate `lang_*` table.
+✅ The package will automatically parse the file and save the translations to the appropriate `lang_*` table.
 
 - The image below shows the Excel format used for translating dynamic data. Enter translations into the fields marked with a red border.
 ![This is an Excel for translate dynamic data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/dinamic.jpg)
