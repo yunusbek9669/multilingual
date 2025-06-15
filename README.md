@@ -258,7 +258,6 @@ Steps:
 ![This is an Excel for translate dynamic data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/dinamic.jpg)
 
 - The image below shows the Excel format used for translating static interface texts. Fill in the cells highlighted with a red border with the appropriate translations.
-
 ![This is an Excel for translate static data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/static.jpg)
 
 > When adding a new language, you can save the path of the translated Excel file above to the ```import_excel``` attribute in the ```language_list``` table.
