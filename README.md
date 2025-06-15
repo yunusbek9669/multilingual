@@ -276,6 +276,6 @@ Steps:
 Result:
 ------------
 - When the system is set to the default language:
-![before.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result1.jpg)
+![before](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result1.jpg)
 - When the system is set to a newly added language:
-![before.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result2.jpg)
+![after](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result2.jpg)
