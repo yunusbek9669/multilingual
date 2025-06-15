@@ -275,5 +275,7 @@ Steps:
 
 Result:
 ------------
-
-![This is a translated Excel file for the language that needs to be added.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result.jpg)
+- When the system is set to the default language: (Before)
+![before.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result1.jpg)
+- When the system is set to a newly added language: (After)
+![before.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result2.jpg)
