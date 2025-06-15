@@ -128,6 +128,8 @@ Add this array to the ```params.php``` file
 ````php
 echo \Yunusbek\Multilingual\widgets\MultilingualLanguageList::widget() //['options' => ['class' => '...']] if you want
 ````
+> Here ```O‘zbekcha``` is the default language; the following two are recently added translation languages.
+> 
 >![All added dynamic languages.](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/language_list.jpg)
 
 
