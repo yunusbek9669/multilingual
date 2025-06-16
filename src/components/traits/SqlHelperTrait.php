@@ -338,7 +338,7 @@ trait SqlHelperTrait
             }
             $selects[] = new Expression("SELECT
                 '{$attribute}' AS key,
-                CASE WHEN {$table_name}.{$attribute} IS NOT NULL AND {$table_name}.{$attribute} <> '' THEN {$value} END AS value
+                CASE WHEN NULLIF($table_name.$attribute, '') IS NOT NULL THEN {$value} END AS value
             ");
         }
         $selects = implode(' UNION ALL ', $selects);
@@ -381,7 +381,7 @@ trait SqlHelperTrait
         if (!empty($attributes)) {
             $orParts = [];
             foreach ($attributes as $attribute) {
-                $orParts[] = "($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '')";
+                $orParts[] = "NULLIF($table_name.$attribute, '') IS NOT NULL";
             }
             if (!empty($orParts)) {
                 $conditions[] = '(' . implode(' OR ', $orParts) . ')';
@@ -392,7 +392,6 @@ trait SqlHelperTrait
             $extraConditions = is_array($sqlHelper['conditions']) ? $sqlHelper['conditions'] : [$sqlHelper['conditions']];
             $conditions = array_merge($conditions, $extraConditions);
         }
-
         return implode(' AND ', $conditions);
     }
 
@@ -421,8 +420,7 @@ trait SqlHelperTrait
                         /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
                         foreach ($attributes as $attribute) {
                             self::isFull($result, $attribute, $lang_table, $table_name);
-//                            $exists .= new Expression(" OR ($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '' AND COALESCE(json_extract_path_text({$lang_table}.value, '{$attribute}'), '') = '')");
-                            $exists .= new Expression(" OR ($table_name.$attribute IS NOT NULL AND $table_name.$attribute <> '' AND COALESCE({$lang_table}.value->>'{$attribute}', '') = '')");
+                            $exists .= new Expression(" OR (NULLIF($table_name.$attribute, '') IS NOT NULL AND COALESCE({$lang_table}.value->>'{$attribute}', '') = '')");
                         }
 
                         /** value ustunida tarjimalarni json holatda yasash */
@@ -447,7 +445,7 @@ trait SqlHelperTrait
                 $is_full = implode(' ', $is_full);
                 $result['is_full'] = new Expression("CASE {$is_full} ELSE TRUE END AS is_full");
             }
-            $result['conditions'] = implode(' OR ', $conditions);
+            $result['conditions'] = '('.implode(' OR ', $conditions).')';
         }
         $result['json_builder'] = implode(", ", $result['json_builder']);
         $result['joins'] = implode(" ", $result['joins']);
