@@ -416,13 +416,16 @@ trait SqlHelperTrait
                     /** JOIN yasab berish uchun */
                     $result['joins'][$lang_table] = new Expression("LEFT JOIN $lang_table AS $lang_table ON $table_name.id = $lang_table.table_iteration AND '$table_name' = $lang_table.table_name");
 
-                    if (!$export) {
-                        /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
-                        foreach ($attributes as $attribute) {
+                    /** JSON ustunida mavjud bo'lmagan attributelarni qo‘shib berish */
+                    foreach ($attributes as $attribute) {
+                        if (!$export) {
                             self::isFull($result, $attribute, $lang_table, $table_name);
-                            $exists .= new Expression(" OR (NULLIF($table_name.$attribute, '') IS NOT NULL AND COALESCE({$lang_table}.value->>'{$attribute}', '') = '')");
                         }
+                        $exists .= new Expression(" OR (NULLIF($table_name.$attribute, '') IS NOT NULL AND COALESCE({$lang_table}.value->>'{$attribute}', '') = '')");
+                    }
 
+
+                    if (!$export) {
                         /** value ustunida tarjimalarni json holatda yasash */
                         $result['json_builder'][$name] = self::jsonBuilder($table_name, $name, $attributes, $lang_table);
 
