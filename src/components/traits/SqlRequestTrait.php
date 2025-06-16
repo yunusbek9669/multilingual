@@ -10,6 +10,7 @@ use yii\db\DataReader;
 use yii\data\Pagination;
 use yii\data\SqlDataProvider;
 use yii\base\InvalidConfigException;
+use yii\db\Query;
 use Yunusbek\Multilingual\components\MlConstant;
 
 trait SqlRequestTrait
@@ -226,6 +227,34 @@ trait SqlRequestTrait
             $response['code'] = 'error';
         }
         return $response;
+    }
+
+    /**
+     * @throws InvalidConfigException
+     */
+    public static function setI18n(string $default_table, string $lang_table): array
+    {
+        $data = (new Query())
+            ->select([
+                'table_name',
+                'table_iteration',
+                'value' => new Expression(
+                    "(SELECT json_object_agg(key, '') FROM json_each_text(value))"
+                )
+            ])
+            ->from($default_table)
+            ->where(['not', ['value' => null]])
+            ->all();
+        try {
+            foreach ($data as $row) {
+                self::singleUpsert($lang_table, $row['table_name'], $row['table_iteration'], true, json_decode($row['value'], true));
+            }
+        } catch (Exception) {}
+        return [
+            'status' => true,
+            'code' => 'success',
+            'message' => 'success'
+        ];
     }
 
     /**

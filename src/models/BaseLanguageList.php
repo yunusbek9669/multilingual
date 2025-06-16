@@ -64,6 +64,10 @@ class BaseLanguageList extends ActiveRecord
         if ($this->isNewRecord) {
             if (!self::issetTable($this->table)) {
                 $response = self::createLangTable($this->table);
+                $default_table = MlConstant::LANG_PREFIX . key(Yii::$app->params['default_language']);
+                if ($response['status'] && self::issetTable($default_table)) {
+                    $response = self::setI18n($default_table, $this->table);
+                }
             }
         } else {
             $oldTableName = MlConstant::LANG_PREFIX . $this->getOldAttribute('key');
