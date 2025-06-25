@@ -17,7 +17,6 @@ use yii\web\UploadedFile;
 use Yunusbek\Multilingual\components\traits\JsonTrait;
 use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 use Yunusbek\Multilingual\models\BaseLanguageList;
-use Yunusbek\Multilingual\models\MlActiveQuery;
 
 class ExcelExportImport
 {
