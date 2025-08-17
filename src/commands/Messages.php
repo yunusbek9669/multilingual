@@ -316,7 +316,7 @@ EOD;
 
         foreach ($this->languages as $language) {
             $langTable = "{{%lang_$language}}";
-            if (self::issetTable($langTable)) {
+            if (!self::issetTable($langTable)) {
                 self::createLangTable($langTable);
             }
             $this->saveMessagesToDb(
