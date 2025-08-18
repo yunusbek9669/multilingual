@@ -123,7 +123,11 @@ class LanguageService
                 }
             }
         } else {
-            $result['empty'] = Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', ['command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>']);
+            if (empty(self::getJson()['tables'])) {
+                $result['empty'] = Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', ['command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>']);
+            } else {
+                $result['empty'] = Yii::t('multilingual', 'Translation tables exist, but no untranslated data was found.');
+            }
         }
         return $result;
     }
