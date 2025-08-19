@@ -7,6 +7,7 @@ use Yii;
 use yii\base\InvalidConfigException;
 use yii\base\Widget;
 use yii\db\ActiveRecord;
+use yii\db\TableSchema;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\components\LanguageService;
@@ -43,6 +44,7 @@ class MlFields extends Widget
     public array $options = [];
 
     public int|null $col;
+    public string|null $type;
 
     private array $params;
 
@@ -55,6 +57,10 @@ class MlFields extends Widget
 
         if (!isset($this->model)) {
             throw new InvalidConfigException('"model" is not defined!');
+        }
+
+        if (!$this->model instanceof \yii\base\Model) {
+            throw new InvalidConfigException('"model" must be an instance of yii\base\Model.');
         }
 
         if (!isset($this->form)) {
@@ -126,10 +132,12 @@ class MlFields extends Widget
             $result = '';
             foreach ($this->attribute as $attr) {
                 $this->params['attribute'] = $attr;
+                $this->params['type'] = $this->type ?? $this->inputType($this->params['tableSchema'], $attr);
                 $result .= $this->setAttribute($this->params, $dashed_ml);
             }
         } else {
             $this->params['attribute'] = $this->attribute;
+            $this->params['type'] = $this->type ?? $this->inputType($this->params['tableSchema'], $this->attribute);
             $result = $this->setAttribute($this->params, $dashed_ml);
         }
         global $css;
@@ -142,6 +150,7 @@ class MlFields extends Widget
      */
     public function setAttribute(array $params, string $dashed_ml): string
     {
+        $type = $params['type'];
         $form = $params['form'];
         $model = $params['model'];
 
@@ -164,7 +173,7 @@ class MlFields extends Widget
 
         $output = Html::tag('div',
             $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
-                ->textInput(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
+                ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
                 ->label($defaultLabel . ' '.MlConstant::STAR),
             ['class' => $params['col']]
         );
@@ -187,7 +196,7 @@ class MlFields extends Widget
             $output .= Html::beginTag('div', ['class' => $params['col']]);
             $output .= Html::beginTag('div', $fg_option);
             $output .= Html::label($dynamic_label, $key, ['class' => 'form-label']);
-            $output .= Html::textInput($key, $value, $input_options);
+            $output .= Html::$type($key, $value, $input_options);
             $output .= Html::endTag('div');
             $output .= Html::endTag('div');
         }
@@ -208,6 +217,17 @@ class MlFields extends Widget
     {
         if (!in_array($columns[$attribute]->type, ['string', 'text'])) {
             throw new InvalidConfigException("The value of attribute - {{$attribute}} must be of type string.");
+        }
+    }
+
+    private function inputType(TableSchema $tableSchema, string $attribute): string
+    {
+        $column = $tableSchema->columns[$attribute];
+
+        if ($column->type === 'text') {
+            return 'textarea';
+        } else {
+            return 'textInput';
         }
     }
 }
