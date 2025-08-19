@@ -188,6 +188,7 @@ class MlFields extends Widget
 
             $fg_option = $params['wrapperOptions'];
             $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"], $params['options']);
+            $input_options['id'] = str_replace(['[',']'], ['_'], $key);
             if (!empty($language['rtl'])) {
                 $input_options['dir'] = 'rtl';
                 $input_options['placeholder'] = $dynamic_label . " ✏️";
@@ -195,7 +196,7 @@ class MlFields extends Widget
             }
             $output .= Html::beginTag('div', ['class' => $params['col']]);
             $output .= Html::beginTag('div', $fg_option);
-            $output .= Html::label($dynamic_label, $key, ['class' => 'form-label']);
+            $output .= Html::label($dynamic_label, $input_options['id'], ['class' => 'form-label']);
             $output .= Html::$type($key, $value, $input_options);
             $output .= Html::endTag('div');
             $output .= Html::endTag('div');
