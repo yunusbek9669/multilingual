@@ -215,7 +215,6 @@ class MlFields extends Widget
                     'class' => 'tab-pane fade ' . ($active ? 'active show' : '')
                 ]);
             }
-            $tabLink = '';
             $tabLinkParam = [
                 'id' => MlConstant::$tabId."Tab",
                 'role' => 'tablist',
@@ -224,6 +223,8 @@ class MlFields extends Widget
             if ($this->params['tab'] === 'vertical') {
                 $tabLinkParam['class'] = 'nav flex-column nav-pills';
                 $tabLinkParam['aria-orientation'] = $this->params['tab'];
+                $tabLink = Html::tag('div', Html::tag('ul', implode('', $li), $tabLinkParam), ['class' => 'col-md-auto col-sm-12']);
+                return  Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', implode('', $pane), ['class' => 'tab-content mb-0', 'id' => MlConstant::$tabId."TabContent"]), ['class' => 'col-md col-sm-12']) . $this->makeLine($dashed_ml), ['class' => 'row']);
             }
             $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
             return $tabLink . Html::tag('div', implode('', $pane) . $this->makeLine($dashed_ml), ['class' => 'tab-content mb-0', 'id' => MlConstant::$tabId."TabContent"]);
