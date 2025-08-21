@@ -185,6 +185,8 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
         'model' => $model,
         'table_name' => 'model_table_name', # set the model table name to output model attributes to the lang_* table.
         'attribute' => 'attribute_name', # or add multiple like ['attribute_name', 'second_attribute_name']
+        //'tab' => 'basic', # or 'vertical'
+        //'type' => 'textInput', # or 'textarea'
         //'options' => ['class' => 'form-control'], # input options
         //'wrapperOptions' => ['class' => 'form-group'], # parent element options
     ]) ?>

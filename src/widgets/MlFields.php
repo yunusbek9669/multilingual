@@ -30,6 +30,10 @@ $css = <<<CSS
     );
     margin: 15px 0 20px 0;
 }
+.has-reuired::after {
+    content: '';
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
+}
 CSS;
 
 class MlFields extends Widget
@@ -43,10 +47,12 @@ class MlFields extends Widget
     public array $wrapperOptions = [];
     public array $options = [];
 
-    public int|null $col;
     public string|null $type;
+    public string|null $tab;
 
     private array $params;
+
+    public static array $output = [];
 
     /**
      * @throws InvalidConfigException
@@ -75,6 +81,14 @@ class MlFields extends Widget
 
         if (!isset($this->table_name)) {
             throw new InvalidConfigException('"table_name" is important for the multilingual.json file to be saved correctly, it cannot be retrieved from "$model::tableName()" via the console command "php yii ml-extract/attributes".');
+        }
+
+        if (isset($this->type) && !in_array($this->type, ['textInput', 'textarea'])) {
+            throw new InvalidConfigException('"type" can be "textInput" or "textarea" only.');
+        }
+
+        if (isset($this->tab) && !in_array($this->tab, ['basic', 'vertical'])) {
+            throw new InvalidConfigException('"tab" can be "basic" or "vertical" only.');
         }
 
         if ($model::tableName() !== $this->table_name) {
@@ -109,14 +123,13 @@ class MlFields extends Widget
             $this->checkAttribute($tableSchema->columns, $this->attribute);
         }
 
-        $col = 'col-12';
         $this->params = [
             'tableSchema' => $tableSchema,
             'model' => $this->model,
             'form' => $this->form,
             'options' => $this->options,
             'wrapperOptions' => $this->wrapperOptions,
-            'col' => !empty($this->col) ? 'col-' . $this->col : $col,
+            'tab' => $this->tab ?? null,
         ];
     }
 
@@ -126,33 +139,115 @@ class MlFields extends Widget
      */
     public function run(): string
     {
+        self::$output = [];
+        if ($this->params['tab'] !== null) {
+            MlConstant::$tabId++;
+        }
         $dashed_ml = Html::tag('div', '', ['class' => 'dashed-ml']);
 
         if (is_array($this->attribute)) {
-            $result = '';
             foreach ($this->attribute as $attr) {
                 $this->params['attribute'] = $attr;
                 $this->params['type'] = $this->type ?? $this->inputType($this->params['tableSchema'], $attr);
-                $result .= $this->setAttribute($this->params, $dashed_ml);
+                $this->setAttribute($this->params, $dashed_ml);
             }
         } else {
             $this->params['attribute'] = $this->attribute;
             $this->params['type'] = $this->type ?? $this->inputType($this->params['tableSchema'], $this->attribute);
-            $result = $this->setAttribute($this->params, $dashed_ml);
+            $this->setAttribute($this->params, $dashed_ml);
         }
+
+        $result = $this->makeHtmlField($dashed_ml);
         global $css;
         $this->view->registerCss($css);
-        return $result . $this->makeLine($dashed_ml);
+        return $result;
+    }
+
+    private function setNavBar(string $id, string $name, bool $active): string
+    {
+        $active = $active ? 'active' : '';
+        if ($this->params['tab'] === 'vertical') {
+            return Html::tag('li',
+                Html::a($name, "#link-$id", [
+                    'id' => "$id-tab",
+                    'role' => 'tab',
+                    'data-bs-toggle' => 'pill',
+                    'aria-controls' => "link-$id",
+                    'aria-selected' => "true",
+                    'tabindex' => "-1",
+                    'class' => "nav-link $active",
+                ])
+            );
+        }
+        return Html::tag('li',
+            Html::a($name, "#link-$id", [
+                'id' => "$id-tab",
+                'role' => 'tab',
+                'data-bs-toggle' => 'tab',
+                'aria-controls' => "link-$id",
+                'aria-selected' => "true",
+                'class' => "nav-link $active",
+            ]),
+            [
+                'role' => 'presentation',
+                'class' => 'nav-item'
+            ]
+        );
+    }
+
+    private function makeHtmlField(string $dashed_ml): string
+    {
+        if ($this->params['tab'] !== null) {
+            $li = [];
+            $pane = [];
+            foreach (self::$output as $key => $content) {
+                $active = Yii::$app->language === $key;
+                $fields = '';
+                foreach ($content['field'] as $attr => $data) {
+                    $fields .= $data['html'];
+                }
+                $key = MlConstant::$tabId.'_'.$key;
+                $li[] = $this->setNavBar($key, $content['language'], $active);
+                $pane[] = Html::tag('div', $fields, [
+                    'role' => 'tabpanel',
+                    'id' => "link-{$key}",
+                    'aria-labelledby' => "{$key}-tab",
+                    'class' => 'tab-pane fade ' . ($active ? 'active show' : '')
+                ]);
+            }
+            $tabLink = '';
+            $tabLinkParam = [
+                'id' => MlConstant::$tabId."Tab",
+                'role' => 'tablist',
+                'class' => 'nav nav-tabs mb-4'
+            ];
+            if ($this->params['tab'] === 'vertical') {
+                $tabLinkParam['class'] = 'nav flex-column nav-pills';
+                $tabLinkParam['aria-orientation'] = $this->params['tab'];
+            }
+            $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
+            return $tabLink . Html::tag('div', implode('', $pane) . $this->makeLine($dashed_ml), ['class' => 'tab-content mb-0', 'id' => MlConstant::$tabId."TabContent"]);
+        } else {
+            $fields = '';
+            foreach (self::$output as $label => $content) {
+                $fields .= $this->makeLine($dashed_ml . $label . $dashed_ml);
+                foreach ($content as $key => $html) {
+                    $fields .= $html;
+                }
+            }
+            return $fields.$this->makeLine($dashed_ml);
+        }
     }
 
     /**
      * @throws Exception
      */
-    public function setAttribute(array $params, string $dashed_ml): string
+    public function setAttribute(array $params, string $dashed_ml): void
     {
         $type = $params['type'];
         $form = $params['form'];
         $model = $params['model'];
+        $label = $model->getAttributeLabel($params['attribute']);
 
         $defaultValue = (new yii\db\Query())
             ->from($model::tableName())
@@ -160,23 +255,31 @@ class MlFields extends Widget
             ->where(['id' => $model->id])
             ->scalar();
         $languages = Yii::$app->params['language_list'];
+        $defaultLangKey = null;
         $defaultLanguage = null;
-        foreach ($languages as $lang) {
+        foreach ($languages as $key => $lang) {
             if (empty($lang['table'])) {
+                $defaultLangKey = $key;
                 $defaultLanguage = $lang;
                 break;
             }
         }
 
-        $label = $model->getAttributeLabel($params['attribute']);
         $defaultLabel = $label . " ({$defaultLanguage['name']})";
 
-        $output = Html::tag('div',
-            $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
+        $output = [
+            'label' => $label,
+            'html' => (string)$form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
                 ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
                 ->label($defaultLabel . ' '.MlConstant::STAR),
-            ['class' => $params['col']]
-        );
+        ];
+
+        if (!empty($params['tab'])) {
+            self::$output[$defaultLangKey]['language'] = $defaultLanguage['name'];
+            self::$output[$defaultLangKey]['field'][$params['attribute']] = $output;
+        } else {
+            self::$output[$label][$defaultLangKey] = $output['html'];
+        }
         foreach (LanguageService::setCustomAttributes($model, $params['attribute']) as $key => $value)
         {
             preg_match('/lang_(\w+)/', $key, $matches);
@@ -194,14 +297,20 @@ class MlFields extends Widget
                 $input_options['placeholder'] = $dynamic_label . " ✏️";
                 $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
             }
-            $output .= Html::beginTag('div', ['class' => $params['col']]);
-            $output .= Html::beginTag('div', $fg_option);
-            $output .= Html::label($dynamic_label, $input_options['id'], ['class' => 'form-label']);
-            $output .= Html::$type($key, $value, $input_options);
-            $output .= Html::endTag('div');
-            $output .= Html::endTag('div');
+
+            $fields = Html::beginTag('div', $fg_option);
+            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => "form-label has-reuired"]);
+            $fields .= Html::$type($key, $value, $input_options);
+            $fields .= Html::endTag('div');
+
+            if (!empty($params['tab'])) {
+                self::$output[$matches[1]]['language'] = $language['name'];
+                self::$output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
+                self::$output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
+            } else {
+                self::$output[$label][$matches[1]] = $fields;
+            }
         }
-        return $this->makeLine($dashed_ml . $label . $dashed_ml) . $output;
     }
 
     private function makeLine($dashed_line): string
