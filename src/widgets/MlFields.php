@@ -301,19 +301,26 @@ class MlFields extends Widget
                 $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
             }
 
-            $fieldLabelClass = [];
+            $fieldLabelClass = null;
             $fieldLabel = $field->labelOptions['class'] ?? null;
             if (!empty($fieldLabel)) {
                 if (is_array($fieldLabel)) {
-                    $fieldLabelClass = array_values($fieldLabel);
-                    unset($fieldLabelClass['has-star']);
-                    $fieldLabelClass = implode(' ', $fieldLabelClass);
-                } else {
-                    $fieldLabelClass = str_replace('has-star', '', $fieldLabel);
+                    if (in_array('has-star', $fieldLabel)) {
+                        $fieldLabel = array_values($fieldLabel);
+                        unset($fieldLabel['has-star']);
+                        $fieldLabelClass = implode(' ', $fieldLabel) . ' has-required';
+                    } else {
+                        $fieldLabelClass = implode(' ', $fieldLabel);
+                    }
+                } elseif (is_string($fieldLabel)) {
+                    $fieldLabelClass = $fieldLabel;
+                    if (str_contains($fieldLabelClass, 'has-star')) {
+                        $fieldLabelClass = str_replace('has-star', '', $fieldLabelClass) . ' has-required';
+                    }
                 }
             }
             $fields = Html::beginTag('div', $fg_option);
-            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => "$fieldLabelClass has-required"]);
+            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => $fieldLabelClass]);
             $fields .= Html::$type($key, $value, $input_options);
             $fields .= Html::endTag('div');
 
