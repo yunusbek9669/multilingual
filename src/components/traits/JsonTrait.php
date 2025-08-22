@@ -27,7 +27,7 @@ trait JsonTrait
                 throw new InvalidConfigException(Yii::t('multilingual', 'Invalid JSON structure detected in {jsonPath}.', ['jsonPath' => $jsonFile]));
             }
         } else {
-            throw new InvalidConfigException(Yii::t('multilingual', 'The file {jsonPath} could not be found. Please run the {command} command.', ['jsonPath' => $jsonFile, 'command' => '" php yii ml-extract/i18n "']));
+            throw new InvalidConfigException(Yii::t('multilingual', 'The file {jsonPath} could not be found. Please run the {command} commands.', ['jsonPath' => $jsonFile, 'command' => '" php yii ml-extract/i18n " and " php yii ml-extract/attributes "']));
         }
         foreach (self::$json['tables'] ?? [] as &$fields) {
             sort($fields);
