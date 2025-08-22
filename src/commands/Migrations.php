@@ -35,7 +35,7 @@ class {$migrationClassName} extends Migration
         \$this->createTable('{{%language_list}}', [
             'id' => \$this->primaryKey(),
             'name' => \$this->string(30)->notNull(), # Type the full name of the current language.
-            'short_name' => \$this->string(5)->notNull(), # Type a short name for the current language.
+            'short_name' => \$this->string(10)->notNull(), # Type a short name for the current language.
             'key' => \$this->string(5)->notNull(), # Enter the short code representing the current language. Based on the international standard ISO 639-1 language codes. For example: uz, en, ru.
             'image' => \$this->string(50), # Enter the path to the flag image for the current language.
             'import_excel' => \$this->string(50), # Import an Excel file downloaded from an existing language and translated into a new language

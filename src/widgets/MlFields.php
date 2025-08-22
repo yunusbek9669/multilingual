@@ -266,7 +266,7 @@ class MlFields extends Widget
             }
         }
 
-        $defaultLabel = $label . " ({$defaultLanguage['name']})";
+        $defaultLabel = $label . " ({$defaultLanguage['short_name']})";
 
         $output = [
             'label' => $label,
@@ -276,7 +276,7 @@ class MlFields extends Widget
         ];
 
         if (!empty($params['tab'])) {
-            self::$output[$defaultLangKey]['language'] = $defaultLanguage['name'];
+            self::$output[$defaultLangKey]['language'] = $defaultLanguage['short_name'];
             self::$output[$defaultLangKey]['field'][$params['attribute']] = $output;
         } else {
             self::$output[$label][$defaultLangKey] = $output['html'];
@@ -286,8 +286,8 @@ class MlFields extends Widget
             preg_match('/lang_(\w+)/', $key, $matches);
             $dynamic_label = $label;
             $language = $languages[$matches[1]];
-            if (!empty($language['name'])) {
-                $dynamic_label .= " ({$language['name']})";
+            if (!empty($language['short_name'])) {
+                $dynamic_label .= " ({$language['short_name']})";
             }
 
             $fg_option = $params['wrapperOptions'];
@@ -305,7 +305,7 @@ class MlFields extends Widget
             $fields .= Html::endTag('div');
 
             if (!empty($params['tab'])) {
-                self::$output[$matches[1]]['language'] = $language['name'];
+                self::$output[$matches[1]]['language'] = $language['short_name'];
                 self::$output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
                 self::$output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
             } else {
