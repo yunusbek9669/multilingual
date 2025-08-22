@@ -30,7 +30,7 @@ $css = <<<CSS
     );
     margin: 15px 0 20px 0;
 }
-.has-reuired::after {
+.has-required::after {
     content: '';
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
 }
@@ -268,11 +268,13 @@ class MlFields extends Widget
 
         $defaultLabel = $label . " ({$defaultLanguage['short_name']})";
 
+        $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
+            ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
+            ->label($defaultLabel . ' '.MlConstant::STAR);
+
         $output = [
             'label' => $label,
-            'html' => (string)$form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
-                ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
-                ->label($defaultLabel . ' '.MlConstant::STAR),
+            'html' => (string)$field,
         ];
 
         if (!empty($params['tab'])) {
@@ -300,7 +302,7 @@ class MlFields extends Widget
             }
 
             $fields = Html::beginTag('div', $fg_option);
-            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => "form-label has-reuired"]);
+            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => str_replace('has-star', '', ($field->labelOptions['class'] ?? ''))." has-required"]);
             $fields .= Html::$type($key, $value, $input_options);
             $fields .= Html::endTag('div');
 
