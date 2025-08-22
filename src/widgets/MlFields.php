@@ -302,12 +302,18 @@ class MlFields extends Widget
             }
 
             $fieldLabelClass = [];
-            if (!empty($field->labelOptions['class'])) {
-                $fieldLabelClass = array_values($field->labelOptions['class']);
-                unset($fieldLabelClass['has-star']);
+            $fieldLabel = $field->labelOptions['class'] ?? null;
+            if (!empty($fieldLabel)) {
+                if (is_array($fieldLabel)) {
+                    $fieldLabelClass = array_values($fieldLabel);
+                    unset($fieldLabelClass['has-star']);
+                    $fieldLabelClass = implode(' ', $fieldLabelClass);
+                } else {
+                    $fieldLabelClass = str_replace('has-star', '', $fieldLabel);
+                }
             }
             $fields = Html::beginTag('div', $fg_option);
-            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => implode(' ', $fieldLabelClass)." has-required"]);
+            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => "$fieldLabelClass has-required"]);
             $fields .= Html::$type($key, $value, $input_options);
             $fields .= Html::endTag('div');
 
