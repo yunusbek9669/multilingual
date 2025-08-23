@@ -21,8 +21,9 @@ trait JsonTrait
         $jsonFile = Yii::getAlias('@app') .'/'. $message->json_file_name.'.json';
         if (file_exists($jsonFile)) {
             $jsonContent = file_get_contents($jsonFile);
+            $decoded = json_decode($jsonContent, true);
             if (json_last_error() === JSON_ERROR_NONE) {
-                self::$json = json_decode($jsonContent, true) ?? ['tables' => []];
+                self::$json = $decoded ?? ['tables' => []];
             } else {
                 throw new InvalidConfigException(Yii::t('multilingual', 'Invalid JSON structure detected in {jsonPath}.', ['jsonPath' => $jsonFile]));
             }
