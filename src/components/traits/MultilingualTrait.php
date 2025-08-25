@@ -15,6 +15,7 @@ trait MultilingualTrait
     use SqlRequestTrait;
     private bool $where = true;
     private array $jsonData = [];
+    public $_mlAttributes;
 
     /**
      * @throws InvalidConfigException
@@ -50,6 +51,14 @@ trait MultilingualTrait
         $this->multilingualAfterDelete();
     }
 
+    /** lang_* tablitsalariga ma’lumotni static qo‘shish
+     * @throws InvalidConfigException
+     */
+    public function setMlAttributes(array $attributes): void
+    {
+        $this->_mlAttributes = $attributes;
+    }
+
     /**
      * @throws Exception
      * @throws InvalidConfigException
@@ -67,6 +76,10 @@ trait MultilingualTrait
             $response = $this->setDynamicLanguageValue($post);
         } elseif (!$this->where) {
             $response = $this->deleteLanguageValue();
+        }
+
+        if (!empty($this->_mlAttributes)) {
+            $response = $this->saveMlAttributes();
         }
 
         if ($response['status']) {
@@ -149,6 +162,53 @@ trait MultilingualTrait
             }
         }
         return $response;
+    }
+
+    /** Tarjimalarni qo‘shib qo‘yish
+     * @return array
+     * @throws InvalidConfigException
+     */
+    public function saveMlAttributes(): array
+    {
+        $post = [];
+        $languages = Yii::$app->params['language_list'];
+        if (!empty($languages) && !empty($this->_mlAttributes)) {
+            $dbAttributes = [];
+            $jsonData = self::getJson();
+            $modelName = basename(get_class($this));
+            $table_index = array_search($this::tableName(), array_keys($jsonData['tables']));
+            foreach ($languages as $key => $language) {
+                if (!empty($language['table']) && LanguageService::checkTable($language['table'])) {
+                    $lang_table = (new yii\db\Query())
+                        ->from($language['table'])
+                        ->select('value')
+                        ->where([
+                            'table_name' => $this::tableName(),
+                            'table_iteration' => $this->id
+                        ])
+                        ->scalar();
+                    $data_value = json_decode($lang_table, true);
+                    foreach ($data_value as $attribute => $value) {
+                        $dbAttributes[$attribute."_".$key] = $value;
+                    }
+                }
+            }
+            $this->_mlAttributes = array_merge($dbAttributes, $this->_mlAttributes);
+            $pattern = '/^(.*)_(' . implode('|', array_keys($languages)) . ')$/';
+            foreach ($this->_mlAttributes as $attribute => $value) {
+                if (preg_match($pattern, $attribute, $m)) {
+                    $attribute = $m[1];
+                    $lang = $m[2];
+                    if (!isset($this->$attribute)) {
+                        throw new InvalidConfigException(Yii::t('multilingual', "Attribute '{attribute}' does not exist in {modelName} model", ['attribute' => $attribute, 'modelName' => $modelName]));
+                    }
+                    $post[MlConstant::LANG_PREFIX.$lang][$table_index][$attribute] = $value;
+                } else {
+                    throw new InvalidConfigException(Yii::t('multilingual', "Attribute '{attribute}' does not have a valid language code", ['attribute' => $attribute]));
+                }
+            }
+        }
+        return $this->setDynamicLanguageValue($post);
     }
 
 

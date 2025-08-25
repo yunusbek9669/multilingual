@@ -92,6 +92,8 @@ class BaseLanguageList extends ActiveRecord
                 $response['status'] = false;
                 $response['message'] = Yii::t('multilingual', 'Error saving image');
             }
+        } else {
+            $this->image = $this->getOldAttribute('image');
         }
         if ($response['status']) {
             $response = ExcelExportImport::importFromExcel($this);
