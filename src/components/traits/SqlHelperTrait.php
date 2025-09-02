@@ -6,6 +6,7 @@ use Yii;
 use yii\db\Query;
 use yii\db\Expression;
 use yii\db\ActiveQuery;
+use Yunusbek\Multilingual\components\MlConstant;
 
 trait SqlHelperTrait
 {
@@ -14,6 +15,8 @@ trait SqlHelperTrait
     private array $selectColumns = [];
     private array $joinList = [];
     private string|null $customAlias = null;
+
+    private int $alias_i = 0;
 
 
     /** ========= Auto Join helper::begin ========= */
@@ -76,7 +79,7 @@ trait SqlHelperTrait
             $joinAlias = '';
             foreach ($joins as $join) {
                 $this->explodeTableAlias($join[1], $joinTable, $joinAlias);
-                $joinLangTable = $joinTable . '_' . $this->langTable;
+                $joinLangTable = $joinTable . '_' . $this->langTable . '_' . ($this->alias_i++);
                 if ($this->replaceMlAttributeWithCoalesce($column, $joinAlias, $joinTable, $joinLangTable)) {
                     $this->normalizeJoin($join[0]);
                     $collectColumns[$attribute_name] = $column;
@@ -89,7 +92,7 @@ trait SqlHelperTrait
         }
 
         if (empty($collectColumns) && isset($this->jsonTables[$rootTable])) {
-            $joinLangTable = $rootTable . '_' . $this->langTable;
+            $joinLangTable = $rootTable . '_' . $this->langTable . '_' . ($this->alias_i++);
             if ($this->replaceMlAttributeWithCoalesce($column, $this->customAlias, $rootTable, $joinLangTable)) {
                 $collectColumns[$attribute_name] = $column;
                 $this->addSelect($collectColumns);
@@ -109,7 +112,7 @@ trait SqlHelperTrait
     private function setSingleSelectNotAlias(string $joinType, string $current_table, string $alias, string $current_column): void
     {
         $collectColumns = [];
-        $joinLangTable = $current_table . '_' . $this->langTable;
+        $joinLangTable = $current_table . '_' . $this->langTable . '_' . ($this->alias_i++);
         $collectColumns[$current_column] = $this->coalesce($joinLangTable, $current_column, $alias . '.' . $current_column);
         $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
         $this->addSelect($collectColumns);
@@ -128,7 +131,7 @@ trait SqlHelperTrait
     {
         $collectColumns = [];
         $nonTranslatableColumns = [];
-        $joinLangTable = $current_table . '_' . $this->langTable;
+        $joinLangTable = $current_table . '_' . $this->langTable . '_' . ($this->alias_i++);
         $columns = Yii::$app->db->getTableSchema($current_table)->columns;
         foreach ($columns as $attribute_name => $column) {
             if (in_array($attribute_name, $ml_attributes)) {
@@ -160,7 +163,7 @@ trait SqlHelperTrait
         foreach ($joins as $join) {
             $this->explodeTableAlias($join[1], $joinTable, $joinAlias);
             if (isset($this->jsonTables[$joinTable]) && in_array($explode[1] ?? $column, $this->jsonTables[$joinTable]) && $explode[0] === $joinAlias) {
-                $joinLangTable = $joinTable . '_' . $this->langTable;
+                $joinLangTable = $joinTable . '_' . $this->langTable . '_' . ($this->alias_i++);
                 $this->normalizeJoin($join[0]);
                 $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column);
                 $this->addSelect($collectColumns);
@@ -170,7 +173,7 @@ trait SqlHelperTrait
         }
         $this->joinList = array_merge($this->joinList, $collectColumns);
         if (empty($collectColumns) && isset($this->jsonTables[$rootTable]) && in_array($explode[1] ?? $column, $this->jsonTables[$rootTable]) && isset($this->joinList[$attribute_name]) && $explode[0] === $this->customAlias) {
-            $joinLangTable = $rootTable . '_' . $this->langTable;
+            $joinLangTable = $rootTable . '_' . $this->langTable . '_' . ($this->alias_i++);
             $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column);
             $this->addSelect($collectColumns);
             $this->addJoin($joinType, $joinLangTable, $rootTable, $explode[0]);
