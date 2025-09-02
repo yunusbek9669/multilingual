@@ -8,6 +8,4 @@ class MlConstant
     public const LANG_PREFIX = 'lang_';
     public const LIMIT = 500;
     public const STAR = '⭐';
-
-    public static int $tabId = 0;
 }

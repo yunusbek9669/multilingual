@@ -38,6 +38,8 @@ CSS;
 
 class MlFields extends Widget
 {
+    private string $tabId;
+
     public ActiveForm $form;
 
     public ActiveRecord $model;
@@ -141,7 +143,7 @@ class MlFields extends Widget
     {
         self::$output = [];
         if ($this->params['tab'] !== null) {
-            MlConstant::$tabId++;
+            $this->tabId = uniqid('ml_');
         }
         $dashed_ml = Html::tag('div', '', ['class' => 'dashed-ml']);
 
@@ -206,7 +208,7 @@ class MlFields extends Widget
                 foreach ($content['field'] as $attr => $data) {
                     $fields .= $data['html'];
                 }
-                $key = MlConstant::$tabId.'_'.$key;
+                $key = $this->tabId.'_'.$key;
                 $li[] = $this->setNavBar($key, $content['language'], $active);
                 $pane[] = Html::tag('div', $fields, [
                     'role' => 'tabpanel',
@@ -216,7 +218,7 @@ class MlFields extends Widget
                 ]);
             }
             $tabLinkParam = [
-                'id' => MlConstant::$tabId."Tab",
+                'id' => $this->tabId."Tab",
                 'role' => 'tablist',
                 'class' => 'nav nav-tabs mb-4'
             ];
@@ -224,10 +226,10 @@ class MlFields extends Widget
                 $tabLinkParam['class'] = 'nav flex-column nav-pills';
                 $tabLinkParam['aria-orientation'] = $this->params['tab'];
                 $tabLink = Html::tag('div', Html::tag('ul', implode('', $li), $tabLinkParam), ['class' => 'col-md-auto col-sm-12']);
-                return  Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', implode('', $pane), ['class' => 'tab-content mb-0', 'id' => MlConstant::$tabId."TabContent"]), ['class' => 'col-md col-sm-12']) . $this->makeLine($dashed_ml), ['class' => 'row']);
+                return  Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', implode('', $pane), ['class' => 'tab-content mb-0', 'id' => $this->tabId."TabContent"]), ['class' => 'col-md col-sm-12']) . $this->makeLine($dashed_ml), ['class' => 'row']);
             }
             $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
-            return $tabLink . Html::tag('div', implode('', $pane) . $this->makeLine($dashed_ml), ['class' => 'tab-content mb-0', 'id' => MlConstant::$tabId."TabContent"]);
+            return $tabLink . Html::tag('div', implode('', $pane) . $this->makeLine($dashed_ml), ['class' => 'tab-content mb-0', 'id' => $this->tabId."TabContent"]);
         } else {
             $fields = '';
             foreach (self::$output as $label => $content) {
