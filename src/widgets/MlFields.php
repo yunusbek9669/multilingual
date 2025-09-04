@@ -81,13 +81,14 @@ class MlFields extends Widget
 
     public string|array $attribute;
     public array $wrapperOptions = [];
+    public bool $multiple = false;
     public array $options = [];
 
     public string|null $type;
 
     private array $params;
 
-    public static array $output = [];
+    public array $output = [];
 
     /**
      * @throws InvalidConfigException
@@ -169,7 +170,7 @@ class MlFields extends Widget
      */
     public function run(): string
     {
-        self::$output = [];
+        $this->output = [];
         $dashed_ml = Html::tag('div', '', ['class' => 'dashed-ml']);
 
         if (is_array($this->attribute)) {
@@ -194,7 +195,7 @@ class MlFields extends Widget
     {
         if (MlTabs::$isTab) {
             $pane = [];
-            foreach (self::$output as $key => $content) {
+            foreach ($this->output as $key => $content) {
                 $active = Yii::$app->language === $key;
                 $fields = '';
                 foreach ($content['field'] as $attr => $data) {
@@ -210,7 +211,7 @@ class MlFields extends Widget
             return Html::tag('div', implode('', $pane), ['class' => 'tab-content mb-0']);
         } else {
             $fields = '';
-            foreach (self::$output as $label => $content) {
+            foreach ($this->output as $label => $content) {
                 $fields .= $this->makeLine($dashed_ml . $label . $dashed_ml);
                 foreach ($content as $key => $html) {
                     $fields .= $html;
@@ -248,8 +249,16 @@ class MlFields extends Widget
 
         $defaultLabel = $label . " ({$defaultLanguage['short_name']})";
 
+        $inputId = Html::getInputId($model, $params['attribute']);
+        $inputName = Html::getInputName($model, $params['attribute']);
+        $inputNameBasic = $inputName;
+        if ($this->multiple) {
+            MlConstant::$multiAttributes[$inputNameBasic] = (MlConstant::$multiAttributes[$inputNameBasic] ?? 0) + 1;
+            $inputId .= '-' . MlConstant::$multiAttributes[$inputNameBasic];
+            $inputName .= '[]';
+        }
         $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
-            ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue], $params['options']))
+            ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $params['options']))
             ->label($defaultLabel . ' '.MlConstant::STAR);
 
         $output = [
@@ -258,10 +267,10 @@ class MlFields extends Widget
         ];
 
         if (MlTabs::$isTab) {
-            self::$output[$defaultLangKey]['language'] = $defaultLanguage['short_name'];
-            self::$output[$defaultLangKey]['field'][$params['attribute']] = $output;
+            $this->output[$defaultLangKey]['language'] = $defaultLanguage['short_name'];
+            $this->output[$defaultLangKey]['field'][$params['attribute']] = $output;
         } else {
-            self::$output[$label][$defaultLangKey] = $output['html'];
+            $this->output[$label][$defaultLangKey] = $output['html'];
         }
         foreach (LanguageService::setCustomAttributes($model, $params['attribute']) as $key => $value)
         {
@@ -274,7 +283,11 @@ class MlFields extends Widget
 
             $fg_option = $params['wrapperOptions'];
             $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"], $params['options']);
-            $input_options['id'] = str_replace(['[',']'], ['_'], $key);
+            $input_options['id'] = str_replace(['[',']'], ['-'], $key);
+            if ($this->multiple) {
+                $input_options['id'] .= '-' . MlConstant::$multiAttributes[$inputNameBasic];
+                $key .= '[]';
+            }
             if (!empty($language['rtl'])) {
                 $input_options['dir'] = 'rtl';
                 $input_options['placeholder'] = $dynamic_label . " ✏️";
@@ -305,11 +318,11 @@ class MlFields extends Widget
             $fields .= Html::endTag('div');
 
             if (MlTabs::$isTab) {
-                self::$output[$matches[1]]['language'] = $language['short_name'];
-                self::$output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
-                self::$output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
+                $this->output[$matches[1]]['language'] = $language['short_name'];
+                $this->output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
+                $this->output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
             } else {
-                self::$output[$label][$matches[1]] = $fields;
+                $this->output[$label][$matches[1]] = $fields;
             }
         }
     }
