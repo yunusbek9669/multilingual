@@ -34,12 +34,46 @@ $css = <<<CSS
     content: '';
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
 }
+
+.dash-box{
+  border: none;
+  position: relative;         /* ichki bo'shliq */
+  --bw: 1px;               /* border qalinligi */
+  --dash: 14px;            /* chiziq uzunligi */
+  --gap: 10px;             /* chiziqlar orasidagi masofa */
+  --period: calc(var(--dash) + var(--gap));
+}
+
+.dash-box .nav-item{
+  z-index: 1;
+}
+
+/* Chiziqlarni 4 tomondan chizuvchi pseudo-border */
+.dash-box::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding-bottom: var(--bw);
+  pointer-events: none;
+  background:
+    /* yuqori chet */
+    linear-gradient(90deg, currentColor 0 var(--dash), transparent 0 var(--period)) top / var(--period) var(--bw) repeat-x,
+    /* pastki chet */
+    linear-gradient(90deg, currentColor 0 var(--dash), transparent 0 var(--period)) bottom / var(--period) var(--bw) repeat-x,
+    /* chap chet */
+    linear-gradient(0deg,  currentColor 0 var(--dash), transparent 0 var(--period)) left / var(--bw) var(--period) repeat-y,
+    /* o'ng chet */
+    linear-gradient(0deg,  currentColor 0 var(--dash), transparent 0 var(--period)) right / var(--bw) var(--period) repeat-y;
+  /* faqat tashqi chiziqlar ko'rinsin */
+  -webkit-mask: linear-gradient(#ccc 0 0) content-box, linear-gradient(#ccc 0 0);
+  -webkit-mask-composite: xor; 
+  mask-composite: exclude;
+  color: #ccc!important; /* chiziq rangi (istalgan rang) */
+}
 CSS;
 
 class MlFields extends Widget
 {
-    private string $tabId;
-
     public ActiveForm $form;
 
     public ActiveRecord $model;
@@ -50,7 +84,6 @@ class MlFields extends Widget
     public array $options = [];
 
     public string|null $type;
-    public string|null $tab;
 
     private array $params;
 
@@ -87,10 +120,6 @@ class MlFields extends Widget
 
         if (isset($this->type) && !in_array($this->type, ['textInput', 'textarea'])) {
             throw new InvalidConfigException('"type" can be "textInput" or "textarea" only.');
-        }
-
-        if (isset($this->tab) && !in_array($this->tab, ['basic', 'vertical'])) {
-            throw new InvalidConfigException('"tab" can be "basic" or "vertical" only.');
         }
 
         if ($model::tableName() !== $this->table_name) {
@@ -130,8 +159,7 @@ class MlFields extends Widget
             'model' => $this->model,
             'form' => $this->form,
             'options' => $this->options,
-            'wrapperOptions' => $this->wrapperOptions,
-            'tab' => $this->tab ?? null,
+            'wrapperOptions' => $this->wrapperOptions
         ];
     }
 
@@ -142,9 +170,6 @@ class MlFields extends Widget
     public function run(): string
     {
         self::$output = [];
-        if ($this->params['tab'] !== null) {
-            $this->tabId = uniqid('ml_');
-        }
         $dashed_ml = Html::tag('div', '', ['class' => 'dashed-ml']);
 
         if (is_array($this->attribute)) {
@@ -165,42 +190,9 @@ class MlFields extends Widget
         return $result;
     }
 
-    private function setNavBar(string $id, string $name, bool $active): string
-    {
-        $active = $active ? 'active' : '';
-        if ($this->params['tab'] === 'vertical') {
-            return Html::tag('li',
-                Html::a($name, "#link-$id", [
-                    'id' => "$id-tab",
-                    'role' => 'tab',
-                    'data-bs-toggle' => 'pill',
-                    'aria-controls' => "link-$id",
-                    'aria-selected' => "true",
-                    'tabindex' => "-1",
-                    'class' => "nav-link $active",
-                ])
-            );
-        }
-        return Html::tag('li',
-            Html::a($name, "#link-$id", [
-                'id' => "$id-tab",
-                'role' => 'tab',
-                'data-bs-toggle' => 'tab',
-                'aria-controls' => "link-$id",
-                'aria-selected' => "true",
-                'class' => "nav-link $active",
-            ]),
-            [
-                'role' => 'presentation',
-                'class' => 'nav-item'
-            ]
-        );
-    }
-
     private function makeHtmlField(string $dashed_ml): string
     {
-        if ($this->params['tab'] !== null) {
-            $li = [];
+        if (MlTabs::$isTab) {
             $pane = [];
             foreach (self::$output as $key => $content) {
                 $active = Yii::$app->language === $key;
@@ -208,28 +200,14 @@ class MlFields extends Widget
                 foreach ($content['field'] as $attr => $data) {
                     $fields .= $data['html'];
                 }
-                $key = $this->tabId.'_'.$key;
-                $li[] = $this->setNavBar($key, $content['language'], $active);
+                $key = MlTabs::$tabId.'_'.$key;
                 $pane[] = Html::tag('div', $fields, [
                     'role' => 'tabpanel',
-                    'id' => "link-{$key}",
                     'aria-labelledby' => "{$key}-tab",
-                    'class' => 'tab-pane fade ' . ($active ? 'active show' : '')
+                    'class' => "link-{$key} tab-pane fade " . ($active ? 'active show' : '')
                 ]);
             }
-            $tabLinkParam = [
-                'id' => $this->tabId."Tab",
-                'role' => 'tablist',
-                'class' => 'nav nav-tabs mb-4'
-            ];
-            if ($this->params['tab'] === 'vertical') {
-                $tabLinkParam['class'] = 'nav flex-column nav-pills';
-                $tabLinkParam['aria-orientation'] = $this->params['tab'];
-                $tabLink = Html::tag('div', Html::tag('ul', implode('', $li), $tabLinkParam), ['class' => 'col-md-auto col-sm-12']);
-                return  Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', implode('', $pane), ['class' => 'tab-content mb-0', 'id' => $this->tabId."TabContent"]), ['class' => 'col-md col-sm-12']) . $this->makeLine($dashed_ml), ['class' => 'row']);
-            }
-            $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
-            return $tabLink . Html::tag('div', implode('', $pane) . $this->makeLine($dashed_ml), ['class' => 'tab-content mb-0', 'id' => $this->tabId."TabContent"]);
+            return Html::tag('div', implode('', $pane), ['class' => 'tab-content mb-0']);
         } else {
             $fields = '';
             foreach (self::$output as $label => $content) {
@@ -279,7 +257,7 @@ class MlFields extends Widget
             'html' => (string)$field,
         ];
 
-        if (!empty($params['tab'])) {
+        if (MlTabs::$isTab) {
             self::$output[$defaultLangKey]['language'] = $defaultLanguage['short_name'];
             self::$output[$defaultLangKey]['field'][$params['attribute']] = $output;
         } else {
@@ -326,7 +304,7 @@ class MlFields extends Widget
             $fields .= Html::$type($key, $value, $input_options);
             $fields .= Html::endTag('div');
 
-            if (!empty($params['tab'])) {
+            if (MlTabs::$isTab) {
                 self::$output[$matches[1]]['language'] = $language['short_name'];
                 self::$output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
                 self::$output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;

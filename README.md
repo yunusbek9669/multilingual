@@ -179,18 +179,48 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
 
 ```php
 <?php $form = ActiveForm::begin(); ?>
+    
+    <?php MlTabs::begin(['tab' => 'basic']); ?>
+    <?php MlTabs::end(); ?>
+
     #...
     <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
         'form' => $form,
         'model' => $model,
         'table_name' => 'model_table_name', # set the model table name to output model attributes to the lang_* table.
         'attribute' => 'attribute_name', # or add multiple like ['attribute_name', 'second_attribute_name']
-        //'tab' => 'basic', # or 'vertical'
         //'type' => 'textInput', # or 'textarea'
         //'options' => ['class' => 'form-control'], # input options
         //'wrapperOptions' => ['class' => 'form-group'], # parent element options
     ]) ?>
     #...
+<?php ActiveForm::end(); ?>
+```
+
+```php
+<?php $form = ActiveForm::begin(); ?>
+    
+    <?php MlTabs::begin([
+        'tab' => 'basic', # or 'vertical'
+        // 'contentOptions' => [],
+        // 'headerOptions' => [],
+    ]); ?>
+
+    #...
+    <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
+        'form' => $form,
+        'model' => $model,
+        'table_name' => 'model_table_name', # set the model table name to output model attributes to the lang_* table.
+        'attribute' => 'attribute_name', # or add multiple like ['attribute_name', 'second_attribute_name']
+        'tab' => true,
+        //'type' => 'textInput', # or 'textarea'
+        //'options' => ['class' => 'form-control'], # input options
+        //'wrapperOptions' => ['class' => 'form-group'], # parent element options
+    ]) ?>
+    #...
+    
+    <?php MlTabs::end(); ?>
+
 <?php ActiveForm::end(); ?>
 ```
 All added languages will automatically be displayed on the form page. From here you can type in the translation of all your newly added languages.

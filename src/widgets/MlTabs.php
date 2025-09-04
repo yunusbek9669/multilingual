@@ -1,13 +1,17 @@
 <?php
 namespace Yunusbek\Multilingual\widgets;
 
+use yii\base\InvalidConfigException;
 use yii\bootstrap5\Html;
 use yii\bootstrap5\Widget;
+use Yii;
 
 class MlTabs extends Widget
 {
-    private string $tabId;
-    public $options = [];
+    public static string $tabId;
+    public static bool $isTab = false;
+    public array $contentOptions = [];
+    public array $headerOptions = [];
     public string $tab = 'basic';
 
     private $content = '';
@@ -15,35 +19,64 @@ class MlTabs extends Widget
     public function init()
     {
         parent::init();
-        ob_start(); // umumiy contentni yig‘ib olish uchun
+        self::$isTab = true;
+        self::$tabId = uniqid('ml_');
+        if (isset($this->tab) && !in_array($this->tab, ['basic', 'vertical'])) {
+            throw new InvalidConfigException('"tab" can be "basic" or "vertical" only.');
+        }
+        $this->contentOptions['class'] = 'ml-tab-content-group ' . ($this->contentOptions['class'] ?? '');
+        $this->headerOptions['class'] = ($this->headerOptions['class'] ?? 'dash-box ');
+        $this->headerOptions['class'] = 'ml-nav-links nav ' . $this->headerOptions['class'];
+        if ($this->tab === 'basic') {
+            if (!str_contains($this->contentOptions['class'], 'pt-')) {
+                $this->contentOptions['class'] .= ' pt-3';
+            }
+            $this->headerOptions['class'] .= ' nav-tabs';
+        } else {
+            $this->headerOptions['class'] = ' flex-column nav-pills' . ($this->headerOptions['class'] ?? '');
+        }
+        ob_start();
     }
 
     public function run()
     {
         $this->content = ob_get_clean();
 
+        $dashed_ml = Html::tag('div', Html::tag('div', '', ['class' => 'dashed-ml']), ['style' => 'display: flex; color: #888']);
         $li = [];
-        foreach (MlFields::$output as $key => $content) {
+        foreach (Yii::$app->params['language_list'] as $key => $content) {
             $active = Yii::$app->language === $key;
-            $key = $this->tabId.'_'.$key;
-            $li[] = $this->setNavBar($key, $content['language'], $active);
+            $key = self::$tabId.'_'.$key;
+            $li[] = $this->setNavBar($key, $content['short_name'], $active);
         }
-        $tabLinkParam = [
-            'id' => $this->tabId."Tab",
-            'role' => 'tablist',
-            'class' => 'nav nav-tabs mb-4'
-        ];
+        $tabLinkParam = array_merge($this->headerOptions, [
+            'id' => self::$tabId."Tab",
+            'role' => 'tablist'
+        ]);
 
         if ($this->tab === 'vertical') {
-            $tabLinkParam['class'] = 'nav flex-column nav-pills';
             $tabLinkParam['aria-orientation'] = $this->tab;
             $tabLink = Html::tag('div', Html::tag('ul', implode('', $li), $tabLinkParam), ['class' => 'col-md-auto col-sm-12']);
-            return  Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', implode("\n", $this->content), ['class' => 'tab-content mb-0', 'id' => $this->tabId."TabContent"]), ['class' => 'col-md col-sm-12']) . $this->makeLine($dashed_ml), ['class' => 'row']);
+            echo Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', $this->content . $dashed_ml, $this->contentOptions), ['class' => 'col-md col-sm-12']), ['class' => 'row']);
         }
         $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
-        return $tabLink . Html::tag('div', implode("\n", $this->content) . Html::tag('div', Html::tag('div', '', ['class' => 'dashed-ml']), [
-                    'style' => 'display: flex; color: #888'
-                ]), ['class' => 'tab-content mb-0', 'id' => $this->tabId."TabContent"]);
+        echo $tabLink . Html::tag('div', $this->content . $dashed_ml, $this->contentOptions);
+        $this->view->registerJs("
+            document.querySelectorAll('.ml-nav-links [data-bs-toggle]').forEach(function (tabEl) {
+                tabEl.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    let mainTab = new bootstrap.Tab(tabEl);
+                    mainTab.show();
+                    let targetClass = tabEl.getAttribute('href');
+                    document.querySelectorAll(targetClass).forEach(function (el) {
+                        let allSiblings = el.parentNode.querySelectorAll('.tab-pane');
+                        allSiblings.forEach(sib => sib.classList.remove('active', 'show'));
+                        el.classList.add('active');
+                        setTimeout(() => { el.classList.add('show'); }, 1);
+                    });
+                });
+            });
+        ");
     }
 
 
@@ -53,7 +86,7 @@ class MlTabs extends Widget
         $active = $active ? 'active' : '';
         if ($this->tab === 'vertical') {
             return Html::tag('li',
-                Html::a($name, "#link-$id", [
+                Html::a($name, ".link-$id", [
                     'id' => "$id-tab",
                     'role' => 'tab',
                     'data-bs-toggle' => 'pill',
@@ -65,7 +98,7 @@ class MlTabs extends Widget
             );
         }
         return Html::tag('li',
-            Html::a($name, "#link-$id", [
+            Html::a($name, ".link-$id", [
                 'id' => "$id-tab",
                 'role' => 'tab',
                 'data-bs-toggle' => 'tab',
