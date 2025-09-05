@@ -160,7 +160,8 @@ trait SqlRequestTrait
 
             $db->createCommand("
                 CREATE TABLE dynamic_{$tableName} PARTITION OF {$tableName}
-                FOR VALUES IN (FALSE);
+                FOR VALUES IN (FALSE)
+                PARTITION BY LIST (table_name);
             ")->execute();
         } catch (\Throwable $e) {
             $response['code'] = 'error';
@@ -207,7 +208,8 @@ trait SqlRequestTrait
 
             $db->createCommand("
                 CREATE TABLE dynamic_{$tableName} PARTITION OF {$tableName}
-                FOR VALUES IN (FALSE);
+                FOR VALUES IN (FALSE)
+                PARTITION BY LIST (table_name);
             ")->execute();
 
             $db->createCommand("

@@ -357,6 +357,43 @@ EOD;
             $attributes,
             $db
         );
+
+        foreach ($this->languages as $language)
+        {
+            $langTable = "lang_$language";
+            if (!self::issetTable($langTable)) {
+                self::createLangTable($langTable);
+            }
+            $partitions = $db->createCommand("
+                SELECT inhrelid::regclass::text AS partition_name
+                FROM pg_inherits
+                JOIN pg_class parent ON inhparent = parent.oid
+                JOIN pg_class child ON inhrelid = child.oid
+                WHERE parent.relname = 'dynamic_{$langTable}'
+            ")->queryColumn();
+
+            foreach ($this->jsonData['tables'] as $table_name => $attributes) {
+                $partitionName = "dynamic_{$langTable}_" . strtolower($table_name);
+
+                if (!in_array($partitionName, $partitions, true)) {
+                    $this->stdout("➕ New partition creating: {$partitionName}\n", BaseConsole::FG_CYAN, BaseConsole::ITALIC);
+
+                    $sql = "
+                        CREATE TABLE {$partitionName}
+                        PARTITION OF dynamic_{$langTable}
+                        FOR VALUES IN ('{$table_name}')
+                    ";
+
+                    try {
+                        $db->createCommand($sql)->execute();
+                        $this->stdout("✅ {$partitionName} successfully created\n", BaseConsole::FG_GREEN, BaseConsole::ITALIC);
+                    } catch (\yii\db\Exception $e) {
+                        $error = $e->getMessage();
+                        $this->stderr("❌ {$partitionName} not created: {$error}", BaseConsole::FG_RED);
+                    }
+                }
+            }
+        }
     }
 
     /**

@@ -292,66 +292,95 @@ class MlFields extends Widget
             $this->output[$label][$defaultLangKey] = $output['html'];
         }
 
-        $this->langFields($model, $params, $languages, $type, $basicLabel, $label, $index);
+        $this->langFields($field, $model, $params, $languages, $type, $basicLabel, $label, $index);
     }
 
 
-    private function langFields($model, $params, $languages, $type, $basicLabel, $label, $index): void
+    private function langFields($field, $model, $params, $languages, $type, $basicLabel, $label, $index): void
     {
-        foreach (LanguageService::setCustomAttributes($model, $params['attribute']) as $key => $value)
-        {
-            preg_match('/lang_(\w+)/', $key, $matches);
-            $dynamic_label = $label;
-            $language = $languages[$matches[1]];
-            if (!empty($language['short_name'])) {
-                $dynamic_label .= " ({$language['short_name']})";
-                $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
-            }
+        $customAttributes = LanguageService::setCustomAttributes($model, $params['attribute']);
+        if (!empty($customAttributes)) {
+            foreach ($customAttributes as $key => $value)
+            {
+                preg_match('/lang_(\w+)/', $key, $matches);
+                $dynamic_label = $label;
+                $language = $languages[$matches[1]];
+                if (!empty($language['short_name'])) {
+                    $dynamic_label .= " ({$language['short_name']})";
+                    $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
+                }
 
-            $fg_option = $params['wrapperOptions'];
-            $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
-            $input_options['id'] = str_replace(['[',']'], ['-'], $key);
-            if ($this->multiple) {
-                $key .= "[{$index}]";
-                $input_options['id'] = strtolower(str_replace(['[]','[',']'], ['','-',''], $key));
-            }
-            if (!empty($language['rtl'])) {
-                $input_options['dir'] = 'rtl';
-                $input_options['placeholder'] = $dynamic_placeholder . " ✏️";
-                $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
-            }
+                $fg_option = $params['wrapperOptions'];
+                $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
+                $input_options['id'] = str_replace(['[',']'], ['-'], $key);
+                if ($this->multiple) {
+                    $key .= "[{$index}]";
+                    $input_options['id'] = strtolower(str_replace(['[]','[',']'], ['','-',''], $key));
+                }
+                if (!empty($language['rtl'])) {
+                    $input_options['dir'] = 'rtl';
+                    $input_options['placeholder'] = $dynamic_placeholder . " ✏️";
+                    $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
+                }
 
-            $fieldLabelClass = null;
-            $fieldLabel = $field->labelOptions['class'] ?? null;
-            if (!empty($fieldLabel)) {
-                if (is_array($fieldLabel)) {
-                    if (in_array('has-star', $fieldLabel)) {
-                        $fieldLabel = array_values($fieldLabel);
-                        unset($fieldLabel['has-star']);
-                        $fieldLabelClass = implode(' ', $fieldLabel) . ' has-required';
-                    } else {
-                        $fieldLabelClass = implode(' ', $fieldLabel);
-                    }
-                } elseif (is_string($fieldLabel)) {
-                    $fieldLabelClass = $fieldLabel;
-                    if (str_contains($fieldLabelClass, 'has-star')) {
-                        $fieldLabelClass = str_replace('has-star', '', $fieldLabelClass) . ' has-required';
+                $fieldLabelClass = null;
+                $fieldLabel = $field->labelOptions['class'] ?? null;
+                if (!empty($fieldLabel)) {
+                    if (is_array($fieldLabel)) {
+                        if (in_array('has-star', $fieldLabel)) {
+                            $fieldLabel = array_values($fieldLabel);
+                            unset($fieldLabel['has-star']);
+                            $fieldLabelClass = implode(' ', $fieldLabel) . ' has-required';
+                        } else {
+                            $fieldLabelClass = implode(' ', $fieldLabel);
+                        }
+                    } elseif (is_string($fieldLabel)) {
+                        $fieldLabelClass = $fieldLabel;
+                        if (str_contains($fieldLabelClass, 'has-star')) {
+                            $fieldLabelClass = str_replace('has-star', '', $fieldLabelClass) . ' has-required';
+                        }
                     }
                 }
-            }
-            $fields = Html::beginTag('div', $fg_option);
-            if (!empty($label)) {
-                $fields .= Html::label($dynamic_label, $input_options['id'], array_merge(['class' => $fieldLabelClass], $this->labelOption));
-            }
-            $fields .= Html::$type($key, $value, $input_options);
-            $fields .= Html::endTag('div');
+                $fields = Html::beginTag('div', $fg_option);
+                if (!empty($label)) {
+                    $fields .= Html::label($dynamic_label, $input_options['id'], array_merge(['class' => $fieldLabelClass], $this->labelOption));
+                }
+                $fields .= Html::$type($key, $value, $input_options);
+                $fields .= Html::endTag('div');
 
-            if (MlTabs::$isTab) {
-                $this->output[$matches[1]]['language'] = $language['short_name'];
-                $this->output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
-                $this->output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
-            } else {
-                $this->output[$label][$matches[1]] = $fields;
+                if (MlTabs::$isTab) {
+                    $this->output[$matches[1]]['language'] = $language['short_name'];
+                    $this->output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
+                    $this->output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
+                } else {
+                    $this->output[$label][$matches[1]] = $fields;
+                }
+            }
+        } else {
+            $field->inputOptions['class'] = ($field->inputOptions['class'] ?? '') . ' bg-light text-muted';
+            foreach ($languages as $key => $language) {
+                if (!empty($language['table'])) {
+                    if (!empty($label)) {
+                        $label = Html::label("({$language['short_name']})", $key, $this->labelOption);
+                    }
+                    if (MlTabs::$isTab) {
+                        $this->output[$key]['language'] = $language['short_name'];
+                        $this->output[$key]['field'][$params['attribute']]['label'] = $label;
+                        $this->output[$key]['field'][$params['attribute']]['html'] = Html::tag('div', ($label ?? '') . Html::tag('div',
+                                Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', [
+                                    'command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>'
+                                ]),
+                                array_merge($field->inputOptions, ['id' => $key])
+                            ), $params['wrapperOptions']);
+                    } else {
+                        $this->output[$label][$key] = Html::tag('div', ($label ?? '') . Html::tag('div',
+                                Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', [
+                                    'command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>'
+                                ]),
+                                array_merge($field->inputOptions, ['id' => $key])
+                            ), $params['wrapperOptions']);
+                    }
+                }
             }
         }
     }

@@ -142,7 +142,7 @@ class LanguageService
         $table_name = $model::tableName();
         $table_index = array_search($table_name, array_keys($jsonData['tables']));
         $languages = Yii::$app->params['language_list'];
-        if (!empty($languages)) {
+        if (!empty($languages) && $table_index) {
             foreach ($languages as $language) {
                 if (!empty($language['table']) && self::checkTable($language['table'])) {
                     $lang_table = (new yii\db\Query())
