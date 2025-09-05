@@ -179,10 +179,6 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
 
 ```php
 <?php $form = ActiveForm::begin(); ?>
-    
-    <?php MlTabs::begin(['tab' => 'basic']); ?>
-    <?php MlTabs::end(); ?>
-
     #...
     <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
         'form' => $form,
@@ -206,7 +202,6 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
         // 'contentOptions' => [],
         // 'headerOptions' => [],
     ]); ?>
-
     #...
     <?php echo \Yunusbek\Multilingual\widgets\MlFields::widget([
         'form' => $form,
@@ -220,7 +215,6 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
         //'wrapperOptions' => ['class' => 'form-group'], # parent element options
     ]) ?>
     #...
-    
     <?php MlTabs::end(); ?>
 
 <?php ActiveForm::end(); ?>
