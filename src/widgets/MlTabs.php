@@ -80,6 +80,13 @@ class MlTabs extends Widget
     }
 
 
+    public static function end()
+    {
+        parent::end();
+        self::$isTab = false;
+    }
+
+
 
     private function setNavBar(string $id, string $name, bool $active): string
     {
