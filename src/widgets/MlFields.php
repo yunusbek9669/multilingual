@@ -8,6 +8,7 @@ use yii\base\InvalidConfigException;
 use yii\base\Widget;
 use yii\db\ActiveRecord;
 use yii\db\TableSchema;
+use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\components\LanguageService;
@@ -79,6 +80,10 @@ class MlFields extends Widget
     public ActiveRecord $model;
     public string $table_name;
 
+    public $label = null;
+    private array $labelOption = [];
+    private string|bool|null $labelValue = null;
+
     public string|array $attribute;
     public array $wrapperOptions = [];
     public bool $multiple = false;
@@ -137,6 +142,17 @@ class MlFields extends Widget
 
         if (!empty($this->options) && isset($this->options['class'])) {
             $this->options['class'] .= ' form-control';
+        }
+
+        if (isset($this->label)) {
+            if (gettype($this->label) === 'string' || gettype($this->label) === 'boolean') {
+                $this->labelValue = $this->label;
+            } elseif (gettype($this->label) === 'array') {
+                $label = $this->label;
+                $this->labelValue = $label['text'];
+                unset($label['text']);
+                $this->labelOption = $label['options'] ?? array_values($label);
+            }
         }
 
         if (!empty($this->wrapperOptions) && isset($this->wrapperOptions['class'])) {
@@ -229,7 +245,7 @@ class MlFields extends Widget
         $type = $params['type'];
         $form = $params['form'];
         $model = $params['model'];
-        $label = $model->getAttributeLabel($params['attribute']);
+        $label = $this->labelValue ?? $model->getAttributeLabel($params['attribute']);
 
         $defaultValue = (new yii\db\Query())
             ->from($model::tableName())
@@ -252,14 +268,15 @@ class MlFields extends Widget
         $inputId = Html::getInputId($model, $params['attribute']);
         $inputName = Html::getInputName($model, $params['attribute']);
         $inputNameBasic = $inputName;
+        $index = MlConstant::$multiAttributes[$inputNameBasic] ?? 0;
         if ($this->multiple) {
-            MlConstant::$multiAttributes[$inputNameBasic] = (MlConstant::$multiAttributes[$inputNameBasic] ?? 0) + 1;
-            $inputId .= '-' . MlConstant::$multiAttributes[$inputNameBasic];
-            $inputName .= '[]';
+            MlConstant::$multiAttributes[$inputNameBasic] = $index + 1;
+            $inputName .= "[{$index}]";
+            $inputId = strtolower(str_replace(['[]','[',']'], ['','-',''], $inputName));
         }
         $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
             ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $params['options']))
-            ->label($defaultLabel . ' '.MlConstant::STAR);
+            ->label(is_bool($this->labelValue) && !$this->labelValue ? false : $defaultLabel . ' '.MlConstant::STAR, $this->labelOption);
 
         $output = [
             'label' => $label,
@@ -285,8 +302,8 @@ class MlFields extends Widget
             $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"], $params['options']);
             $input_options['id'] = str_replace(['[',']'], ['-'], $key);
             if ($this->multiple) {
-                $input_options['id'] .= '-' . MlConstant::$multiAttributes[$inputNameBasic];
-                $key .= '[]';
+                $key .= "[{$index}]";
+                $input_options['id'] = strtolower(str_replace(['[]','[',']'], ['','-',''], $key));
             }
             if (!empty($language['rtl'])) {
                 $input_options['dir'] = 'rtl';
@@ -313,7 +330,9 @@ class MlFields extends Widget
                 }
             }
             $fields = Html::beginTag('div', $fg_option);
-            $fields .= Html::label($dynamic_label, $input_options['id'], ['class' => $fieldLabelClass]);
+            if (!empty($label)) {
+                $fields .= Html::label($dynamic_label, $input_options['id'], array_merge(['class' => $fieldLabelClass], $this->labelOption));
+            }
             $fields .= Html::$type($key, $value, $input_options);
             $fields .= Html::endTag('div');
 
