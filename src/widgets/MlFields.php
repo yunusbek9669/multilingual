@@ -245,7 +245,8 @@ class MlFields extends Widget
         $type = $params['type'];
         $form = $params['form'];
         $model = $params['model'];
-        $label = $this->labelValue ?? $model->getAttributeLabel($params['attribute']);
+        $basicLabel = $model->getAttributeLabel($params['attribute']);
+        $label = $this->labelValue ?? $basicLabel;
 
         $defaultValue = (new yii\db\Query())
             ->from($model::tableName())
@@ -263,7 +264,8 @@ class MlFields extends Widget
             }
         }
 
-        $defaultLabel = $label . " ({$defaultLanguage['short_name']})";
+        $defaultPlaceholder = $basicLabel . " ({$defaultLanguage['short_name']})";
+        $defaultLabel = is_bool($this->labelValue) && !$this->labelValue ? false : $label . " ({$defaultLanguage['short_name']}) " . MlConstant::STAR;
 
         $inputId = Html::getInputId($model, $params['attribute']);
         $inputName = Html::getInputName($model, $params['attribute']);
@@ -275,8 +277,8 @@ class MlFields extends Widget
             $inputId = strtolower(str_replace(['[]','[',']'], ['','-',''], $inputName));
         }
         $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
-            ->$type(array_merge(['placeholder' => $defaultLabel . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $params['options']))
-            ->label(is_bool($this->labelValue) && !$this->labelValue ? false : $defaultLabel . ' '.MlConstant::STAR, $this->labelOption);
+            ->$type(array_merge(['placeholder' => $defaultPlaceholder . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $params['options']))
+            ->label($defaultLabel, $this->labelOption);
 
         $output = [
             'label' => $label,
@@ -296,10 +298,11 @@ class MlFields extends Widget
             $language = $languages[$matches[1]];
             if (!empty($language['short_name'])) {
                 $dynamic_label .= " ({$language['short_name']})";
+                $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
             }
 
             $fg_option = $params['wrapperOptions'];
-            $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_label . " 🖊"], $params['options']);
+            $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
             $input_options['id'] = str_replace(['[',']'], ['-'], $key);
             if ($this->multiple) {
                 $key .= "[{$index}]";
@@ -307,7 +310,7 @@ class MlFields extends Widget
             }
             if (!empty($language['rtl'])) {
                 $input_options['dir'] = 'rtl';
-                $input_options['placeholder'] = $dynamic_label . " ✏️";
+                $input_options['placeholder'] = $dynamic_placeholder . " ✏️";
                 $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
             }
 
