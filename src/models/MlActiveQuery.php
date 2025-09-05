@@ -14,7 +14,7 @@ class MlActiveQuery extends ActiveQuery
 
     private string $current_table;
     protected string $langTable = MlConstant::LANG_PREFIX;
-    private array $jsonTables;
+    private static array $jsonTables;
 
     /**
      * @throws InvalidConfigException
@@ -22,7 +22,7 @@ class MlActiveQuery extends ActiveQuery
     public function __construct($modelClass, $config = [])
     {
         parent::__construct($modelClass, $config);
-        $this->jsonTables = self::getJson()['tables'];
+        self::$jsonTables = self::getJson()['tables'];
         $this->langTable .= Yii::$app->language;
         $this->current_table = $modelClass::tableName();
     }

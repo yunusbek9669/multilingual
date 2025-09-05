@@ -39,7 +39,7 @@ trait SqlHelperTrait
         if (Yii::$app->params['table_available'] ?? false) {
             $current_table = $current_table ?? $this->current_table;
             $alias = $this->customAlias ?? $current_table;
-            $ml_attributes = $this->jsonTables[$current_table] ?? [];
+            $ml_attributes = self::$jsonTables[$current_table] ?? [];
             if (empty($this->select)) {
                 $this->setFullSelect($current_table, $alias, $ml_attributes);
             } else {
@@ -98,7 +98,7 @@ trait SqlHelperTrait
             $this->joinList = array_merge($this->joinList, $collectColumns);
         }
 
-        if (empty($collectColumns) && isset($this->jsonTables[$rootTable])) {
+        if (empty($collectColumns) && isset(self::$jsonTables[$rootTable])) {
             $joinLangTable = $rootTable . '_' . $this->langTable . '_' . ($this->alias_i++);
             if ($this->replaceMlAttributeWithCoalesce($column, $this->customAlias, $rootTable, $joinLangTable)) {
                 $collectColumns[$attribute_name] = $column;
@@ -184,7 +184,7 @@ trait SqlHelperTrait
         $joinAlias = '';
         foreach ($joins as $join) {
             $this->explodeTableAlias($join[1], $joinTable, $joinAlias);
-            if (isset($this->jsonTables[$joinTable]) && in_array($explode[1] ?? $column, $this->jsonTables[$joinTable]) && $explode[0] === $joinAlias) {
+            if (isset(self::$jsonTables[$joinTable]) && in_array($explode[1] ?? $column, self::$jsonTables[$joinTable]) && $explode[0] === $joinAlias) {
                 $joinLangTable = $joinTable . '_' . $this->langTable . '_' . ($this->alias_i++);
 //                $this->normalizeJoin($join[0]);
                 $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column);
@@ -194,7 +194,7 @@ trait SqlHelperTrait
             }
         }
         $this->joinList = array_merge($this->joinList, $collectColumns);
-        if (empty($collectColumns) && isset($this->jsonTables[$rootTable]) && in_array($explode[1] ?? $column, $this->jsonTables[$rootTable]) && isset($this->joinList[$attribute_name]) && $explode[0] === $this->customAlias) {
+        if (empty($collectColumns) && isset(self::$jsonTables[$rootTable]) && in_array($explode[1] ?? $column, self::$jsonTables[$rootTable]) && isset($this->joinList[$attribute_name]) && $explode[0] === $this->customAlias) {
             $joinLangTable = $rootTable . '_' . $this->langTable . '_' . ($this->alias_i++);
             $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column);
             $this->addSelect($collectColumns);
@@ -300,8 +300,8 @@ trait SqlHelperTrait
         preg_match_all($pattern, $sqlExpr, $matches, PREG_SET_ORDER);
         foreach ($matches as $match) {
             [$full, $matchAlias, $attribute] = $match;
-            if (isset($this->jsonTables[$tableName]) &&
-                in_array($attribute, $this->jsonTables[$tableName]) &&
+            if (isset(self::$jsonTables[$tableName]) &&
+                in_array($attribute, self::$jsonTables[$tableName]) &&
                 preg_match('/(?:' . preg_quote($alias . '.', '/') . ')?' . preg_quote($attribute, '/') . '\b/', $sqlExpr) &&
                 $matchAlias === $alias
             ) {

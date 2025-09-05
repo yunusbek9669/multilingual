@@ -291,6 +291,13 @@ class MlFields extends Widget
         } else {
             $this->output[$label][$defaultLangKey] = $output['html'];
         }
+
+        $this->langFields($model, $params, $languages, $type, $basicLabel, $label, $index);
+    }
+
+
+    private function langFields($model, $params, $languages, $type, $basicLabel, $label, $index): void
+    {
         foreach (LanguageService::setCustomAttributes($model, $params['attribute']) as $key => $value)
         {
             preg_match('/lang_(\w+)/', $key, $matches);
@@ -348,6 +355,7 @@ class MlFields extends Widget
             }
         }
     }
+
 
     private function makeLine($dashed_line): string
     {

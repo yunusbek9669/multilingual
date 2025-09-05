@@ -15,7 +15,7 @@ class MlQuery extends Query
 
     private string $current_table = '';
     protected string $langTable = MlConstant::LANG_PREFIX;
-    private array $jsonTables;
+    private static array $jsonTables;
 
     /**
      * @throws InvalidConfigException
@@ -23,7 +23,7 @@ class MlQuery extends Query
     public function __construct($config = [])
     {
         parent::__construct($config);
-        $this->jsonTables = self::getJson()['tables'];
+        self::$jsonTables = self::getJson()['tables'];
         $this->langTable .= Yii::$app->language;
     }
 
