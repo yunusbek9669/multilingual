@@ -28,15 +28,15 @@ foreach (MlHelper::getJson()['tables'] as $key => $value) {
                     <?php echo Html::tag('select',
                         Html::renderSelectOptions(Yii::$app->request->get('table-name'), $options),
                         [
-                            'class' => 'form-control px-1',
-                            'style' => 'margin-right: 10px; margin-top: 1px;',
+                            'class' => 'form-control px-1 py-0',
+                            'style' => 'margin-right: 10px; margin-top: 1px; height: 35px;',
                             'onchange' => 'selectTable(this.value)',
                         ]
                     ); ?>
                     <?php echo Html::input('search', null, $per_page,
                         [
                             'class' => 'form-control px-1',
-                            'style' => 'width: 60px; margin-right: 10px; margin-top: 1px;',
+                            'style' => 'width: 60px; margin-right: 10px; margin-top: 1px; height: 35px;',
                             'type' => 'number',
                             'max' => 5000,
                             'onblur' => 'updatePerPage(this.value)',
@@ -44,8 +44,10 @@ foreach (MlHelper::getJson()['tables'] as $key => $value) {
                         ]
                     ); ?>
                     <?php echo \yii\widgets\LinkPager::widget([
-                        'options' => ['class' => 'justify-content-center pagination pagination-rounded mr-2 mb-0'],
+                        'options' => ['class' => 'justify-content-center pagination pagination-rounded mr-2 me-2 mb-0', 'style' => 'margin-top: 1px;'],
                         'pagination' => $translates['pagination'],
+                        'linkContainerOptions' => ['class' => 'page-item'], // har bir <li> uchun class
+                        'linkOptions' => ['class' => 'page-link shadow-sm'], // <a> tegiga class
                     ]); ?>
                     <?php echo Yii::$app->request->get('is_all') ? Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="grey"><path d="M21 21L3 3V6.33726C3 6.58185 3 6.70414 3.02763 6.81923C3.05213 6.92127 3.09253 7.01881 3.14736 7.10828C3.2092 7.2092 3.29568 7.29568 3.46863 7.46863L9.53137 13.5314C9.70432 13.7043 9.7908 13.7908 9.85264 13.8917C9.90747 13.9812 9.94787 14.0787 9.97237 14.1808C10 14.2959 10 14.4182 10 14.6627V21L14 17V14M8.60139 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L16.8008 11.1992" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                         Url::current(['is_all' => null])) : Html::a('<svg xmlns="http://www.w3.org/2000/svg" width="30px" height="30px" viewBox="0 0 24 24" fill="red"><path d="M3 4.6C3 4.03995 3 3.75992 3.10899 3.54601C3.20487 3.35785 3.35785 3.20487 3.54601 3.10899C3.75992 3 4.03995 3 4.6 3H19.4C19.9601 3 20.2401 3 20.454 3.10899C20.6422 3.20487 20.7951 3.35785 20.891 3.54601C21 3.75992 21 4.03995 21 4.6V6.33726C21 6.58185 21 6.70414 20.9724 6.81923C20.9479 6.92127 20.9075 7.01881 20.8526 7.10828C20.7908 7.2092 20.7043 7.29568 20.5314 7.46863L14.4686 13.5314C14.2957 13.7043 14.2092 13.7908 14.1474 13.8917C14.0925 13.9812 14.0521 14.0787 14.0276 14.1808C14 14.2959 14 14.4182 14 14.6627V17L10 21V14.6627C10 14.4182 10 14.2959 9.97237 14.1808C9.94787 14.0787 9.90747 13.9812 9.85264 13.8917C9.7908 13.7908 9.70432 13.7043 9.53137 13.5314L3.46863 7.46863C3.29568 7.29568 3.2092 7.2092 3.14736 7.10828C3.09253 7.01881 3.05213 6.92127 3.02763 6.81923C3 6.70414 3 6.58185 3 6.33726V4.6Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -212,6 +214,27 @@ $this->registerJsFile(
 $this->registerJsFile("/template/js/plugins/wizard.min.js", ['depends' => 'yii\web\YiiAsset']);
 
 $css = <<<CSS
+.pagination-rounded .page-link {
+    border-radius: 30px !important;
+    margin: 0 3px !important;
+    border: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    text-align: center;
+    line-height: 32px;
+}
+.page-link {
+    position: relative;
+    display: block;
+    color: #74788d;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    -webkit-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+}
 .ml-card {
     position: relative;
     display: -webkit-box;
