@@ -8,7 +8,7 @@ use Yii;
 
 class MlTabs extends Widget
 {
-    public static string $tabId;
+    public static string $tabId = '';
     public static bool $isTab = false;
     public array $contentOptions = [];
     public array $headerOptions = [];
