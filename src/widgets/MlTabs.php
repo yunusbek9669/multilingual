@@ -42,7 +42,6 @@ class MlTabs extends Widget
     {
         $this->content = ob_get_clean();
 
-        $dashed_ml = Html::tag('div', Html::tag('div', '', ['class' => 'dashed-ml']), ['style' => 'display: flex; color: #888']);
         $li = [];
         foreach (Yii::$app->params['language_list'] as $key => $content) {
             $active = Yii::$app->language === $key;
@@ -57,10 +56,10 @@ class MlTabs extends Widget
         if ($this->tab === 'vertical') {
             $tabLinkParam['aria-orientation'] = $this->tab;
             $tabLink = Html::tag('div', Html::tag('ul', implode('', $li), $tabLinkParam), ['class' => 'col-md-auto col-sm-12']);
-            echo Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', $this->content, $this->contentOptions), ['class' => 'col-md col-sm-12']) . $dashed_ml, ['class' => 'row']);
+            echo Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', $this->content, $this->contentOptions), ['class' => 'col-md col-sm-12']) . Html::tag('div', Html::tag('div', '', ['class' => 'dashed-ml']), ['style' => 'display: flex; color: #888']), ['class' => 'row']);
         } else {
             $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
-            echo $tabLink . Html::tag('div', $this->content . $dashed_ml, $this->contentOptions);
+            echo $tabLink . Html::tag('div', $this->content, $this->contentOptions);
         }
         $this->view->registerJs("
             document.querySelectorAll('.ml-nav-links [data-bs-toggle]').forEach(function (tabEl) {
