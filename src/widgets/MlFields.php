@@ -32,6 +32,7 @@ class MlFields extends Widget
     public array $options = [];
 
     public string|null $type;
+    public int $order = 0;
 
     private array $params;
 
@@ -211,7 +212,7 @@ class MlFields extends Widget
         $inputId = Html::getInputId($model, $params['attribute']);
         $inputName = Html::getInputName($model, $params['attribute']);
         $inputNameBasic = $inputName;
-        $index = MlConstant::$multiAttributes[$inputNameBasic] ?? 0;
+        $index = MlConstant::$multiAttributes[$inputNameBasic] ?? $this->order;
         if ($this->multiple) {
             MlConstant::$multiAttributes[$inputNameBasic] = $index + 1;
             $inputName .= "[{$index}]";
