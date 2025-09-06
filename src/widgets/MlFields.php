@@ -11,6 +11,7 @@ use yii\db\TableSchema;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
 use yii\widgets\ActiveForm;
+use Yunusbek\Multilingual\assets\MlAsset;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\components\MlConstant;
 
@@ -42,6 +43,8 @@ class MlFields extends Widget
     public function init(): void
     {
         parent::init();
+
+        MlAsset::register($this->view);
 
         if (!isset($this->model)) {
             throw new InvalidConfigException('"model" is not defined!');
