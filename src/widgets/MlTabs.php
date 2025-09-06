@@ -25,15 +25,15 @@ class MlTabs extends Widget
             throw new InvalidConfigException('"tab" can be "basic" or "vertical" only.');
         }
         $this->contentOptions['class'] = 'ml-tab-content-group ' . ($this->contentOptions['class'] ?? '');
-        $this->headerOptions['class'] = ($this->headerOptions['class'] ?? 'dash-box ');
+        $this->headerOptions['class'] = ($this->headerOptions['class'] ?? '');
         $this->headerOptions['class'] = 'ml-nav-links nav ' . $this->headerOptions['class'];
         if ($this->tab === 'basic') {
             if (!str_contains($this->contentOptions['class'], 'pt-')) {
-                $this->contentOptions['class'] .= ' pt-3';
+                $this->contentOptions['class'] .= ' pt-3 dash-box';
             }
             $this->headerOptions['class'] .= ' nav-tabs';
         } else {
-            $this->headerOptions['class'] = ' flex-column nav-pills' . ($this->headerOptions['class'] ?? '');
+            $this->headerOptions['class'] = ' flex-column nav-pills ' . ($this->headerOptions['class'] ?? '');
         }
         ob_start();
     }
@@ -57,10 +57,11 @@ class MlTabs extends Widget
         if ($this->tab === 'vertical') {
             $tabLinkParam['aria-orientation'] = $this->tab;
             $tabLink = Html::tag('div', Html::tag('ul', implode('', $li), $tabLinkParam), ['class' => 'col-md-auto col-sm-12']);
-            echo Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', $this->content . $dashed_ml, $this->contentOptions), ['class' => 'col-md col-sm-12']), ['class' => 'row']);
+            echo Html::tag('div', $tabLink . Html::tag('div', Html::tag('div', $this->content, $this->contentOptions), ['class' => 'col-md col-sm-12']) . $dashed_ml, ['class' => 'row']);
+        } else {
+            $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
+            echo $tabLink . Html::tag('div', $this->content . $dashed_ml, $this->contentOptions);
         }
-        $tabLink = Html::tag('ul', implode('', $li), $tabLinkParam);
-        echo $tabLink . Html::tag('div', $this->content . $dashed_ml, $this->contentOptions);
         $this->view->registerJs("
             document.querySelectorAll('.ml-nav-links [data-bs-toggle]').forEach(function (tabEl) {
                 tabEl.addEventListener('click', function (event) {

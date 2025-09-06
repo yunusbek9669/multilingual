@@ -301,20 +301,21 @@ class MlFields extends Widget
             $field->inputOptions['class'] = ($field->inputOptions['class'] ?? '') . ' bg-light text-muted';
             foreach ($languages as $key => $language) {
                 if (!empty($language['table'])) {
+                    $l = $label;
                     if (!empty($label)) {
-                        $label = Html::label("({$language['short_name']})", $key, $this->labelOption);
+                        $l = Html::label("$label ({$language['short_name']})", $key, $this->labelOption);
                     }
                     if (MlTabs::$isTab) {
                         $this->output[$key]['language'] = $language['short_name'];
-                        $this->output[$key]['field'][$params['attribute']]['label'] = $label;
-                        $this->output[$key]['field'][$params['attribute']]['html'] = Html::tag('div', ($label ?? '') . Html::tag('div',
+                        $this->output[$key]['field'][$params['attribute']]['label'] = $l;
+                        $this->output[$key]['field'][$params['attribute']]['html'] = Html::tag('div', ($l ?? '') . Html::tag('div',
                                 Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', [
                                     'command' => '<code style="cursor: pointer">php yii ml-extract/attributes</code>'
                                 ]),
                                 array_merge($field->inputOptions, ['id' => $key])
                             ), $params['wrapperOptions']);
                     } else {
-                        $this->output[$label][$key] = Html::tag('div', ($label ?? '') . Html::tag('div',
+                        $this->output[$l][$key] = Html::tag('div', ($l ?? '') . Html::tag('div',
                                 Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', [
                                     'command' => '<code style="cursor: pointer">php yii ml-extract/attributes</code>'
                                 ]),
