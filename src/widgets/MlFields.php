@@ -145,16 +145,7 @@ class MlFields extends Widget
             $this->setAttribute($this->params, $dashed_ml);
         }
 
-        $result = $this->makeHtmlField($dashed_ml);
-        $this->view->registerCss(
-            '@vendor/yunusbek/multilingual/dist/css/mlcss.js',
-            ['depends' => [\yii\web\YiiAsset::class]]
-        );
-        $this->view->registerJsFile(
-            '@vendor/yunusbek/multilingual/dist/js/mljs.js',
-            ['depends' => [\yii\web\YiiAsset::class]]
-        );
-        return $result;
+        return $this->makeHtmlField($dashed_ml);
     }
 
     private function makeHtmlField(string $dashed_ml): string
@@ -318,14 +309,14 @@ class MlFields extends Widget
                         $this->output[$key]['field'][$params['attribute']]['label'] = $label;
                         $this->output[$key]['field'][$params['attribute']]['html'] = Html::tag('div', ($label ?? '') . Html::tag('div',
                                 Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', [
-                                    'command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>'
+                                    'command' => '<code style="cursor: pointer">php yii ml-extract/attributes</code>'
                                 ]),
                                 array_merge($field->inputOptions, ['id' => $key])
                             ), $params['wrapperOptions']);
                     } else {
                         $this->output[$label][$key] = Html::tag('div', ($label ?? '') . Html::tag('div',
                                 Yii::t('multilingual', 'No tables to translate were found. Please run the {command} command.', [
-                                    'command' => '<code onclick="copyText(this.innerText)" style="cursor: pointer">php yii ml-extract/attributes</code>'
+                                    'command' => '<code style="cursor: pointer">php yii ml-extract/attributes</code>'
                                 ]),
                                 array_merge($field->inputOptions, ['id' => $key])
                             ), $params['wrapperOptions']);
