@@ -14,65 +14,6 @@ use yii\widgets\ActiveForm;
 use Yunusbek\Multilingual\components\LanguageService;
 use Yunusbek\Multilingual\components\MlConstant;
 
-global $css;
-$css = <<<CSS
-.dashed-ml {
-    -webkit-box-flex: 1;
-    flex: 1 0 0%;
-    border: none;
-    height: 1px;
-    width: -webkit-fill-available;
-    background: repeating-linear-gradient(
-        to right,
-        #ccc 0px,
-        #ccc 15px,
-        transparent 15px,
-        transparent 20px
-    );
-    margin: 15px 0 20px 0;
-}
-.has-required::after {
-    content: '';
-    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace
-}
-
-.dash-box{
-  border: none;
-  position: relative;         /* ichki bo'shliq */
-  --bw: 1px;               /* border qalinligi */
-  --dash: 14px;            /* chiziq uzunligi */
-  --gap: 10px;             /* chiziqlar orasidagi masofa */
-  --period: calc(var(--dash) + var(--gap));
-}
-
-.dash-box .nav-item{
-  z-index: 1;
-}
-
-/* Chiziqlarni 4 tomondan chizuvchi pseudo-border */
-.dash-box::before{
-  content: "";
-  position: absolute;
-  inset: 0;
-  padding-bottom: var(--bw);
-  pointer-events: none;
-  background:
-    /* yuqori chet */
-    linear-gradient(90deg, currentColor 0 var(--dash), transparent 0 var(--period)) top / var(--period) var(--bw) repeat-x,
-    /* pastki chet */
-    linear-gradient(90deg, currentColor 0 var(--dash), transparent 0 var(--period)) bottom / var(--period) var(--bw) repeat-x,
-    /* chap chet */
-    linear-gradient(0deg,  currentColor 0 var(--dash), transparent 0 var(--period)) left / var(--bw) var(--period) repeat-y,
-    /* o'ng chet */
-    linear-gradient(0deg,  currentColor 0 var(--dash), transparent 0 var(--period)) right / var(--bw) var(--period) repeat-y;
-  /* faqat tashqi chiziqlar ko'rinsin */
-  -webkit-mask: linear-gradient(#ccc 0 0) content-box, linear-gradient(#ccc 0 0);
-  -webkit-mask-composite: xor; 
-  mask-composite: exclude;
-  color: #ccc!important; /* chiziq rangi (istalgan rang) */
-}
-CSS;
-
 class MlFields extends Widget
 {
     public ActiveForm $form;
@@ -202,8 +143,14 @@ class MlFields extends Widget
         }
 
         $result = $this->makeHtmlField($dashed_ml);
-        global $css;
-        $this->view->registerCss($css);
+        $this->view->registerCss(
+            '@vendor/yunusbek/multilingual/dist/css/mlcss.js',
+            ['depends' => [\yii\web\YiiAsset::class]]
+        );
+        $this->view->registerJsFile(
+            '@vendor/yunusbek/multilingual/dist/js/mljs.js',
+            ['depends' => [\yii\web\YiiAsset::class]]
+        );
         return $result;
     }
 

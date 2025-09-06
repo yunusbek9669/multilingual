@@ -40,29 +40,10 @@ $this->params['breadcrumbs'][] = $this->title;
     </div>
 
 <?php
-$js = <<<JS
-    function copyTextFallback(text) {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.position = 'fixed';
-        document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-    }
-    
-    function copyText(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text)
-                .then(() => alert('Nusxalandi!'))
-                .catch(err => alert('Xatolik: ' + err));
-        } else {
-            copyTextFallback(text);
-        }
-    }
-JS;
-$this->registerJs($js, \yii\web\View::POS_END);
+$this->registerJsFile(
+    '@vendor/yunusbek/multilingual/dist/js/mljs.js',
+    ['depends' => [\yii\web\YiiAsset::class]]
+);
 
 $css = <<<CSS
 .ml-card {
