@@ -202,20 +202,23 @@ class ExcelExportImport
                         {
                             if (!empty($row[0]))
                             {
-                                $value = trim($row[2]);
                                 $keys = explode(':', $row[0]);
 
                                 /** static tarjimalr uchun */
                                 if ($keys[0] == '1') {
+                                    $value = trim($row[2]);
                                     $static[$keys[1]][$keys[2]] = $value;
                                 }
 
                                 /** dynamic tarjimalr uchun */
-                                elseif ($keys[0] == '0' && !empty($value)) {
-                                    $table_name = array_keys($jsonData)[(int)$keys[1]];
-                                    $attribute = $jsonData[$table_name][(int)$keys[3]] ?? null;
-                                    if ($attribute === null) continue;
-                                    $dynamic[$table_name][$keys[2]][$attribute] = $value;
+                                elseif ($keys[0] == '0') {
+                                    $value = trim($row[3] ?? $row[2]);
+                                    if (!empty($value)) {
+                                        $table_name = array_keys($jsonData)[(int)$keys[1]];
+                                        $attribute = $jsonData[$table_name][(int)$keys[3]] ?? null;
+                                        if ($attribute === null) continue;
+                                        $dynamic[$table_name][$keys[2]][$attribute] = $value;
+                                    }
                                 }
                             }
                         }
