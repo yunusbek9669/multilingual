@@ -29,9 +29,9 @@ class MlTabs extends Widget
         $this->headerOptions['class'] = 'ml-nav-links nav ' . $this->headerOptions['class'];
         if ($this->tab === 'basic') {
             if (!str_contains($this->contentOptions['class'], 'pt-')) {
-                $this->contentOptions['class'] .= ' pt-3 dash-box';
+                $this->contentOptions['class'] .= ' pt-3 ';
             }
-            $this->headerOptions['class'] .= ' nav-tabs';
+            $this->headerOptions['class'] .= ' nav-tabs dash-box';
         } else {
             $this->headerOptions['class'] = ' flex-column nav-pills ' . ($this->headerOptions['class'] ?? '');
         }
