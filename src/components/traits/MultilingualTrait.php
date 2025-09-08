@@ -16,6 +16,7 @@ trait MultilingualTrait
     private bool $where = true;
     private array $jsonData = [];
     public $_mlAttributes;
+    private bool $mlEventsRegistered = false;
 
     /**
      * @throws InvalidConfigException
@@ -39,8 +40,41 @@ trait MultilingualTrait
 
     public function bootMultilingual(): void
     {
-        $this->on(self::EVENT_AFTER_INSERT, [$this, 'multilingualAfterSave']);
-        $this->on(self::EVENT_AFTER_UPDATE, [$this, 'multilingualAfterSave']);
+        $declaresAfterSaveInClass = false;
+        try {
+            $rm = new \ReflectionMethod(get_class($this), 'afterSave');
+            if ($rm->getDeclaringClass()->getName() === get_class($this)) {
+                $declaresAfterSaveInClass = true;
+            }
+        } catch (\ReflectionException $e) {
+            // ignore;
+        }
+
+        if (!$declaresAfterSaveInClass) {
+            $this->on(self::EVENT_AFTER_INSERT, [$this, 'multilingualAfterSave']);
+            $this->on(self::EVENT_AFTER_UPDATE, [$this, 'multilingualAfterSave']);
+            $this->mlEventsRegistered = true;
+        }
+
+        $this->on(self::EVENT_AFTER_DELETE, [$this, 'multilingualAfterDelete']);
+    }
+
+    public function save($runValidation = true, $attributeNames = null)
+    {
+        $isNew = $this->isNewRecord;
+
+        $result = parent::save($runValidation, $attributeNames);
+
+        if ($result && !$this->mlEventsRegistered) {
+            try {
+                $this->multilingualAfterSave();
+            } catch (\Throwable $e) {
+                Yii::error("multilingualAfterSave error: " . $e->getMessage(), __METHOD__);
+                throw $e;
+            }
+        }
+
+        return $result;
     }
 
     /**
