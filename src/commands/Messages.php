@@ -314,6 +314,8 @@ EOD;
         /** @var Connection $db */
         $db = Instance::ensure($this->config['db'], Connection::class);
 
+        ksort($messages);
+
         foreach ($this->languages as $language) {
             $langTable = "{{%lang_$language}}";
             if (!self::issetTable($langTable)) {
@@ -441,6 +443,7 @@ EOD;
 
 
             $new = [];
+            $iteration = 0;
             foreach ($messages as $category => $msgKeys) {
                 $msgKeys = array_unique($msgKeys);
                 if (isset($dbValues[$category])) {
@@ -480,7 +483,7 @@ EOD;
                 $dbValues[$category] = array_merge($dbValues[$category] ?? [], $new[$category]);
                 ksort($dbValues[$category]);
 
-                $execute = $this->saveMessageToDb($langTable, $category, $dbValues[$category], $jsonData, $insertCount);
+                $execute = $this->saveMessageToDb($langTable, $category, $dbValues[$category], $jsonData, $insertCount, $iteration++);
                 if (!$execute) {
                     $this->stderr("\n".'"'.$langTable.'" '.json_encode($category)." failed\n", BaseConsole::FG_RED);
                     break;
@@ -791,11 +794,10 @@ EOD;
      * @param array $message
      * @param array $json_list
      * @param array $insertCount
+     * @param $iteration
      * @return int
-     * @throws \yii\db\Exception
-     * @throws InvalidConfigException
      */
-    protected function saveMessageToDb(string $langTable, string $category, array &$message, array $json_list, array &$insertCount): int
+    protected function saveMessageToDb(string $langTable, string $category, array &$message, array $json_list, array &$insertCount, $iteration): int
     {
         if ($category === MlConstant::MULTILINGUAL) {
             foreach ($json_list as $table_name) {
@@ -806,7 +808,7 @@ EOD;
             }
         }
 
-        return self::singleUpsert($langTable, $category, 0, true, $message);
+        return self::singleUpsert($langTable, $category, $iteration, true, $message);
     }
 
     protected function parseAttributesFromBuffer(array $buffer)

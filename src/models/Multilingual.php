@@ -55,7 +55,7 @@ class Multilingual extends ActiveRecord
     public static function exportToExcelI18n(array $params): bool|string
     {
         $default_lang = MlConstant::LANG_PREFIX . key(Yii::$app->params['default_language']);
-        $data = Yii::$app->db->createCommand("SELECT * FROM {$default_lang} WHERE is_static = true AND table_iteration = 0 ORDER BY table_name")->queryAll();
+        $data = Yii::$app->db->createCommand("SELECT * FROM {$default_lang} WHERE is_static = true ORDER BY table_name")->queryAll();
 
         if (empty($data)) {
             throw new InvalidConfigException(Yii::t('multilingual', "The table to which I18n should be written is currently empty. Please run the {command} command to fill it.", ['command' => '" php yii ml-extract/i18n "']));

@@ -63,12 +63,10 @@ class ExcelExportImport
         $sheet->getStyle('C1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         if ($is_static) {
-            $headers = ['ID', 'Category', 'Keywords', 'Translate here'];
+            $headers = ['ID', 'Category', 'Translate here'];
             $sheet->getColumnDimension('A')->setAutoSize(false);
-            $sheet->getColumnDimension('A')->setWidth(3);
             $sheet->getColumnDimension('C')->setAutoSize(true);
             $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
-            $sheet->getStyle('D1')->getFont()->setBold(true);
             $sheet->getStyle("A1:C1")->getFont()->setBold(true)->setColor(new Color('777777'));
             $sheet->fromArray($headers, NULL, 'A1');
             $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
@@ -76,17 +74,17 @@ class ExcelExportImport
 
             /** Ma'lumotlarni qo'shish */
             $rowNumber = 2;
+
             foreach ($data as $row) {
                 $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-                $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
                 /** JSON qiymatlarini alohida qatorda chiqarish */
                 $jsonData = json_decode($row['value'], true);
-                foreach ($staticJsonKeys[$row['table_name']] as $value) {
+                ksort($staticJsonKeys[$row['table_name']]);
+                foreach ($staticJsonKeys[$row['table_name']] as $key => $value) {
                     $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-                    $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static']);
+                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$row['table_iteration'].':'.$key);
                     $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
                     $sheet->setCellValue("C{$rowNumber}", $value);
 
@@ -134,6 +132,8 @@ class ExcelExportImport
         }
 
         /** JSON qiymatlarini o'zgartirishga ruxsat berish */
+        $sheet->getStyle('B2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
+        $sheet->getStyle('C2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
         $sheet->getStyle('D2:' . $sheet->getHighestColumn() . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
 
         /** Himoyani yoqish */
@@ -202,12 +202,12 @@ class ExcelExportImport
                         {
                             if (!empty($row[0]))
                             {
-                                $value = trim($row[3]);
+                                $value = trim($row[2]);
                                 $keys = explode(':', $row[0]);
 
                                 /** static tarjimalr uchun */
                                 if ($keys[0] == '1') {
-                                    $static[$row[1]][$row[2]] = $value;
+                                    $static[$keys[1]][$keys[2]] = $value;
                                 }
 
                                 /** dynamic tarjimalr uchun */
@@ -223,7 +223,19 @@ class ExcelExportImport
                         /** static tarjimalr uchun */
                         if (!empty($static)) {
                             foreach ($static as $category => $values) {
-                                $upsert = self::singleUpsert($table, $category, 0, true, $values);
+                                $dbData = Yii::$app->db->createCommand("
+                                        SELECT table_name, value FROM {$table}
+                                        WHERE is_static = true AND table_iteration = :iteration
+                                        LIMIT 1
+                                    ")->bindValues([':iteration' => $category])
+                                    ->queryOne();
+                                $dbValues = json_decode($dbData['value'], true);
+                                ksort($dbValues);
+                                $i = 0;
+                                foreach ($dbValues as $key => $value) {
+                                    $dbValues[$key] = $values[$i++] ?? '';
+                                }
+                                $upsert = self::singleUpsert($table, $dbData['table_name'], $category, true, $dbValues);
                                 if ($upsert <= 0) {
                                     $json = json_encode($values);
                                     $response['status'] = false;
