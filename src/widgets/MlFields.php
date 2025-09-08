@@ -214,8 +214,9 @@ class MlFields extends Widget
         $inputNameBasic = $inputName;
         $index = MlConstant::$multiAttributes[$inputNameBasic] ?? $this->order;
         if ($this->multiple) {
+            $baseName = (new \ReflectionClass($model))->getShortName();
             MlConstant::$multiAttributes[$inputNameBasic] = $index + 1;
-            $inputName .= "[{$index}]";
+            $inputName = "{$baseName}[{$index}][{$params['attribute']}]";
             $inputId = strtolower(str_replace(['[]','[',']'], ['','-',''], $inputName));
         }
         $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
