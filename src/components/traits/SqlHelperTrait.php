@@ -45,7 +45,7 @@ trait SqlHelperTrait
             if (isset(self::$jsonTables[$current_table]) && empty($this->select)) {
                 $this->setFullSelect($current_table, $alias, $ml_attributes);
             } else {
-                foreach ($this->select as $attribute_name => $column) {
+                foreach ($this->select ?? [] as $attribute_name => $column) {
                     if (isset(self::$jsonTables[$current_table]) && ($column instanceof Expression || $this->unusualSelect($column))) {
                         $this->setSingleSelectExpression($current_table, $column, $attribute_name, $this->join);
                     }
