@@ -80,8 +80,7 @@ class ExcelExportImport
 
                 /** JSON qiymatlarini alohida qatorda chiqarish */
                 $jsonData = json_decode($row['value'], true);
-                ksort($staticJsonKeys[$row['table_name']]);
-                foreach ($staticJsonKeys[$row['table_name']] as $key => $value) {
+                foreach (array_values($staticJsonKeys[$row['table_name']]) as $key => $value) {
                     $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
                     $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$row['table_iteration'].':'.$key);
@@ -212,7 +211,7 @@ class ExcelExportImport
 
                                 /** dynamic tarjimalr uchun */
                                 elseif ($keys[0] == '0') {
-                                    $value = trim($row[3] ?? $row[2]);
+                                    $value = trim($row[3]);
                                     if (!empty($value)) {
                                         $table_name = array_keys($jsonData)[(int)$keys[1]];
                                         $attribute = $jsonData[$table_name][(int)$keys[3]] ?? null;
@@ -225,9 +224,11 @@ class ExcelExportImport
 
                         /** static tarjimalr uchun */
                         if (!empty($static)) {
+                            $default = Yii::$app->params['default_language'];
+                            $lang_table = MlConstant::LANG_PREFIX . key($default);
                             foreach ($static as $category => $values) {
                                 $dbData = Yii::$app->db->createCommand("
-                                        SELECT table_name, value FROM {$table}
+                                        SELECT table_name, value FROM {$lang_table}
                                         WHERE is_static = true AND table_iteration = :iteration
                                         LIMIT 1
                                     ")->bindValues([':iteration' => $category])
