@@ -285,7 +285,7 @@ class MlFields extends Widget
                     $mlModel->addRule($requiredAttributes, 'required');
                 }
                 $fields = $form->field($mlModel, $params['attribute'], ['options' => $params['wrapperOptions']])
-                    ->textarea($input_options)
+                    ->$type($input_options)
                     ->label($dynamic_label, $this->labelOption);
 
                 if (MlTabs::$isTab) {
