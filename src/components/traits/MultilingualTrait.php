@@ -180,22 +180,44 @@ trait MultilingualTrait
             'code' => 'success',
             'message' => 'success',
         ];
-        foreach ($post as $lang_table => $data) {
-            foreach ($data as $table_index => $datum) {
-                $table_name = array_keys(self::getJson()['tables'])[$table_index] ?? null;
-                if (isset($this->id) && !empty($table_name)) {
-                    $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
-                    if ($upsert <= 0) {
-                        Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
-                        $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
-                        $response['code'] = 'error';
-                        $response['status'] = false;
-                        break;
+        $lang_list = Yii::$app->params['language_list'];
+        foreach ($post as $lang_key => $data) {
+            MlConstant::$order_index[$lang_key] = MlConstant::$order_index[$lang_key] ?? 0;
+            $lang_table = $lang_list[$lang_key]['table'] ?? null;
+            if (!empty($lang_table)) {
+                foreach ($data as $table_index => $datum) {
+                    $table_name = array_keys(self::getJson()['tables'])[$table_index] ?? null;
+                    if (isset($this->id) && !empty($table_name) && $table_name === $this::tableName()) {
+                        if ($this->isNestedArray($datum)) {
+                            $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum[MlConstant::$order_index[$lang_key]]);
+                            MlConstant::$order_index[$lang_key]++;
+                            if ($upsert <= 0) {
+                                Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
+                                $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
+                                $response['code'] = 'error';
+                                $response['status'] = false;
+                                break;
+                            }
+                        } else {
+                            $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
+                            if ($upsert <= 0) {
+                                Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
+                                $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
+                                $response['code'] = 'error';
+                                $response['status'] = false;
+                                break;
+                            }
+                        }
                     }
                 }
             }
         }
         return $response;
+    }
+
+    private function isNestedArray(array $data): bool {
+        $first = reset($data);
+        return is_array($first);
     }
 
     /** Tarjimalarni qo‘shib qo‘yish

@@ -241,13 +241,14 @@ class MlFields extends Widget
 
     private function langFields($field, $model, $params, $languages, $type, $basicLabel, $label, $index): void
     {
-        $customAttributes = LanguageService::setCustomAttributes($model, $params['attribute']);
+        $customAttributes = LanguageService::setCustomAttributes($model, $params['attribute'], $this->multiple, $index);
         if (!empty($customAttributes)) {
             foreach ($customAttributes as $key => $value)
             {
-                preg_match('/lang_(\w+)/', $key, $matches);
+                preg_match_all('/\[([^\]]*)\]/', $key, $matches);
+                $langKey = $matches[1][0];
                 $dynamic_label = $label;
-                $language = $languages[$matches[1]];
+                $language = $languages[$langKey];
                 if (!empty($language['short_name'])) {
                     $dynamic_label .= " ({$language['short_name']})";
                     $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
@@ -256,10 +257,6 @@ class MlFields extends Widget
                 $fg_option = $params['wrapperOptions'];
                 $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
                 $input_options['id'] = str_replace(['[',']'], ['-'], $key);
-                if ($this->multiple) {
-                    $key .= "[{$index}]";
-                    $input_options['id'] = strtolower(str_replace(['[]','[',']'], ['','-',''], $key));
-                }
                 if (!empty($language['rtl'])) {
                     $input_options['dir'] = 'rtl';
                     $input_options['placeholder'] = $dynamic_placeholder . " ✏️";
@@ -292,11 +289,11 @@ class MlFields extends Widget
                 $fields .= Html::endTag('div');
 
                 if (MlTabs::$isTab) {
-                    $this->output[$matches[1]]['language'] = $language['short_name'];
-                    $this->output[$matches[1]]['field'][$params['attribute']]['label'] = $label;
-                    $this->output[$matches[1]]['field'][$params['attribute']]['html'] = $fields;
+                    $this->output[$langKey]['language'] = $language['short_name'];
+                    $this->output[$langKey]['field'][$params['attribute']]['label'] = $label;
+                    $this->output[$langKey]['field'][$params['attribute']]['html'] = $fields;
                 } else {
-                    $this->output[$label][$matches[1]] = $fields;
+                    $this->output[$label][$langKey] = $fields;
                 }
             }
         } else {

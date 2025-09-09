@@ -135,7 +135,7 @@ class LanguageService
     /** lang_* tablitsalarini chaqirib olish (Create, Update)
      * @throws InvalidConfigException
      */
-    public static function setCustomAttributes($model, string $attribute = null): array
+    public static function setCustomAttributes($model, string $attribute = null, bool $is_multiple = false, int $index = 0): array
     {
         $jsonData = self::getJson();
         $attributes = [];
@@ -143,7 +143,7 @@ class LanguageService
         $table_index = array_search($table_name, array_keys($jsonData['tables']));
         $languages = Yii::$app->params['language_list'];
         if (!empty($languages) && $table_index) {
-            foreach ($languages as $language) {
+            foreach ($languages as $key => $language) {
                 if (!empty($language['table']) && self::checkTable($language['table'])) {
                     $lang_table = (new yii\db\Query())
                         ->from($language['table'])
@@ -154,9 +154,13 @@ class LanguageService
                         ])
                         ->scalar();
                     $data_value = json_decode($lang_table);
-                    $name = $language['table'];
+                    $name = $key;
                     if ($attribute !== null) {
-                        $name = MlConstant::MULTILINGUAL."[$name][$table_index][$attribute]";
+                        if ($is_multiple) {
+                            $name = MlConstant::MULTILINGUAL."[$name][$table_index][$index][$attribute]";
+                        } else {
+                            $name = MlConstant::MULTILINGUAL."[$name][$table_index][$attribute]";
+                        }
                     }
                     $attributes[$name] = !empty($data_value->$attribute) ? $data_value->$attribute : null;
                 }
