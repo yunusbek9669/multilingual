@@ -40,6 +40,7 @@ class {$migrationClassName} extends Migration
             'image' => \$this->string(50), # Enter the path to the flag image for the current language.
             'import_excel' => \$this->string(50), # Import an Excel file downloaded from an existing language and translated into a new language
             'rtl' => \$this->boolean()->defaultValue(false), # Sets the current language to right-to-left.
+            'is_required' => \$this->boolean()->defaultValue(false), # Sets the required rule for the current language's multilingual attribute.
             'table' => \$this->string(50)->notNull(), # The name of the table where translations for the current language are stored, for example: lang_uz, lang_en, lang_ru. (rule: do not deviate from the standard lang_* pattern, do not enter it manually)
         ]);
 

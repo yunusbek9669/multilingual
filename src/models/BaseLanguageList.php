@@ -39,7 +39,7 @@ class BaseLanguageList extends ActiveRecord
     {
         return [
             [['name'], 'string'],
-            [['rtl'], 'boolean'],
+            [['rtl', 'is_required'], 'boolean'],
             [['short_name', 'key'], 'string'],
             [['import_excel'], 'file', 'skipOnEmpty' => true, 'extensions' => 'xlsx'],
             [['image', 'table'], 'string'],

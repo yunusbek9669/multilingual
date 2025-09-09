@@ -4,6 +4,7 @@ namespace Yunusbek\Multilingual\widgets;
 
 use Exception;
 use Yii;
+use yii\base\DynamicModel;
 use yii\base\InvalidConfigException;
 use yii\base\Widget;
 use yii\db\ActiveRecord;
@@ -235,11 +236,11 @@ class MlFields extends Widget
             $this->output[$label][$defaultLangKey] = $output['html'];
         }
 
-        $this->langFields($field, $model, $params, $languages, $type, $basicLabel, $label, $index);
+        $this->langFields($form, $field, $model, $params, $languages, $type, $basicLabel, $label, $index);
     }
 
 
-    private function langFields($field, $model, $params, $languages, $type, $basicLabel, $label, $index): void
+    private function langFields($form, $field, $model, $params, $languages, $type, $basicLabel, $label, $index): void
     {
         $customAttributes = LanguageService::setCustomAttributes($model, $params['attribute'], $this->multiple, $index);
         if (!empty($customAttributes)) {
@@ -250,43 +251,42 @@ class MlFields extends Widget
                 $dynamic_label = $label;
                 $language = $languages[$langKey];
                 if (!empty($language['short_name'])) {
-                    $dynamic_label .= " ({$language['short_name']})";
+                    if (!empty($dynamic_label)) {
+                        $dynamic_label .= " ({$language['short_name']})";
+                    }
                     $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
                 }
 
-                $fg_option = $params['wrapperOptions'];
                 $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
                 $input_options['id'] = str_replace(['[',']'], ['-'], $key);
                 if (!empty($language['rtl'])) {
                     $input_options['dir'] = 'rtl';
                     $input_options['placeholder'] = $dynamic_placeholder . " ✏️";
-                    $fg_option['style'] = implode(' ', ["direction: rtl !important; text-align: right !important;", $fg_option['style'] ?? '']);
                 }
+                $input_options['name'] = $key;
+                $input_options['value'] = $value;
 
-                $fieldLabelClass = null;
-                $fieldLabel = $field->labelOptions['class'] ?? null;
-                if (!empty($fieldLabel)) {
-                    if (is_array($fieldLabel)) {
-                        if (in_array('has-star', $fieldLabel)) {
-                            $fieldLabel = array_values($fieldLabel);
-                            unset($fieldLabel['has-star']);
-                            $fieldLabelClass = implode(' ', $fieldLabel) . ' has-required';
+                $mlModel = new DynamicModel([$params['attribute']]);
+                $requiredAttributes = [];
+                foreach ($model->rules() as $rule) {
+                    if (isset($rule[1]) && $rule[1] === 'required') {
+                        if (is_array($rule[0])) {
+                            foreach ($rule[0] as $item) {
+                                if ($item === $params['attribute']) {
+                                    $requiredAttributes[] = $item;
+                                }
+                            }
                         } else {
-                            $fieldLabelClass = implode(' ', $fieldLabel);
-                        }
-                    } elseif (is_string($fieldLabel)) {
-                        $fieldLabelClass = $fieldLabel;
-                        if (str_contains($fieldLabelClass, 'has-star')) {
-                            $fieldLabelClass = str_replace('has-star', '', $fieldLabelClass) . ' has-required';
+                            $requiredAttributes[] = $rule[0];
                         }
                     }
                 }
-                $fields = Html::beginTag('div', $fg_option);
-                if (!empty($label)) {
-                    $fields .= Html::label($dynamic_label, $input_options['id'], array_merge(['class' => $fieldLabelClass], $this->labelOption));
+                if (true) {
+                    $mlModel->addRule($requiredAttributes, 'required');
                 }
-                $fields .= Html::$type($key, $value, $input_options);
-                $fields .= Html::endTag('div');
+                $fields = $form->field($mlModel, $params['attribute'], ['options' => $params['wrapperOptions']])
+                    ->textarea($input_options)
+                    ->label($dynamic_label, $this->labelOption);
 
                 if (MlTabs::$isTab) {
                     $this->output[$langKey]['language'] = $language['short_name'];
