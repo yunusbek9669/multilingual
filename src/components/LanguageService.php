@@ -70,8 +70,9 @@ class LanguageService
     {
         $table = (new Query())->select([$lang => 'value'])->from($lang)->where(['table_name' => $category, 'is_static' => true])->one();
         $data = json_decode($table[$lang], true);
-        asort($data);
-        return [$lang => $data];
+        $empty = array_filter($data, fn($v) => $v === '');
+        $nonEmpty = array_filter($data, fn($v) => $v !== '');
+        return [$lang => $empty + $nonEmpty];
     }
 
     /**  Umumiy extend olgan modellarning ma’lumotlari
