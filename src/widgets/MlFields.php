@@ -281,7 +281,7 @@ class MlFields extends Widget
                         }
                     }
                 }
-                if (true) {
+                if ($language['is_required']) {
                     $mlModel->addRule($requiredAttributes, 'required');
                 }
                 $fields = $form->field($mlModel, $params['attribute'], ['options' => $params['wrapperOptions']])
