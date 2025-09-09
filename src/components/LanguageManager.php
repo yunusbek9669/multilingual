@@ -53,6 +53,7 @@ class LanguageManager
                     'table' => $model['table'],
                     'active' => $isActive,
                     'rtl' => $model['rtl'],
+                    'is_required' => $model['is_required'],
                 ];
             });
         } catch (Exception $e) {
