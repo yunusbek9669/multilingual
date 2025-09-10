@@ -5,6 +5,7 @@ use yii\base\InvalidConfigException;
 use yii\bootstrap5\Html;
 use yii\bootstrap5\Widget;
 use Yii;
+use Yunusbek\Multilingual\components\MlConstant;
 
 class MlTabs extends Widget
 {
@@ -46,7 +47,7 @@ class MlTabs extends Widget
         foreach (Yii::$app->params['language_list'] as $key => $content) {
             $active = Yii::$app->language === $key;
             $key = self::$tabId.'_'.$key;
-            $li[] = $this->setNavBar($key, $content['short_name'], $active);
+            $li[] = $this->setNavBar($key, $content, $active);
         }
         $tabLinkParam = array_merge($this->headerOptions, [
             'id' => self::$tabId."Tab",
@@ -88,8 +89,16 @@ class MlTabs extends Widget
 
 
 
-    private function setNavBar(string $id, string $name, bool $active): string
+    private function setNavBar(string $id, array $language, bool $active): string
     {
+        $has_star = '<i class="has-star" data-bs-toggle="tooltip" title="'.Yii::t('multilingual', 'Required language').'"></i>';
+        if (!isset($language['table'])) {
+            $name = $language['short_name'] . ' '.MlConstant::STAR . $has_star;
+            $required = 'required';
+        } else {
+            $name = $language['short_name'] . $has_star;
+            $required = $language['is_required'] ? 'required' : '';
+        }
         $active = $active ? 'active' : '';
         if ($this->tab === 'vertical') {
             return Html::tag('li',
@@ -100,7 +109,7 @@ class MlTabs extends Widget
                     'aria-controls' => "link-$id",
                     'aria-selected' => "true",
                     'tabindex' => "-1",
-                    'class' => "nav-link $active",
+                    'class' => "nav-link $active $required",
                 ])
             );
         }
@@ -111,7 +120,7 @@ class MlTabs extends Widget
                 'data-bs-toggle' => 'tab',
                 'aria-controls' => "link-$id",
                 'aria-selected' => "true",
-                'class' => "nav-link $active",
+                'class' => "nav-link $active $required",
             ]),
             [
                 'role' => 'presentation',
