@@ -287,11 +287,11 @@ trait MultilingualTrait
             'code' => 'success',
             'message' => 'success'
         ];
-        $table = (new Query())->select('value')->from($langTable)->where(['table_name' => $category, 'is_static' => true])->one();
+        $table = (new Query())->select(['value', 'table_iteration'])->from($langTable)->where(['table_name' => $category, 'is_static' => true])->one();
         $allMessages = json_decode($table['value'], true);
         ksort($allMessages);
         ksort($value);
-        $upsert = self::singleUpsert($langTable, $category, 0, true, array_replace($allMessages, $value));
+        $upsert = self::singleUpsert($langTable, $category, $table['table_iteration'], true, array_replace($allMessages, $value));
         if ($upsert <= 0) {
             $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
             $response['code'] = 'error';
