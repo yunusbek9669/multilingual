@@ -182,21 +182,21 @@ trait MultilingualTrait
         ];
         $lang_list = Yii::$app->params['language_list'];
         foreach ($post as $lang_key => $data) {
-            MlConstant::$order_index[$lang_key] = MlConstant::$order_index[$lang_key] ?? 0;
             $lang_table = $lang_list[$lang_key]['table'] ?? null;
             if (!empty($lang_table)) {
                 foreach ($data as $table_index => $datum) {
                     $table_name = array_keys(self::getJson()['tables'])[$table_index] ?? null;
                     if (isset($this->id) && !empty($table_name) && $table_name === $this::tableName()) {
                         if ($this->isNestedArray($datum)) {
-                            $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum[MlConstant::$order_index[$lang_key]]);
-                            MlConstant::$order_index[$lang_key]++;
-                            if ($upsert <= 0) {
-                                Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
-                                $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
-                                $response['code'] = 'error';
-                                $response['status'] = false;
-                                break;
+                            foreach ($datum as $key => $value) {
+                                $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $value);
+                                if ($upsert <= 0) {
+                                    Yii::error("An error occurred while writing {{$lang_table}} table. {table_name: $table_name, table_iteration: {$this->id}}. Attributes: " . json_encode($this->attributes), ' ' . $response['message']);
+                                    $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
+                                    $response['code'] = 'error';
+                                    $response['status'] = false;
+                                    break 3;
+                                }
                             }
                         } else {
                             $upsert = self::singleUpsert($lang_table, $table_name, $this->id, false, $datum);
@@ -205,7 +205,7 @@ trait MultilingualTrait
                                 $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $lang_table]);
                                 $response['code'] = 'error';
                                 $response['status'] = false;
-                                break;
+                                break 2;
                             }
                         }
                     }

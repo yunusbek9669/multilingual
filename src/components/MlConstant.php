@@ -10,6 +10,4 @@ class MlConstant
     public const STAR = '⭐';
 
     public static array $multiAttributes;
-
-    public static array $order_index = [];
 }
