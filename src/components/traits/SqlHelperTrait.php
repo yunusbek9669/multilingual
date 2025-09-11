@@ -283,6 +283,11 @@ trait SqlHelperTrait
         return parent::groupBy($columns);
     }
 
+    public function limit($int)
+    {
+        return parent::limit($int);
+    }
+
     /**
      * (TableName va Alias)ni ajratib beradi
      * @param array|string $tables
