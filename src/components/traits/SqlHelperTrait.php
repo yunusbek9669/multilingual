@@ -193,7 +193,7 @@ trait SqlHelperTrait
             if (isset(self::$jsonTables[$joinTable]) && in_array($explode[1] ?? $column, self::$jsonTables[$joinTable]) && $explode[0] === $joinAlias) {
                 $joinLangTable = $rootTable . '_' . $this->langTable . '_' . $explode[0];
                 $this->getBaseColumnName($joinLangTable, $column);
-                $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column);
+                $collectColumns[$explode[1]] = $this->coalesce($joinLangTable, $explode[1], $column);
                 $this->addSelect($collectColumns);
                 $this->addJoin('leftJoin', $joinLangTable, $joinTable, $explode[0]);
                 break;
@@ -203,7 +203,8 @@ trait SqlHelperTrait
         if (empty($collectColumns) &&  isset(self::$jsonTables[$rootTable]) && in_array($explode[1] ?? $column, self::$jsonTables[$rootTable]) && isset($this->joinList[$attribute_name]) && $explode[0] === $this->customAlias) {
             $joinLangTable = $rootTable . '_' . $this->langTable . '_' . $explode[0];
             $this->getBaseColumnName($joinLangTable, $column);
-            $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column);
+//            $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $explode[1], $column); ishlamay qolsa buni qaytarib qo'yish kerak
+            $collectColumns[$explode[1]] = $this->coalesce($joinLangTable, $explode[1], $column);
             $this->addSelect($collectColumns);
             $this->addJoin('leftJoin', $joinLangTable, $rootTable, $explode[0]);
         }
