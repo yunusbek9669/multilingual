@@ -220,8 +220,15 @@ class MlFields extends Widget
             $inputName = "{$baseName}[{$index}][{$params['attribute']}]";
             $inputId = strtolower(str_replace(['[]','[',']'], ['','-',''], $inputName));
         }
+        $callable = [];
+        foreach ($params['options'] as $option_key => $value) {
+            if (is_callable($value)) {
+                $callable[$option_key] = call_user_func($value, $model, $params['attribute'], $defaultLangKey, $index, $form);
+            }
+        }
+        $callable = array_merge($params['options'], $callable);
         $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
-            ->$type(array_merge(['placeholder' => $defaultPlaceholder . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $params['options']))
+            ->$type(array_merge(['placeholder' => $defaultPlaceholder . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $callable))
             ->label($defaultLabel, $this->labelOption);
 
         $output = [
@@ -266,6 +273,14 @@ class MlFields extends Widget
                 $input_options['name'] = $key;
                 $input_options['value'] = $value;
 
+                $callable = [];
+                foreach ($input_options as $option_key => $value) {
+                    if (is_callable($value)) {
+                        $callable[$option_key] = call_user_func($value, $model, $params['attribute'], $langKey, $index, $form);
+                    }
+                }
+                $callable = array_merge($input_options, $callable);
+
                 $mlModel = new DynamicModel([$params['attribute']]);
                 $requiredAttributes = [];
                 foreach ($model->rules() as $rule) {
@@ -285,7 +300,7 @@ class MlFields extends Widget
                     $mlModel->addRule($requiredAttributes, 'required');
                 }
                 $fields = $form->field($mlModel, $params['attribute'], ['options' => $params['wrapperOptions']])
-                    ->$type($input_options)
+                    ->$type($callable)
                     ->label($dynamic_label, $this->labelOption);
 
                 if (MlTabs::$isTab) {
