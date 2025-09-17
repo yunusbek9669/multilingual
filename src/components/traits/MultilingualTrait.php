@@ -32,7 +32,10 @@ trait MultilingualTrait
         $this->bootMultilingual();
     }
 
-    /** Avto tarjimani ulash */
+    /** Avto tarjimani ulash
+     * @inheritdoc
+     * @return MlQuery|\yii\db\ActiveQuery
+     */
     public static function find(): MlActiveQuery
     {
         return new MlActiveQuery(static::class);
