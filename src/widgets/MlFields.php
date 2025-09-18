@@ -195,17 +195,12 @@ class MlFields extends Widget
             ->from($model::tableName())
             ->select($params['attribute'])
             ->where(['id' => $model->id])
+            ->limit(1)
             ->scalar();
-        $languages = Yii::$app->params['language_list'];
-        $defaultLangKey = null;
-        $defaultLanguage = null;
-        foreach ($languages as $key => $lang) {
-            if (empty($lang['table'])) {
-                $defaultLangKey = $key;
-                $defaultLanguage = $lang;
-                break;
-            }
-        }
+
+        $default = Yii::$app->params['default_language'];
+        $defaultLangKey = key($default);
+        $defaultLanguage = reset($default);
 
         $defaultPlaceholder = $basicLabel . " ({$defaultLanguage['short_name']})";
         $defaultLabel = is_bool($this->labelValue) && !$this->labelValue ? false : $label . " ({$defaultLanguage['short_name']}) " . MlConstant::STAR;
@@ -220,15 +215,29 @@ class MlFields extends Widget
             $inputName = "{$baseName}[{$index}][{$params['attribute']}]";
             $inputId = strtolower(str_replace(['[]','[',']'], ['','-',''], $inputName));
         }
-        $callable = [];
+
+        $wrapperOptions = $params['wrapperOptions'];
+        $callable = [
+            'id' => $inputId,
+            'name' => $inputName,
+            'value' => $defaultValue,
+            'placeholder' => $defaultPlaceholder . " 🖊",
+            'dir' => "ltr"
+        ];
+        if (!empty($defaultLanguage['rtl'])) {
+            $callable['dir'] = 'rtl';
+            $callable['placeholder'] = $defaultPlaceholder . " ✏️";
+            $wrapperOptions['style'] = ($wrapperOptions['style'] ?? '') . 'direction: rtl; text-align: right;';
+        } else {
+            $wrapperOptions['style'] = ($wrapperOptions['style'] ?? '') . 'direction: ltr; text-align: left;';
+        }
         foreach ($params['options'] as $option_key => $value) {
             if (is_callable($value)) {
                 $callable[$option_key] = call_user_func($value, $model, $params['attribute'], $defaultLangKey, $index, $form);
             }
         }
-        $callable = array_merge($params['options'], $callable);
-        $field = $form->field($model, $params['attribute'], ['options' => $params['wrapperOptions']])
-            ->$type(array_merge(['placeholder' => $defaultPlaceholder . " 🖊", 'value' => $defaultValue, 'id' => $inputId, 'name' => $inputName], $callable))
+        $field = $form->field($model, $params['attribute'], ['options' => $wrapperOptions])
+            ->$type(array_merge($params['options'], $callable))
             ->label($defaultLabel, $this->labelOption);
 
         $output = [
@@ -243,7 +252,7 @@ class MlFields extends Widget
             $this->output[$label][$defaultLangKey] = $output['html'];
         }
 
-        $this->langFields($form, $field, $model, $params, $languages, $type, $basicLabel, $label, $index);
+        $this->langFields($form, $field, $model, $params, Yii::$app->params['language_list'], $type, $basicLabel, $label, $index);
     }
 
 
@@ -264,11 +273,16 @@ class MlFields extends Widget
                     $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
                 }
 
+                $wrapperOptions = $params['wrapperOptions'];
                 $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
                 $input_options['id'] = str_replace(['[',']'], ['-'], $key);
+                $input_options['dir'] = 'ltr';
                 if (!empty($language['rtl'])) {
                     $input_options['dir'] = 'rtl';
                     $input_options['placeholder'] = $dynamic_placeholder . " ✏️";
+                    $wrapperOptions['style'] = ($wrapperOptions['style'] ?? '') . 'direction: rtl; text-align: right;';
+                } else {
+                    $wrapperOptions['style'] = ($wrapperOptions['style'] ?? '') . 'direction: ltr; text-align: left;';
                 }
                 $input_options['name'] = $key;
                 $input_options['value'] = $value;
@@ -299,7 +313,7 @@ class MlFields extends Widget
                 if ($language['is_required']) {
                     $mlModel->addRule($requiredAttributes, 'required');
                 }
-                $fields = $form->field($mlModel, $params['attribute'], ['options' => $params['wrapperOptions']])
+                $fields = $form->field($mlModel, $params['attribute'], ['options' => $wrapperOptions])
                     ->$type($callable)
                     ->label($dynamic_label, $this->labelOption);
 
