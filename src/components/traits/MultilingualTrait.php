@@ -88,12 +88,19 @@ trait MultilingualTrait
         $this->multilingualAfterDelete();
     }
 
+    public function setAttributes($values, $safeOnly = true): self
+    {
+        parent::setAttributes($values, $safeOnly);
+        return $this;
+    }
+
     /** lang_* tablitsalariga ma’lumotni static qo‘shish
      * @throws InvalidConfigException
      */
-    public function setMlAttributes(array $attributes): void
+    public function setMlAttributes(array $attributes): self
     {
         $this->_mlAttributes = $attributes;
+        return $this;
     }
 
     /**
