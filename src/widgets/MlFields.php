@@ -26,6 +26,7 @@ class MlFields extends Widget
     public $label = null;
     private array $labelOption = [];
     private string|bool|null $labelValue = null;
+    private string|bool|null $placeHolder = null;
 
     public string|array $attribute;
     public array $wrapperOptions = [];
@@ -88,6 +89,10 @@ class MlFields extends Widget
 
         if (!empty($this->options) && isset($this->options['class'])) {
             $this->options['class'] .= ' form-control';
+        }
+
+        if (!empty($this->options) && isset($this->options['placeholder'])) {
+            $this->placeHolder = $this->options['placeholder'];
         }
 
         if (isset($this->label)) {
@@ -188,7 +193,7 @@ class MlFields extends Widget
         $type = $params['type'];
         $form = $params['form'];
         $model = $params['model'];
-        $basicLabel = $model->getAttributeLabel($params['attribute']);
+        $basicLabel = $this->placeHolder ?? $model->getAttributeLabel($params['attribute']);
         $label = $this->labelValue ?? $basicLabel;
 
         $defaultValue = (new yii\db\Query())
