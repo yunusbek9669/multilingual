@@ -193,7 +193,7 @@ class MlFields extends Widget
         $type = $params['type'];
         $form = $params['form'];
         $model = $params['model'];
-        $basicLabel = $this->placeHolder ?? $model->getAttributeLabel($params['attribute']);
+        $basicLabel = $model->getAttributeLabel($params['attribute']);
         $label = $this->labelValue ?? $basicLabel;
 
         $defaultValue = (new yii\db\Query())
@@ -207,7 +207,7 @@ class MlFields extends Widget
         $defaultLangKey = key($default);
         $defaultLanguage = reset($default);
 
-        $defaultPlaceholder = $basicLabel . " ({$defaultLanguage['short_name']})";
+        $defaultPlaceholder = ($this->placeHolder ?? $basicLabel) . " ({$defaultLanguage['short_name']})";
         $defaultLabel = is_bool($this->labelValue) && !$this->labelValue ? false : $label . " ({$defaultLanguage['short_name']}) " . MlConstant::STAR;
 
         $inputId = Html::getInputId($model, $params['attribute']);
@@ -275,11 +275,12 @@ class MlFields extends Widget
                     if (!empty($dynamic_label)) {
                         $dynamic_label .= " ({$language['short_name']})";
                     }
-                    $dynamic_placeholder = $basicLabel . " ({$language['short_name']})";
+                    $dynamic_placeholder = ($this->placeHolder ?? $basicLabel) . " ({$language['short_name']})";
                 }
 
                 $wrapperOptions = $params['wrapperOptions'];
-                $input_options = array_merge(['class' => 'form-control', 'placeholder' => $dynamic_placeholder . " 🖊"], $params['options']);
+                $params['options']['placeholder'] = $dynamic_placeholder . " 🖊";
+                $input_options = array_merge(['class' => 'form-control'], $params['options']);
                 $input_options['id'] = str_replace(['[',']'], ['-'], $key);
                 $input_options['dir'] = 'ltr';
                 if (!empty($language['rtl'])) {
