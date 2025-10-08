@@ -258,7 +258,7 @@ trait MultilingualTrait
                         ])
                         ->scalar();
                     $data_value = json_decode($lang_table, true);
-                    foreach ($data_value as $attribute => $value) {
+                    foreach ((array)$data_value as $attribute => $value) {
                         $dbAttributes[$attribute."_".$key] = $value;
                     }
                 }
@@ -272,7 +272,7 @@ trait MultilingualTrait
                     if (!isset($this->$attribute)) {
                         throw new InvalidConfigException(Yii::t('multilingual', "Attribute '{attribute}' does not exist in {modelName} model", ['attribute' => $attribute, 'modelName' => $modelName]));
                     }
-                    $post[MlConstant::LANG_PREFIX.$lang][$table_index][$attribute] = $value;
+                    $post[$lang][$table_index][$attribute] = $value;
                 } else {
                     throw new InvalidConfigException(Yii::t('multilingual', "Attribute '{attribute}' does not have a valid language code", ['attribute' => $attribute]));
                 }
