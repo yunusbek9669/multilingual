@@ -1,10 +1,10 @@
 <?php
 namespace Yunusbek\Multilingual\widgets;
 
-use yii\base\InvalidConfigException;
-use yii\bootstrap5\Html;
-use yii\bootstrap5\Widget;
 use Yii;
+use yii\base\Widget;
+use yii\helpers\Html;
+use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
 
 class MlTabs extends Widget
