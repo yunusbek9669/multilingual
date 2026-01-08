@@ -219,14 +219,22 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
 
 <?php ActiveForm::end(); ?>
 ```
-When filling data through the backend, use the ->setMlAttributes() method for dynamic languages. By appending suffixes like _ru, _en to the base attribute, the system determines which language the value should be stored in.
+When filling data through the backend, you can use either the {lang} notation (e.g. name{en}) or the ->setMlAttributes() method for dynamic languages. By appending suffixes like _ru, _en to the base attribute, the system determines which language the value should be stored in.
 ```php
 $model->setAttributes([
-        'name' => 'olma'
+        'name' => 'olma',
+        'name{ru}' => 'яблоко',
+        'name{en}' => 'apple'
+    ]);
+    
+// or with setMlAttributes
+
+$model->setAttributes([
+        'name' => 'olma',
     ])
     ->setMlAttributes([
         'name_ru' => 'яблоко',
-        'name_en' => 'apple',
+        'name_en' => 'apple'
     ]);
 ```
 All added languages will automatically be displayed on the form page. From here you can type in the translation of all your newly added languages.

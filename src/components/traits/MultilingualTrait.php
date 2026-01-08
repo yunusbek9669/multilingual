@@ -88,13 +88,42 @@ trait MultilingualTrait
         $this->multilingualAfterDelete();
     }
 
+    /**
+     * Sets the attribute values in a massive way.
+     * @param array $values attribute values (name => value) to be assigned to the model.
+     * @param bool $safeOnly whether the assignments should only be done to the safe attributes.
+     * A safe attribute is one that is associated with a validation rule in the current [[scenario]].
+     * @see safeAttributes()
+     * @see attributes()
+     */
     public function setAttributes($values, $safeOnly = true): self
     {
+        if (is_array($values)) {
+            $langKeys = implode('|', array_keys(Yii::$app->params['language_list']));
+            $keysWithLang = array_filter(
+                $values,
+                fn($value, $key) => preg_match("/\{($langKeys)\}$/", $key),
+                ARRAY_FILTER_USE_BOTH
+            );
+            if (!empty($keysWithLang)) {
+                foreach ($keysWithLang as $key => $value) {
+                    if (preg_match('/\{(\w+)\}$/', $key, $matches)) {
+                        $newKey = str_replace('{'.$matches[1].'}', '_'.$matches[1], $key);
+                        $this->_mlAttributes[$newKey] = $value;
+                        unset($values[$key]);
+                    }
+                }
+            }
+        }
         parent::setAttributes($values, $safeOnly);
         return $this;
     }
 
-    /** lang_* tablitsalariga ma’lumotni static qo‘shish
+
+
+    /**
+     * lang_* tablitsalariga ma’lumotni static qo‘shish.
+     * @param array $attributes attribute values (name_*(lang key) => value) to be assigned to the model.
      * @throws InvalidConfigException
      */
     public function setMlAttributes(array $attributes): self
