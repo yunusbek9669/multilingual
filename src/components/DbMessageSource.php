@@ -30,7 +30,7 @@ class DbMessageSource extends MessageSource
      */
     private function fetchAllMessages($language)
     {
-        $tableName = "lang_{$language}";
+        $tableName = MlConstant::LANG_PREFIX.$language;
         if (self::issetTable($tableName)) {
             return Yii::$app->cache->getOrSet($tableName, function () use ($tableName) {
                 $rows = (new Query())

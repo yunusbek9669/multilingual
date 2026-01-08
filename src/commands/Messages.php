@@ -317,7 +317,7 @@ EOD;
         ksort($messages);
 
         foreach ($this->languages as $language) {
-            $langTable = "{{%lang_$language}}";
+            $langTable = "{{%".MlConstant::LANG_PREFIX."$language}}";
             if (!self::issetTable($langTable)) {
                 self::createLangTable($langTable);
             }
@@ -362,7 +362,7 @@ EOD;
 
         foreach ($this->languages as $language)
         {
-            $langTable = "lang_$language";
+            $langTable = MlConstant::LANG_PREFIX.$language;
             if (!self::issetTable($langTable)) {
                 self::createLangTable($langTable);
             }
