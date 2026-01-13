@@ -270,6 +270,22 @@ trait SqlHelperTrait
         }
     }
 
+    /**
+     * Sets the GROUP BY part of the query.
+     * @param string|array|ExpressionInterface|null $columns the columns to be grouped by.
+     * Columns can be specified in either a string (e.g. "id, name") or an array (e.g. ['id', 'name']).
+     * The method will automatically quote the column names unless a column contains some parenthesis
+     * (which means the column contains a DB expression).
+     *
+     * Note that if your group-by is an expression containing commas, you should always use an array
+     * to represent the group-by information. Otherwise, the method will not be able to correctly determine
+     * the group-by columns.
+     *
+     * Since version 2.0.7, an [[ExpressionInterface]] object can be passed to specify the GROUP BY part explicitly in plain SQL.
+     * Since version 2.0.14, an [[ExpressionInterface]] object can be passed as well.
+     * @return $this the query object itself
+     * @see addGroupBy()
+     */
     public function groupBy($columns)
     {
         $columns = (array)$columns;
@@ -284,6 +300,27 @@ trait SqlHelperTrait
         return parent::groupBy($columns);
     }
 
+    /**
+     * Adds an additional WHERE condition to the existing one.
+     * The new condition and the existing one will be joined using the `AND` operator.
+     * @param string|array|ExpressionInterface $condition the new WHERE condition. Please refer to [[where()]]
+     * on how to specify this parameter.
+     * @param array $params the parameters (name => value) to be bound to the query.
+     * @return $this the query object itself
+     * @see where()
+     * @see orWhere()
+     */
+    public function andWhere($condition, $params = [])
+    {
+        parent::andWhere($condition, $params);
+        return $this;
+    }
+
+    /**
+     * Sets the LIMIT part of the query.
+     * @param int|ExpressionInterface|null $limit the limit. Use null or negative value to disable limit.
+     * @return $this the query object itself
+     */
     public function limit($int)
     {
         return parent::limit($int);
