@@ -334,8 +334,8 @@ Result:
 //Let’s assume the current system language is (en).
 YourModel::find()
     ->select([
-        'name' // Returns values based on the currently selected system language. For example: 'apple'
-        'description',  // Returns values based on the currently selected system language. For example: 'red and delicious apple'
+        'name', // Returns values based on the currently selected system language. For example: 'apple'
+        'description'  // Returns values based on the currently selected system language. For example: 'red and delicious apple'
     ])
     ->all();
 ```
@@ -352,7 +352,7 @@ YourModel::find()
         //or raw SQL alias syntax
         'description{uz} as description_uz', // 'qizil va mazali olma'
         'description{ru} as description_ru', // 'красное и вкусное яблоко'
-        'description{en} as description_en', // 'red and delicious apple'
+        'description{en} as description_en' // 'red and delicious apple'
     ])
     ->all();
 ```
