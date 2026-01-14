@@ -327,3 +327,32 @@ Result:
   
 - When the system is set to a newly added language:
 ![after](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result2.jpg)
+
+
+> Allows standard select statements to automatically return translated column values based on the current application locale, without requiring explicit locale suffixes in the query.
+```php
+//Let’s assume the current system language is (en).
+YourModel::find()
+    ->select([
+        'name' // Returns values based on the currently selected system language. For example: 'apple'
+        'description',  // Returns values based on the currently selected system language. For example: 'red and delicious apple'
+    ])
+    ->all();
+```
+
+> 💡 Adds an additional capability to automatically resolve locale-suffixed database columns (e.g. {ru}, {en}) and select their translated counterparts.
+```php
+YourModel::find()
+    ->select([
+        //with associative array select syntax
+        'name_uz' => 'name{uz}', // 'olma'
+        'name_ru' => 'name{ru}', // 'яблоко'
+        'name_en' => 'name{en}', // 'apple'
+        
+        //or raw SQL alias syntax
+        'description{uz} as description_uz', // 'qizil va mazali olma'
+        'description{ru} as description_ru', // 'красное и вкусное яблоко'
+        'description{en} as description_en', // 'red and delicious apple'
+    ])
+    ->all();
+```
