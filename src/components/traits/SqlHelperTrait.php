@@ -38,32 +38,42 @@ trait SqlHelperTrait
      */
     private function joinWithLang(string $current_table = null): static
     {
-        if (Yii::$app->params['table_available'] ?? false) {
+        if (Yii::$app->params['table_available'] ?? false)
+        {
+            $langTable = $this->langTable;
             $current_table = $current_table ?? $this->current_table;
             $alias = $this->customAlias ?? $current_table;
             $ml_attributes = self::$jsonTables[$current_table] ?? [];
-            if (isset(self::$jsonTables[$current_table]) && empty($this->select)) {
+            if (isset(self::$jsonTables[$current_table]) && empty($this->select))
+            {
                 $this->setFullSelect($current_table, $alias, $ml_attributes);
             } else {
-                foreach ($this->select ?? [] as $attribute_name => $column) {
-                    if (isset(self::$jsonTables[$current_table]) && ($column instanceof Expression || $this->unusualSelect($column))) {
-                        $this->setSingleSelectExpression($current_table, $column, $attribute_name, $this->join);
-                    }
-                    //toza yozilgan ustunlar uchun
-                    elseif (isset(self::$jsonTables[$current_table]) && $this->clearColumn($attribute_name, $column) && in_array($column, $ml_attributes)) {
-                        $this->setSingleSelectNotAlias($current_table, $alias, $column);
-                    }
-                    //alias bilan yozilgan ustunlar uchun
-                    elseif (isset(self::$jsonTables[$current_table]) && !$this->clearColumn($attribute_name, $column) && in_array(str_replace("$alias.", '', $column), $ml_attributes)) {
-                        $this->setAliasedSelect($current_table, $alias, str_replace("$alias.", '', $attribute_name), $column);
-                    }
-                    //join qilingan talitsa uchun
-                    elseif (!empty($this->join)) {
-                        $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
-                        if (isset(self::$jsonTables[$current_table]) && !empty($full) && $this->customAlias === explode('.', $full)[0]) {
-                            $this->setFullSelect($current_table, $alias, $ml_attributes);
-                        } else {
-                            $this->setSingleSelect($this->join, $current_table, $attribute_name, $column);
+                foreach ($this->select ?? [] as $attribute_name => $column)
+                {
+                    if (isset(self::$jsonTables[$current_table]))
+                    {
+                        [$alias_attribute, $attribute, $qualified_column] = $this->normalizeAttribute($langTable, $alias, $attribute_name, $column);
+
+                        //noodatiy yozilgan ustunlar uchun
+                        if ($column instanceof Expression || $this->unusualSelect($column))
+                        {
+                            $this->setSingleSelectExpression($langTable, $current_table, $column, $attribute_name, $this->join);
+                        }
+                        //(toza, alias.column, [alias => column], [alias => alias.column]) tarzda yozilgan ustunlar uchun
+                        elseif (in_array($attribute, $ml_attributes))
+                        {
+                            $this->setCommonSelect($langTable, $current_table, $alias, $alias_attribute, $attribute, $qualified_column);
+                        }
+                        //join qilingan tablitsa uchun
+                        elseif (!empty($this->join))
+                        {
+                            $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
+                            if (!empty($full) && $this->customAlias === explode('.', $full)[0]) {
+                                $this->setFullSelect($current_table, $alias, $ml_attributes);
+                            } else {
+                                //TODO 14.01.26 da comment qilindi error bermasa umuman olib tashlanadi
+//                                $this->setSingleSelect($this->join, $current_table, $attribute_name, $column);
+                            }
                         }
                     }
                 }
@@ -74,13 +84,14 @@ trait SqlHelperTrait
 
     /**
      * Select qilingan ustunlar tarjima qilishga qo'shilgan bo'lsa shartni bajaradi (Expression bo'lsa)
+     * @param string $langTable
      * @param string $rootTable
      * @param string $column
      * @param string|int|null $attribute_name
      * @param array|null $joins
      * @return void
      */
-    private function setSingleSelectExpression(string $rootTable, string $column, string|int $attribute_name = null, array $joins = null): void
+    private function setSingleSelectExpression(string $langTable, string $rootTable, string $column, string|int $attribute_name = null, array $joins = null): void
     {
         $collectColumns = [];
         if (is_array($joins)) {
@@ -88,12 +99,12 @@ trait SqlHelperTrait
             $joinAlias = '';
             foreach ($joins as $join) {
                 $this->explodeTableAlias($join[1], $joinTable, $joinAlias);
-                $joinLangTable = $joinTable . '_' . $this->langTable . '_' . $joinAlias;
+                $joinLangTable = $joinTable . '_' . $langTable . '_' . $joinAlias;
                 if (isset(self::$jsonTables[$joinTable]) && $this->replaceMlAttributeWithCoalesce($column, $joinAlias, $joinTable, $joinLangTable)) {
 //                    $this->normalizeJoin($join[0]);
                     $collectColumns[$attribute_name] = $column;
                     $this->addSelect($collectColumns);
-                    $this->addJoin('leftJoin', $joinLangTable, $joinTable, $joinAlias);
+                    $this->addJoin('leftJoin', $langTable, $joinLangTable, $joinTable, $joinAlias);
                     break;
                 }
             }
@@ -101,31 +112,35 @@ trait SqlHelperTrait
         }
 
         if (empty($collectColumns)) {
-            $joinLangTable = $rootTable . '_' . $this->langTable . '_' . $this->customAlias;
+            $joinLangTable = $rootTable . '_' . $langTable . '_' . $this->customAlias;
             if ($this->replaceMlAttributeWithCoalesce($column, $this->customAlias, $rootTable, $joinLangTable)) {
                 $collectColumns[$attribute_name] = $column;
                 $this->addSelect($collectColumns);
-                $this->addJoin('leftJoin', $joinLangTable, $rootTable, $this->customAlias);
+                $this->addJoin('leftJoin', $langTable, $joinLangTable, $rootTable, $this->customAlias);
             }
         }
         $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
     }
 
     /**
-     * Select qilingan ustunlar tarjima qilishga qo'shilgan bo'lsa shartni bajaradi (birnechta ustun tanlab select qilingan bo'lsa (alias qo'yilmagan toza ustun bo'lsa))
+     * Select qilingan ustunlar tarjima qilishga qo'shilgan bo'lsa shartni bajaradi (toza, alias.column, [alias => column], [alias => alias.column])
+     * @param string $langTable
      * @param string $current_table
      * @param string $alias
-     * @param string $current_column
+     * @param string $alias_attribute
+     * @param string $attribute
+     * @param string $qualified_column
+     * @return void
      */
-    private function setSingleSelectNotAlias(string $current_table, string $alias, string $current_column): void
+    private function setCommonSelect(string $langTable, string $current_table, string $alias, string $alias_attribute, string $attribute, string $qualified_column): void
     {
         $collectColumns = [];
-        $joinLangTable = $current_table . '_' . $this->langTable . '_' . $alias;
-        $this->getBaseColumnName($joinLangTable, $current_column);
-        $collectColumns[$current_column] = $this->coalesce($joinLangTable, $current_column, $alias . '.' . $current_column);
+        $joinLangTable = $current_table . '_' . $langTable . '_' . $alias;
+        $this->getBaseColumnName($joinLangTable, $attribute);
+        $collectColumns[$alias_attribute] = $this->coalesce($joinLangTable, $attribute, $qualified_column);
         $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
         $this->addSelect($collectColumns);
-        $this->addJoin('leftJoin', $joinLangTable, $current_table, $alias);
+        $this->addJoin('leftJoin', $langTable, $joinLangTable, $current_table, $alias);
     }
 
     /**
@@ -151,27 +166,7 @@ trait SqlHelperTrait
         }
         $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
         $this->addSelect(array_merge($nonTranslatableColumns, $collectColumns));
-        $this->addJoin('leftJoin', $joinLangTable, $current_table, $alias);
-    }
-
-    /**
-     * Select qilingan ustunlar tarjima qilishga qo'shilgan bo'lsa shartni bajaradi (Barcha ustunlar select qilingan bo'lsa)
-     * @param string $current_table
-     * @param string $alias
-     * @param string $attribute_name
-     * @param string $column
-     * @return void
-     */
-    private function setAliasedSelect(string $current_table, string $alias, string $attribute_name, string $column): void
-    {
-        $collectColumns = [];
-        $nonTranslatableColumns = [];
-        $joinLangTable = $current_table . '_' . $this->langTable . '_' . $alias;
-        $this->getBaseColumnName($joinLangTable, $column);
-        $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $attribute_name, $column);
-        $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
-        $this->addSelect(array_merge($nonTranslatableColumns, $collectColumns));
-        $this->addJoin('leftJoin', $joinLangTable, $current_table, $alias);
+        $this->addJoin('leftJoin', $this->langTable, $joinLangTable, $current_table, $alias);
     }
 
     /**
@@ -196,7 +191,7 @@ trait SqlHelperTrait
                 $this->getBaseColumnName($joinLangTable, $column);
                 $collectColumns[$alias_name] = $this->coalesce($joinLangTable, $explode[1], $column);
                 $this->addSelect($collectColumns);
-                $this->addJoin('leftJoin', $joinLangTable, $joinTable, $explode[0]);
+                $this->addJoin('leftJoin', $this->langTable, $joinLangTable, $joinTable, $explode[0]);
                 break;
             }
         }
@@ -206,7 +201,7 @@ trait SqlHelperTrait
             $this->getBaseColumnName($joinLangTable, $column);
             $collectColumns[$alias_name] = $this->coalesce($joinLangTable, $explode[1], $column);
             $this->addSelect($collectColumns);
-            $this->addJoin('leftJoin', $joinLangTable, $rootTable, $explode[0]);
+            $this->addJoin('leftJoin', $this->langTable, $joinLangTable, $rootTable, $explode[0]);
         }
         $this->selectColumns = array_merge($this->selectColumns, $collectColumns);
     }
@@ -227,15 +222,16 @@ trait SqlHelperTrait
     /**
      * (Join)larni generatsiya qilib beradi
      * @param string $joinType
+     * @param string $langTable
      * @param string $joinTable
      * @param string $current_table
      * @param string $alias
      * @return void
      */
-    private function addJoin(string $joinType, string $joinTable, string $current_table, string $alias): void
+    private function addJoin(string $joinType, string $langTable, string $joinTable, string $current_table, string $alias): void
     {
         $this->$joinType(
-            [$joinTable => $this->langTable],
+            [$joinTable => $langTable],
             "$joinTable.is_static = false AND $joinTable.table_name = :table_name_$current_table AND $joinTable.table_iteration = {$alias}.id",
             [":table_name_$current_table" => $current_table]
         );
@@ -400,6 +396,48 @@ trait SqlHelperTrait
         }
     }
 
+    /** attribute larni moslab olish */
+    private function normalizeAttribute(string &$langTable, string $alias, $attributeName, $column): array
+    {
+        //locale'ni ajratish
+        $this->extractLocale($column, $langTable);
+
+        $column = $this->unwrap($column);
+        if (is_string($attributeName)) {
+            $attributeName = $this->unwrap($attributeName);
+        }
+
+        $isStringKey = is_string($attributeName);
+        $isQualifiedColumn = preg_match(
+                '/\b[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*\b/',
+                $column
+            ) === 1;
+
+        $plainColumn = str_starts_with($column, "$alias.")
+            ? substr($column, strlen($alias) + 1)
+            : $column;
+
+        $key = $isStringKey
+            ? (str_starts_with($attributeName, "$alias.")
+                ? substr($attributeName, strlen($alias) + 1)
+                : $attributeName)
+            : $plainColumn;
+        $label = $plainColumn;
+        $value = $isQualifiedColumn ? $column : "$alias.$column";
+
+        return [$key, $label, $value];
+    }
+
+    /** attributeni tozalab oolish */
+    private function unwrap(string $value): string
+    {
+        $value = trim($value);
+        if (str_starts_with($value, '(') && str_ends_with($value, ')')) {
+            return trim(substr($value, 1, -1));
+        }
+        return $value;
+    }
+
     /** Noodatiy selectlarni aniqlash */
     private function unusualSelect(string $column): bool
     {
@@ -417,11 +455,15 @@ trait SqlHelperTrait
         );
     }
 
-    private function clearColumn($key, $value): bool
+    /** Tillar uchun alohida select qilinsa locale'ni ushlab olish */
+    function extractLocale(string &$value, string &$langTable): void
     {
-        $expr = is_string($key) ? $value : $key;
-        if (!is_string($expr)) return true;
-        return !preg_match('/\b[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*\b/', $expr);
+        if (preg_match('/\{([^}]+)\}/', $value, $matches)) {
+            $langTable = MlConstant::LANG_PREFIX.$matches[1];
+            $value = str_replace("{{$matches[1]}}", '', $value);
+        } else {
+            $langTable = $this->langTable;
+        }
     }
     /** ========= Auto Join helper::end ========= */
 
