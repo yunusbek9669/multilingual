@@ -365,17 +365,17 @@ trait SqlHelperTrait
     private function replaceMlAttributeWithCoalesce(&$sqlExpr, $alias, $tableName, $joinLangTable): bool
     {
         $flag = false;
-        $pattern = '/\b([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)\b/';
+        $pattern = '/\b' . preg_quote($alias, '/') . '\.([a-zA-Z_][a-zA-Z0-9_]*)\b/';
         preg_match_all($pattern, $sqlExpr, $matches, PREG_SET_ORDER);
-        foreach ($matches as $match) {
-            [$full, $matchAlias, $attribute] = $match;
-            if (in_array($attribute, self::$jsonTables[$tableName]) && !str_contains($sqlExpr, $joinLangTable) && preg_match('/(?:' . preg_quote($alias . '.', '/') . ')?' . preg_quote($attribute, '/') . '\b/', $sqlExpr) && $matchAlias === $alias)
-            {
-                $this->getBaseColumnName($joinLangTable, $full);
-                $sqlExpr = str_replace($full, $this->coalesce($joinLangTable, $attribute, $full), $sqlExpr);
+        $sqlExpr = preg_replace_callback($pattern, function ($match) use ($tableName, $joinLangTable, &$flag) {
+            [$full, $attribute] = $match;
+            if (in_array($attribute, self::$jsonTables[$tableName]) && !str_contains($full, $joinLangTable)) {
                 $flag = true;
+                return $this->coalesce($joinLangTable, $attribute, $full);
             }
-        }
+            return $full;
+        }, $sqlExpr);
+
         return $flag;
     }
 
