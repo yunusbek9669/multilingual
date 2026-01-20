@@ -89,13 +89,12 @@ trait SqlHelperTrait
      * @param array|null $joins
      * @return void
      */
-    private function setSingleSelectExpression(string $langTable, string $rootTable, string $column, string|int $alias_attribute, array $joins = null): void
+    private function setSingleSelectExpression(string $langTable, string $rootTable, string|Expression $column, string|int $alias_attribute, array $joins = null): void
     {
         if (is_array($joins)) {
             foreach ($joins as $join) {
                 [$joinTable, $joinAlias] = $this->explodeJoin($join);
                 if (isset(self::$jsonTables[$joinTable]) && $this->replaceMlAttributeWithCoalesce($column, $joinTable, $langTable, $joinAlias)) {
-                    unset($this->select[$alias_attribute]);
                     $this->addSelect([$alias_attribute => $column]);
                     $this->joinList[$alias_attribute] = $column;
                     $this->selectColumns[$alias_attribute] = $column;
@@ -106,7 +105,6 @@ trait SqlHelperTrait
 
         if (!isset($this->joinList[$alias_attribute])) {
             if ($this->replaceMlAttributeWithCoalesce($column, $rootTable, $langTable, $this->customAlias)) {
-                unset($this->select[$alias_attribute]);
                 $this->addSelect([$alias_attribute => $column]);
                 $this->selectColumns[$alias_attribute] = $column;
             }
@@ -371,7 +369,7 @@ trait SqlHelperTrait
 
         $sqlExpr = preg_replace_callback(
             $pattern,
-            function ($match) use ($tableName, $langTable, $alias, &$flag)
+            function ($match) use ($sqlExpr, $tableName, $langTable, $alias, &$flag)
             {
                 $full      = $match[0];   // org.name{ru} yoki org.name
                 $attribute = $match[1];   // name
@@ -380,7 +378,11 @@ trait SqlHelperTrait
                 $this->extractLocale($full, $langTable);
 
                 $joinLangTable = "{$tableName}_{$langTable}_{$alias}";
-                if (in_array($attribute, self::$jsonTables[$tableName]) && !str_contains($full, $joinLangTable)) {
+                if (in_array($attribute, self::$jsonTables[$tableName]) && !str_contains($full, $joinLangTable))
+                {
+                    //eski selectni olib tashlash
+                    $this->select = array_filter($this->select, fn($v) => $v !== $sqlExpr);
+
                     $flag = true;
                     $this->addJoin('leftJoin', $langTable, $joinLangTable, $tableName, $alias);
                     return $this->coalesce($joinLangTable, $attribute, $full);
