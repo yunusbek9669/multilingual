@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\components\traits;
 
 use Yii;
+use yii\base\InvalidArgumentException;
 use yii\db\ExpressionInterface;
 use yii\db\Query;
 use yii\db\Expression;
@@ -17,6 +18,7 @@ trait SqlHelperTrait
     private array $selectColumns = [];
     private array $joinList = [];
     private string|null $customAlias = null;
+    private string $langDomain = '';
     private $mlGroupBy = [];
 
     private int $alias_i = 0;
@@ -72,6 +74,11 @@ trait SqlHelperTrait
                             } else {
                                 $this->setSingleSelect($this->join, $langTable, $current_table, $alias_attribute, $attribute, $qualified_column, $table_alias);
                             }
+                        }
+
+                        //JSONga kiritilmagan ustunni tarjima qilishga urinilsa
+                        if (preg_match('/\{([^}]+)\}/', $this->select[$attribute_name], $matches)) {
+                            $this->converterException($attribute, $current_table, $column, $alias_attribute);
                         }
                     }
                 }
@@ -494,19 +501,44 @@ trait SqlHelperTrait
     }
 
     /** Tillar uchun alohida select qilinsa locale'ni ushlab olish */
-    function extractLocale(string &$value, string &$langTable): void
+    private function extractLocale(string &$value, string &$langTable): void
     {
         if (preg_match('/\{([^}]+)\}/', $value, $matches)) {
-            $langTable = MlConstant::LANG_PREFIX.$matches[1];
-            $value = str_replace("{{$matches[1]}}", '', $value);
+            $this->langDomain = $matches[1];
+            $langTable = MlConstant::LANG_PREFIX.$this->langDomain;
+            $value = str_replace("{{$this->langDomain}}", '', $value);
         } else {
+            $this->langDomain = str_contains(MlConstant::LANG_PREFIX, $this->langTable);
             $langTable = $this->langTable;
         }
+    }
+
+    /**
+     * JSONga kiritilmagan ustun
+     * @param string $attribute
+     * @param string $current_table
+     * @param string $column
+     * @param string $alias_attribute
+     * @return void
+     */
+    private function converterException(string $attribute, string $current_table, string $column, string $alias_attribute): void
+    {
+        $column = str_replace('.', '"."', $column);
+        $attributes = json_encode(self::$jsonTables[$current_table]);
+        $json = "{\"tables\": {...\"{$current_table}\": {$attributes}, ...}}";
+        throw new InvalidArgumentException("Undefined column {$attribute} in table {$current_table} (multilingual.json).\n ERROR: \"{$column}\" AS \"{$alias_attribute}\" \n^\n{$json}");
     }
     /** ========= Auto Join helper::end ========= */
 
 
-    /** tarjima qilinadigan ustunlarni bitta jsonga saralab olish */
+    /**
+     * tarjima qilinadigan ustunlarni bitta jsonga saralab olish
+     * @param string $table_name
+     * @param string $lang_name
+     * @param string $attributes
+     * @param string $lang_table
+     * @return string
+     */
     private static function jsonBuilder(string $table_name, string $lang_name, array $attributes, string $lang_table = null): string
     {
         $selects = [];
