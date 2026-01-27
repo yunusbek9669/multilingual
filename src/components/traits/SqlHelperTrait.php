@@ -27,7 +27,12 @@ trait SqlHelperTrait
     /** ========= Auto Join helper::begin ========= */
     public function prepare($builder): Query|ActiveQuery|self
     {
-        $this->joinWithLang();
+        if ($builder instanceof \yii\db\QueryBuilder) {
+            // Faqat SELECT'da ishlash
+            if (!empty($this->select) && $this->from !== null) {
+                $this->joinWithLang();
+            }
+        }
         if ($this->customAlias) {
             $this->from = [$this->customAlias => $this->current_table];
         }
