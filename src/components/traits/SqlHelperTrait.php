@@ -57,33 +57,33 @@ trait SqlHelperTrait
             } else {
                 foreach ($this->select ?? [] as $attribute_name => $column)
                 {
-                    [$alias_attribute, $attribute, $qualified_column, $table_alias] = $this->normalizeAttribute($langTable, $current_table, $alias, $attribute_name, $column);
-                    if (isset(self::$jsonTables[$current_table]))
+                    [$alias_attribute, $attribute, $qualified_column, $table_alias, $process_table] = $this->normalizeAttribute($langTable, $current_table, $alias, $attribute_name, $column);
+                    if (isset(self::$jsonTables[$process_table]))
                     {
                         //noodatiy yozilgan ustunlar uchun
                         if ($column instanceof Expression || $this->unusualSelect($column))
                         {
-                            $this->setSingleSelectExpression($langTable, $current_table, $column, $attribute_name, $this->join);
+                            $this->setSingleSelectExpression($langTable, $process_table, $column, $attribute_name, $this->join);
                         }
                         //(toza, alias.column, [alias => column], [alias => alias.column]) tarzda yozilgan ustunlar uchun
                         elseif (in_array($attribute, $ml_attributes) && $table_alias === $alias)
                         {
-                            $this->setCommonSelect($langTable, $current_table, $alias_attribute, $attribute, $qualified_column, $alias);
+                            $this->setCommonSelect($langTable, $process_table, $alias_attribute, $attribute, $qualified_column, $alias);
                         }
                         //join qilingan tablitsa uchun
                         elseif (!empty($this->join))
                         {
                             $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
                             if (!empty($full) && $this->customAlias === explode('.', $full)[0]) {
-                                $this->setFullSelect($current_table, $alias, $ml_attributes);
+                                $this->setFullSelect($process_table, $alias, $ml_attributes);
                             } else {
-                                $this->setSingleSelect($this->join, $langTable, $current_table, $alias_attribute, $attribute, $qualified_column, $table_alias);
+                                $this->setSingleSelect($this->join, $langTable, $process_table, $alias_attribute, $attribute, $qualified_column, $table_alias);
                             }
                         }
 
                         //JSONga kiritilmagan ustunni tarjima qilishga urinilsa
                         if (preg_match('/\{([^}]+)\}/', $this->select[$attribute_name], $matches)) {
-                            $this->converterException($attribute, $current_table, $column, $alias_attribute);
+                            $this->converterException($attribute, $process_table, $column, $alias_attribute);
                         }
                     }
                 }
@@ -431,7 +431,7 @@ trait SqlHelperTrait
      * @param string|Expression $column
      * @return array
      */
-    private function normalizeAttribute(string &$langTable, string &$current_table, string $alias, string|int $attributeName, string|Expression $column): array
+    private function normalizeAttribute(string &$langTable, string $current_table, string $alias, string|int $attributeName, string|Expression $column): array
     {
         //locale'ni ajratish
         $this->extractLocale($column, $langTable);
@@ -466,16 +466,17 @@ trait SqlHelperTrait
             : $attribute;
 
         // join qilingan tablitsa bo‘lsa
+        $process_table = $current_table;
         if (is_array($this->join)) {
             foreach ($this->join as $join) {
                 [$joinTable, $joinAlias] = $this->explodeJoin($join);
                 if ($joinAlias === $tableAlias) {
-                    $current_table = $joinTable;
+                    $process_table = $joinTable;
                 }
             }
         }
 
-        return [$key, $attribute, $qualifiedColumn, $tableAlias];
+        return [$key, $attribute, $qualifiedColumn, $tableAlias, $process_table];
     }
 
     /** attributeni tozalab oolish */
