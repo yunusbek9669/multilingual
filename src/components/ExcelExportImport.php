@@ -64,7 +64,7 @@ class ExcelExportImport
         $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
         if ($is_static) {
             $headers = ['ID', 'Category', 'Translate here'];
-            $sheet->getColumnDimension('A')->setAutoSize(false);
+            $sheet->getColumnDimension('A')->setAutoSize(true);
             $sheet->getColumnDimension('C')->setAutoSize(true);
             $sheet->getStyle('D1:' . $sheet->getHighestColumn() . '1')->getProtection()->setLocked(Protection::PROTECTION_PROTECTED);
             $sheet->getStyle("A1:C1")->getFont()->setBold(true)->setColor(new Color('777777'));
@@ -83,7 +83,7 @@ class ExcelExportImport
                 foreach (array_values($staticJsonKeys[$row['table_name']]) as $key => $value) {
                     $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
 
-                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$row['table_iteration'].':'.$key);
+                    $sheet->setCellValue("A{$rowNumber}", (int)$row['is_static'].':'.(int)$row['table_iteration'].':'.self::msgId($value));
                     $sheet->setCellValue("B{$rowNumber}", $row['table_name']);
                     $sheet->setCellValue("C{$rowNumber}", $value);
 
@@ -237,7 +237,7 @@ class ExcelExportImport
                                 ksort($dbValues);
                                 $i = 0;
                                 foreach ($dbValues as $key => $value) {
-                                    $dbValues[$key] = $values[$i++] ?? '';
+                                    $dbValues[$key] = $values[self::msgId($key)] ?? '';
                                 }
                                 $upsert = self::singleUpsert($table, $dbData['table_name'], $category, true, $dbValues);
                                 if ($upsert <= 0) {

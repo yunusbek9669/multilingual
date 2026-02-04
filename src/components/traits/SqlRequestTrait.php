@@ -122,6 +122,19 @@ trait SqlRequestTrait
         return str_replace('_', ' ', ucwords($table_name, '_'));
     }
 
+    /** i18n'larni keyCode sifatida id'lash */
+    public static function msgId(string $text): string
+    {
+        $hash = base_convert(sprintf('%u', crc32($text)), 10, 36);
+        $out = '';
+        $len = strlen($hash);
+
+        for ($i = 0; $i < $len; $i++) {
+            $out .= ord($hash[$i]);
+        }
+        return $out;
+    }
+
 
 
     /**
