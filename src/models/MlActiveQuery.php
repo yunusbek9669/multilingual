@@ -6,11 +6,11 @@ use Yii;
 use yii\db\ActiveQuery;
 use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\components\traits\SqlHelperTrait;
+use Yunusbek\Multilingual\components\traits\SelectHelperTrait;
 
 class MlActiveQuery extends ActiveQuery
 {
-    use SqlHelperTrait;
+    use SelectHelperTrait;
 
     private string $current_table;
     protected string $langTable = MlConstant::LANG_PREFIX;
