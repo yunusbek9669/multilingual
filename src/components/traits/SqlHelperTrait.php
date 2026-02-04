@@ -13,8 +13,6 @@ use Yunusbek\Multilingual\components\MlConstant;
 
 trait SqlHelperTrait
 {
-    use JsonTrait;
-
     /**
      * tarjima qilinadigan ustunlarni bitta jsonga saralab olish
      * @param string $table_name

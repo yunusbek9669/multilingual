@@ -13,7 +13,6 @@ use yii\helpers\FileHelper;
 use yii\helpers\BaseConsole;
 use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\models\MlActiveQuery;
 use Yunusbek\Multilingual\components\traits\SqlRequestTrait;
 
 /**

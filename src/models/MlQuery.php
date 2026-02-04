@@ -7,11 +7,11 @@ use yii\db\Query;
 use yii\db\Connection;
 use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\components\MlConstant;
-use Yunusbek\Multilingual\components\traits\SelectHelperTrait;
+use Yunusbek\Multilingual\components\traits\MlSelectTrait;
 
 class MlQuery extends Query
 {
-    use SelectHelperTrait;
+    use MlSelectTrait;
 
     private string $current_table = '';
     protected string $langTable = MlConstant::LANG_PREFIX;

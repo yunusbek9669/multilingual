@@ -11,7 +11,7 @@ use yii\db\ActiveQuery;
 use yii\helpers\Console;
 use Yunusbek\Multilingual\components\MlConstant;
 
-trait SelectHelperTrait
+trait MlSelectTrait
 {
     use JsonTrait;
 
@@ -40,7 +40,7 @@ trait SelectHelperTrait
 
     /** Select turlariga qarab tarjimaga moslab chiqish
      * @param string|null $current_table
-     * @return SelectHelperTrait
+     * @return MlSelectTrait
      */
     private function joinWithLang(string $current_table = null): static
     {
@@ -236,7 +236,7 @@ trait SelectHelperTrait
     /**
      * (ORDER BY)ni tarjima qilingan qiymatlar bo'yicha sozlab beradi
      * @param $columns
-     * @return SelectHelperTrait
+     * @return MlSelectTrait
      */
     public function orderBy($columns)
     {
