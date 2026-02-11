@@ -298,10 +298,12 @@ trait MultilingualTrait
                 if (preg_match($pattern, $attribute, $m)) {
                     $attribute = $m[1];
                     $lang = $m[2];
-                    if (!isset($this->$attribute)) {
+                    if (!in_array($attribute, array_keys($this->attributes))) {
                         throw new InvalidConfigException(Yii::t('multilingual', "Attribute '{attribute}' does not exist in {modelName} model", ['attribute' => $attribute, 'modelName' => $modelName]));
                     }
-                    $post[$lang][$table_index][$attribute] = $value;
+                    if (!empty($this->$attribute)) {
+                        $post[$lang][$table_index][$attribute] = $value;
+                    }
                 } else {
                     throw new InvalidConfigException(Yii::t('multilingual', "Attribute '{attribute}' does not have a valid language code", ['attribute' => $attribute]));
                 }
