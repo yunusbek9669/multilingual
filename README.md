@@ -219,24 +219,6 @@ Add MlFields widget to your form — it will auto-generate inputs for newly adde
 
 <?php ActiveForm::end(); ?>
 ```
-When filling data through the backend, you can use either the {lang} notation (e.g. name{en}) or the ->setMlAttributes() method for dynamic languages. By appending suffixes like _ru, _en to the base attribute, the system determines which language the value should be stored in.
-```php
-$model->setAttributes([
-        'name' => 'olma',
-        'name{ru}' => 'яблоко',
-        'name{en}' => 'apple'
-    ]);
-    
-// or with setMlAttributes
-
-$model->setAttributes([
-        'name' => 'olma',
-    ])
-    ->setMlAttributes([
-        'name_ru' => 'яблоко',
-        'name_en' => 'apple'
-    ]);
-```
 All added languages will automatically be displayed on the form page. From here you can type in the translation of all your newly added languages.
 - ⭐ Default language;
 - and subsequent form inputs are automatically created for newly added languages;
@@ -273,6 +255,25 @@ php yii ml-extract/attributes
 ````
 `where` applies to all tables. You can extend this system to support per-table filters in future releases.
 
+### Filling data by backend
+When filling data through the backend, you can use either the {lang} notation (e.g. name{en}) or the ->setMlAttributes() method for dynamic languages. By appending suffixes like _ru, _en to the base attribute, the system determines which language the value should be stored in.
+```php
+$model->setAttributes([
+        'name' => 'olma',
+        'name{ru}' => 'яблоко',
+        'name{en}' => 'apple'
+    ]);
+    
+// or with setMlAttributes
+
+$model->setAttributes([
+        'name' => 'olma',
+    ])
+    ->setMlAttributes([
+        'name_ru' => 'яблоко',
+        'name_en' => 'apple'
+    ]);
+```
 Necessary additions
 ===========================
 
@@ -319,16 +320,6 @@ Steps:
 > Result: all translations for the newly added language will be saved, automatically saved from the Excel file to the new ```lang_*``` table.
 >
 
-Result:
-------------
-- When the system is set to the default language:
-![before](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result1.jpg)
-  
-  
-- When the system is set to a newly added language:
-![after](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result2.jpg)
-
-
 > Allows standard select statements to automatically return translated column values based on the current application locale, without requiring explicit locale suffixes in the query.
 ```php
 //Let’s assume the current system language is (en).
@@ -339,6 +330,16 @@ YourModel::find()
     ])
     ->all();
 ```
+Result:
+------------
+- When the system is set to the default language:
+![before](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result1.jpg)
+  
+  
+- When the system is set to a newly added language:
+![after](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/result2.jpg)
+
+
 
 > 💡 Adds an additional capability to automatically resolve locale-suffixed database columns (e.g. {ru}, {en}) and select their translated counterparts.
 ```php
