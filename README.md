@@ -256,7 +256,7 @@ php yii ml-extract/attributes
 `where` applies to all tables. You can extend this system to support per-table filters in future releases.
 
 ### Filling data by backend
-When filling data through the backend, you can use either the {lang} notation (e.g. name{en}) or the ->setMlAttributes() method for dynamic languages. By appending suffixes like _ru, _en to the base attribute, the system determines which language the value should be stored in.
+When filling data through the backend, you can use either the {locale} notation (e.g. `name{en}`) or the `->setMlAttributes()` method for dynamic languages. By appending suffixes like `_ru`, `_en` to the base attribute, the system determines which language the value should be stored in.
 ```php
 $model->setAttributes([
         'name' => 'olma',
@@ -341,7 +341,7 @@ Result:
 
 
 
-> 💡 Adds an additional capability to automatically resolve locale-suffixed database columns (e.g. {ru}, {en}) and select their translated counterparts.
+> 💡 Adds an additional capability to automatically resolve locale-suffixed database columns (e.g. `{ru}`, `{en}`) and select their translated counterparts.
 ```php
 YourModel::find()
     ->select([
