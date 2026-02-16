@@ -305,16 +305,16 @@ Steps:
 
 > The image below shows the Excel format used for translating dynamic data. The original language values appear in the fields marked with a red border (column header: ```value```). Only these values need to be translated. 
 >
-> 💡 As a shortcut, you can also translate the file using Google Translate's document feature.
 >
 >![This is an Excel for translate dynamic data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/dinamic.jpg)
 
-> The image below shows the Excel format used for translating static interface texts. Fill in the cells highlighted with a red border with the appropriate translations. If a row is empty, the translation of the corresponding ```Keywords``` column value will be used instead.
+> The image below shows the Excel format used to translate static interface texts. Translate the cells marked with a red border into the desired language.
 >
-> ⚠️ Note: This file cannot be used with Google Translate's document translation feature — only individual text translation is supported.
 >
 >![This is an Excel for translate static data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/static.jpg)
 
+> 💡 As a shortcut, you can also translate the file using Google Translate's document feature.
+>
 > When adding a new language, you can save the path of the translated Excel file above to the ```import_excel``` attribute in the ```language_list``` table.
 > 
 > Result: all translations for the newly added language will be saved, automatically saved from the Excel file to the new ```lang_*``` table.
