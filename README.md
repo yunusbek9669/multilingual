@@ -4,10 +4,11 @@ Multilingual
 A fully featured multilingual management package for Yii2 projects.
 
 > ✅ Dynamically translate database content  
-> ✅ Support for multiple languages with individual tables (lang_*)  
+> ✅ Support for multiple languages with individual tables (`lang_*`)  
 > ✅ Form-level multilingual fields  
-> ✅ Static translations (i18n) integration  
-> ✅ Excel-based bulk import/export of translations
+> ✅ Static translations (`i18n`) integration  
+> ✅ Excel-based bulk `import/export` of translations  
+> ✅ You don't have to type `$model->attribute_name_{locale}` to get the translation, just `$model->attribute_name` is enough.
 >
 
 Installation
