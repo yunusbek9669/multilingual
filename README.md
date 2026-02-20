@@ -288,6 +288,11 @@ Add the following button to the top of the created CRUD index page which will ta
 echo Html::a(Yii::t('multilingual', 'All columns'), ['/multilingual/language/index', 'is_static' => 0], ['target' => '_blank']);  // it will take you to all dynamic translations
 echo Html::a(Yii::t('multilingual', 'All i18n'), ['/multilingual/language/index', 'is_static' => 1], ['target' => '_blank']);     // it will take you to all static translations
 ````
+> All columns
+>![This is view page for translate all dynamic data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/common-db.jpg)
+> 
+> All i18n
+>![This is view page for translate all static data](https://github.com/yunusbek9669/multilingual/blob/main/dist/img/common-i18n.jpg)
 
 
 Instruction manual
