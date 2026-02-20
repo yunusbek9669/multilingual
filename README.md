@@ -282,7 +282,7 @@ Necessary additions
 
 Useful buttons to install
 ------------
-Add the following button to the top of the created CRUD index page which will take you to the general translations page.
+Add the following button to the top of the created CRUD "Language List" index page which will take you to the general translations view pages.
 
 ````php
 echo Html::a(Yii::t('multilingual', 'All columns'), ['/multilingual/language/index', 'is_static' => 0], ['target' => '_blank']);  // it will take you to all dynamic translations
