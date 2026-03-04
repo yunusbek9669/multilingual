@@ -394,6 +394,7 @@ trait MlSelectTrait
                 $this->extractLocale($full, $langTable);
 
                 $joinLangTable = "{$tableName}_{$langTable}_{$alias}";
+                $this->getBaseColumnName($joinLangTable, $attribute);
                 if (in_array($attribute, self::$jsonTables[$tableName]) && !str_contains($full, $joinLangTable))
                 {
                     //eski selectni olib tashlash
