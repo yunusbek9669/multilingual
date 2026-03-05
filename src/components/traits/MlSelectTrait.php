@@ -26,16 +26,30 @@ trait MlSelectTrait
 
     public function prepare($builder): Query|ActiveQuery|self
     {
-        if ($builder instanceof \yii\db\QueryBuilder) {
-            // Faqat SELECT'da ishlash
-            if (!empty($this->select) && $this->from !== null) {
+        // Faqat SELECT'da ishlash
+        if ($builder instanceof \yii\db\QueryBuilder && $this->isPureSelectOperation()) {
+            if ($this->customAlias === null && $this->current_table !== null) {
+                $this->customAlias = $this->current_table;
+            }
+            if ($this->customAlias && $this->from === null) {
+                $this->from = [$this->customAlias => $this->current_table];
+            }
+            if ($this->from !== null) {
                 $this->joinWithLang();
             }
         }
-        if ($this->customAlias) {
-            $this->from = [$this->customAlias => $this->current_table];
-        }
         return parent::prepare($builder);
+    }
+
+    private function isPureSelectOperation(): bool
+    {
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10) as $trace) {
+            // Agar bu update/delete operatsiyasi bo'lsa, false qaytarish
+            if (isset($trace['function']) && in_array($trace['function'], ['actionValidate', 'insert', 'update', 'delete', 'updateAll', 'deleteAll', 'save'])) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Select turlariga qarab tarjimaga moslab chiqish
@@ -81,7 +95,7 @@ trait MlSelectTrait
                         }
 
                         //JSONga kiritilmagan ustunni tarjima qilishga urinilsa
-                        if (preg_match('/\{([^}]+)\}/', $this->select[$attribute_name], $matches)) {
+                        if (isset($this->select[$attribute_name]) && preg_match('/\{([^}]+)\}/', $this->select[$attribute_name], $matches)) {
                             $this->converterException($attribute, $process_table, $column, $alias_attribute);
                         }
                     }
@@ -160,7 +174,7 @@ trait MlSelectTrait
         foreach ($columns as $attribute_name => $column) {
             if (in_array($attribute_name, $ml_attributes)) {
                 $this->getBaseColumnName($joinLangTable, $attribute_name);
-                $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $attribute_name, $alias . '.' . $attribute_name);
+                $collectColumns[$attribute_name] = $this->coalesce($joinLangTable, $attribute_name, "{$alias}.{$attribute_name}");
             } else {
                 $nonTranslatableColumns[] = "{$alias}.{$attribute_name}";
             }
