@@ -27,15 +27,17 @@ trait MlSelectTrait
     public function prepare($builder): Query|ActiveQuery|self
     {
         // Faqat SELECT'da ishlash
-        if ($builder instanceof \yii\db\QueryBuilder && $this->isPureSelectOperation()) {
-            if ($this->customAlias === null && $this->current_table !== null) {
-                $this->customAlias = $this->current_table;
-            }
-            if ($this->customAlias && $this->from === null) {
-                $this->from = [$this->customAlias => $this->current_table];
-            }
-            if ($this->from !== null) {
-                $this->joinWithLang();
+        if ($builder instanceof \yii\db\QueryBuilder) {
+            if ($this->isPureSelectOperation()) {
+                if ($this->current_table && $this->customAlias === null) {
+                    $this->customAlias = $this->current_table;
+                }
+                if ($this->customAlias && $this->from === null) {
+                    $this->from = [$this->customAlias => $this->current_table];
+                }
+                if ($this->from !== null) {
+                    $this->joinWithLang();
+                }
             }
         }
         return parent::prepare($builder);
