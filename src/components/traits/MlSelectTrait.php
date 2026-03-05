@@ -72,8 +72,9 @@ trait MlSelectTrait
             } else {
                 foreach ($this->select ?? [] as $attribute_name => $column)
                 {
+                    $joinedTables = $this->hasJoined($this->join);
                     [$alias_attribute, $attribute, $qualified_column, $table_alias, $process_table] = $this->normalizeAttribute($langTable, $current_table, $alias, $attribute_name, $column);
-                    if (isset(self::$jsonTables[$process_table]))
+                    if (isset(self::$jsonTables[$process_table]) || $joinedTables)
                     {
                         //noodatiy yozilgan ustunlar uchun
                         if ($column instanceof Expression || $this->unusualSelect($column))
@@ -334,6 +335,25 @@ trait MlSelectTrait
     }
 
     /**
+     * @param array|null $joins
+     * @return bool
+     */
+    private function hasJoined(array|null $joins): bool
+    {
+        if (empty($joins)) {
+            return false;
+        }
+        $tables = self::$jsonTables;
+        foreach ($joins as $item) {
+            [$joinTable, $joinAlias] = $this->explodeJoin($item);
+            if (isset($tables[$joinTable])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @param array $join
      * @return array
      */
@@ -500,7 +520,7 @@ trait MlSelectTrait
         return [$key, $attribute, $qualifiedColumn, $tableAlias, $process_table];
     }
 
-    /** attributeni tozalab oolish */
+    /** attributeni tozalab olish */
     private function unwrap(string $value): string
     {
         $value = trim($value);
