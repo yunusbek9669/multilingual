@@ -20,40 +20,7 @@ class DbMessageSource extends MessageSource
      */
     protected function loadMessages($category, $language)
     {
-        // Agar ushbu til uchun tarjimalar hali yuklanmagan bo'lsa
-        if (!isset($this->_messages[$language])) {
-            $this->_messages[$language] = $this->fetchAllMessages($language);
-        }
+        $this->_messages[$language] = Yii::$app->params['_i18n'];
         return $this->_messages[$language][$category] ?? $this->_messages[$language] ?? [];
-    }
-
-    /**
-     * Barcha tarjimalarni **bitta so‘rov bilan** bazadan olib kelish va keshga saqlash.
-     * @throws Exception
-     */
-    private function fetchAllMessages($language)
-    {
-        $tableName = MlConstant::LANG_PREFIX.$language;
-        if (self::issetTable($tableName)) {
-            return Yii::$app->cache->getOrSet($tableName, function () use ($tableName) {
-                $rows = (new Query())
-                    ->select(['table_name', 'value'])
-                    ->from($tableName)
-                    ->where(['is_static' => true])
-                    ->all();
-
-                $messages = [];
-
-                foreach ($rows as $row) {
-                    $decoded = json_decode($row['value'], true);
-                    if (is_array($decoded)) {
-                        $messages[$row['table_name']] = $decoded;
-                    }
-                }
-
-                return $messages;
-            }, 3600 * 2) ?? Yii::$app->cache->get($tableName); // 2 soat kesh saqlash
-        }
-        return [];
     }
 }

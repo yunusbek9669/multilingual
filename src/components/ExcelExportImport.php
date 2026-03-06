@@ -263,7 +263,6 @@ class ExcelExportImport
                             }
                         }
                     }
-                    Yii::$app->cache->flush();
                 } catch (Exception $e) {
                     $response['status'] = false;
                     $response['code'] = 'error';

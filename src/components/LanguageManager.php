@@ -3,6 +3,7 @@
 namespace Yunusbek\Multilingual\components;
 
 use Yii;
+use yii\db\Query;
 use yii\db\Exception;
 use yii\helpers\ArrayHelper;
 use Yunusbek\Multilingual\models\BaseLanguageList;
@@ -73,6 +74,11 @@ class LanguageManager
         $filtered_languages = array_filter($language_list, fn($lang) => !empty($lang['active']));
         Yii::$app->params['active_language'] = reset($filtered_languages);
         Yii::$app->params['table_available'] = self::issetTable(MlConstant::LANG_PREFIX . Yii::$app->language);
+        Yii::$app->params['_i18n'] = (new Query())
+            ->select(['table_name', 'value'])
+            ->from(Yii::$app->language)
+            ->where(['is_static' => true])
+            ->all();
         return $language_list;
     }
 }

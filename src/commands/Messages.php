@@ -423,8 +423,6 @@ EOD;
         $insertCount = [];
         $obsoleteCount = [];
         try {
-            Yii::$app->cache->delete($langTable);
-
             /** delete obsolete categories */
             $obsoleteCategories = array_diff(array_keys($dbValues), array_keys($messages));
             foreach ($obsoleteCategories as $obsoleteCategory) {
@@ -489,10 +487,6 @@ EOD;
                 }
             }
 
-            Yii::$app->cache->getOrSet($langTable, function () use ($dbValues)
-            {
-                return $dbValues;
-            }, 3600 * 2);
         } catch (\yii\db\Exception $e) {
             $this->stderr("\n".$e->getMessage() . "\n");
         }

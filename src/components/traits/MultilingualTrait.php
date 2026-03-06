@@ -346,10 +346,6 @@ trait MultilingualTrait
             $response['message'] = Yii::t('multilingual', 'An error occurred while writing "{table}"', ['table' => $langTable]);
             $response['code'] = 'error';
             $response['status'] = false;
-        } else {
-            $data = Yii::$app->cache->get($langTable);
-            $data[$category] = $value;
-            Yii::$app->cache->set($langTable, $data);
         }
 
         return $response;
