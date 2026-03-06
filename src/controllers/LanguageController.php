@@ -84,6 +84,11 @@ class LanguageController extends Controller
                 'message' => Yii::t('multilingual', 'Error')
             ];
             $Multilingual = $request->post((new \ReflectionClass($model))->getShortName());
+            foreach ($Multilingual as $key => $value) {
+                if (preg_match('/^(.+)\{([^}]+)\}$/u', $key, $matches)) {
+                    unset($Multilingual[$key]);
+                }
+            }
             if ($model->load($request->post())) {
                 $transaction = Yii::$app->db->beginTransaction();
                 try {

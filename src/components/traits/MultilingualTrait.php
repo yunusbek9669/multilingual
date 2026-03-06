@@ -6,6 +6,7 @@ use Yii;
 use yii\db\Query;
 use yii\db\Exception;
 use yii\base\InvalidConfigException;
+use Yunusbek\Multilingual\components\helpers\MlHelper;
 use Yunusbek\Multilingual\models\MlActiveQuery;
 use Yunusbek\Multilingual\components\MlConstant;
 use Yunusbek\Multilingual\components\LanguageService;
@@ -143,9 +144,16 @@ trait MultilingualTrait
             'status' => true,
             'message' => Yii::t('multilingual', 'Error')
         ];
-
-        $post = Yii::$app->request->post(MlConstant::MULTILINGUAL);
+        $request = Yii::$app->request;
+        $post = $request->post(ucfirst(MlConstant::MULTILINGUAL));
         if (!empty($post)) {
+            $table_index = array_search($request->get('table_name'), array_keys(MlHelper::getJson()['tables']));
+            foreach ($post as $key => $value) {
+                if (preg_match('/^(.+)\{([^}]+)\}$/u', $key, $matches)) {
+                    unset($post[$matches[0]]);
+                    $post[MlConstant::MULTILINGUAL][$matches[2]][$table_index] = [$matches[1] => $value];
+                }
+            }
             $response = $this->setDynamicLanguageValue($post);
         } elseif (!$this->where) {
             $response = $this->deleteLanguageValue();
