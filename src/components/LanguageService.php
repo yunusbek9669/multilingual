@@ -141,9 +141,9 @@ class LanguageService
         $jsonData = self::getJson();
         $attributes = [];
         $table_name = $model::tableName();
-        $table_index = array_search($table_name, array_keys($jsonData['tables']));
         $languages = Yii::$app->params['language_list'];
-        if (!empty($languages) && is_int($table_index)) {
+        if (!empty($languages) && isset($jsonData['tables'][$table_name])) {
+            $className = (new \ReflectionClass($model::class))->getShortName();
             foreach ($languages as $key => $language) {
                 if (!empty($language['table']) && self::checkTable($language['table'])) {
                     $lang_table = (new yii\db\Query())
@@ -155,15 +155,14 @@ class LanguageService
                         ])
                         ->scalar();
                     $data_value = json_decode($lang_table);
-                    $name = $key;
                     if ($attribute !== null) {
                         if ($is_multiple) {
-                            $name = MlConstant::MULTILINGUAL."[$name][$table_index][$index][$attribute]";
+                            $key = $className."[$index][$attribute{{$key}}]";
                         } else {
-                            $name = MlConstant::MULTILINGUAL."[$name][$table_index][$attribute]";
+                            $key = $className."[$attribute{{$key}}]";
                         }
                     }
-                    $attributes[$name] = !empty($data_value->$attribute) ? $data_value->$attribute : null;
+                    $attributes[$key] = $data_value->$attribute ?: null;
                 }
             }
         }

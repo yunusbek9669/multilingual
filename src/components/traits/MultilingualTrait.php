@@ -189,6 +189,7 @@ trait MultilingualTrait
                 if (isset($this->id)) {
                     $execute = $db->createCommand()
                         ->delete($key, [
+                            'is_static' => false,
                             'table_name' => static::tableName(),
                             'table_iteration' => $this->id,
                         ])

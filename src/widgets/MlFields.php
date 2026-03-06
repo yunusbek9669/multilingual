@@ -267,8 +267,8 @@ class MlFields extends Widget
         if (!empty($customAttributes)) {
             foreach ($customAttributes as $key => $value)
             {
-                preg_match_all('/\[([^\]]*)\]/', $key, $matches);
-                $langKey = $matches[1][0];
+                preg_match('/\{([^}]+)\}/', $key, $matches);
+                $langKey = $matches[1];
                 $dynamic_label = $label;
                 $language = $languages[$langKey];
                 if (!empty($language['short_name'])) {
@@ -281,7 +281,7 @@ class MlFields extends Widget
                 $wrapperOptions = $params['wrapperOptions'];
                 $params['options']['placeholder'] = $dynamic_placeholder . " 🖊";
                 $input_options = array_merge(['class' => 'form-control'], $params['options']);
-                $input_options['id'] = str_replace(['[',']'], ['-'], $key);
+                $input_options['id'] = strtolower(str_replace(['[',']','{','}'], ['-', '', '-', ''], $key));
                 $input_options['dir'] = 'ltr';
                 if (!empty($language['rtl'])) {
                     $input_options['dir'] = 'rtl';
