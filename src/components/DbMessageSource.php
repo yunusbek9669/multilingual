@@ -20,7 +20,10 @@ class DbMessageSource extends MessageSource
      */
     protected function loadMessages($category, $language)
     {
-        $this->_messages[$language] = $this->fetchAllMessages($language);
+        // Agar ushbu til uchun tarjimalar hali yuklanmagan bo'lsa
+        if (!isset($this->_messages[$language])) {
+            $this->_messages[$language] = $this->fetchAllMessages($language);
+        }
         return $this->_messages[$language][$category] ?? $this->_messages[$language] ?? [];
     }
 
@@ -49,7 +52,7 @@ class DbMessageSource extends MessageSource
                 }
 
                 return $messages;
-            }, 3600 * 2); // 2 soat kesh saqlash
+            }, 3600 * 2) ?? Yii::$app->cache->get($tableName); // 2 soat kesh saqlash
         }
         return [];
     }
