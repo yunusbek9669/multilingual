@@ -162,7 +162,7 @@ class LanguageService
                             $key = $className."[$attribute{{$key}}]";
                         }
                     }
-                    $attributes[$key] = $data_value->$attribute ?: null;
+                    $attributes[$key] = $data_value->$attribute ?? null;
                 }
             }
         }
