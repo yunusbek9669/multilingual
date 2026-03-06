@@ -15,6 +15,7 @@ trait MlSelectTrait
 {
     use JsonTrait;
 
+    private array $coalescedJoins = [];
     private array $selectColumns = [];
     private array $joinList = [];
     private string|null $customAlias = null;
@@ -122,10 +123,11 @@ trait MlSelectTrait
         if (is_array($joins)) {
             foreach ($joins as $join) {
                 [$joinTable, $joinAlias] = $this->explodeJoin($join);
-                if (isset(self::$jsonTables[$joinTable]) && $this->replaceMlAttributeWithCoalesce($column, $joinTable, $langTable, $joinAlias)) {
+                if (isset(self::$jsonTables[$joinTable]) && !in_array($join, $this->coalescedJoins) && $this->replaceMlAttributeWithCoalesce($column, $joinTable, $langTable, $joinAlias)) {
                     $this->addSelect([$alias_attribute => $column]);
                     $this->joinList[$alias_attribute] = $column;
                     $this->selectColumns[$alias_attribute] = $column;
+                    $this->coalescedJoins[] = $join;
                     return;
                 }
             }
