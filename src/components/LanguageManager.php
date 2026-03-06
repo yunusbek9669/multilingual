@@ -73,13 +73,10 @@ class LanguageManager
         $lang_table = MlConstant::LANG_PREFIX . Yii::$app->language;
         $language_list = array_merge(Yii::$app->params['language_list'], $result);
         $filtered_languages = array_filter($language_list, fn($lang) => !empty($lang['active']));
+        $messages = (new Query())->select(['table_name', 'value'])->from($lang_table)->where(['is_static' => true])->all();
         Yii::$app->params['active_language'] = reset($filtered_languages);
         Yii::$app->params['table_available'] = self::issetTable($lang_table);
-        Yii::$app->params['_i18n'] = (new Query())
-            ->select(['table_name', 'value'])
-            ->from($lang_table)
-            ->where(['is_static' => true])
-            ->all();
+        Yii::$app->params['_i18n'] = array_column($messages, 'value', 'table_name');
         return $language_list;
     }
 }

@@ -20,7 +20,7 @@ class DbMessageSource extends MessageSource
      */
     protected function loadMessages($category, $language)
     {
-        $this->_messages[$language] = Yii::$app->params['_i18n'];
+        $this->_messages[$language][$category] = json_decode(Yii::$app->params['_i18n'][$category] ?? "", true);
         return $this->_messages[$language][$category] ?? $this->_messages[$language] ?? [];
     }
 }
