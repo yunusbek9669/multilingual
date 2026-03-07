@@ -99,7 +99,7 @@ trait MlSelectTrait
                         }
 
                         //JSONga kiritilmagan ustunni tarjima qilishga urinilsa
-                        if (isset($this->select[$attribute_name]) && preg_match('/\{([^}]+)\}/', $this->select[$attribute_name], $matches)) {
+                        if (isset($this->select[$attribute_name]) && preg_match('/(?:([a-zA-Z_][a-zA-Z0-9_]*)\.)?([a-zA-Z_][a-zA-Z0-9_]*)\{([a-z]{2,3})\}/', $this->select[$attribute_name], $matches)) {
                             $this->converterException($attribute, $process_table, $column, $alias_attribute);
                         }
                     }
