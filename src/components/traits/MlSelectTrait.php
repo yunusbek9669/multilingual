@@ -88,7 +88,7 @@ trait MlSelectTrait
                             $this->setCommonSelect($langTable, $process_table, $alias_attribute, $attribute, $qualified_column, $alias);
                         }
                         //join qilingan tablitsa uchun
-                        elseif (!empty($this->join))
+                        elseif ($joinedTables)
                         {
                             $full = str_contains($column, '.*') ? $column : (str_contains($attribute_name, '.*') ? $attribute_name : null);
                             if (!empty($full) && $this->customAlias === explode('.', $full)[0]) {
