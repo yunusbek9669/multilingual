@@ -169,8 +169,10 @@ class LanguageController extends Controller
             return $this->redirect(['index', 'is_static' => 1]);
         }
 
+        $result = LanguageService::getMessages($lang, $category, Yii::$app->request->queryParams);
         return $this->render('_form-static', [
-            'table' => LanguageService::getMessages($lang, $category, Yii::$app->request->queryParams),
+            'table' => $result[$lang],
+            'pagination' => $result['pagination'],
             'table_name' => $lang,
             'translating_language' => Yii::$app->params['language_list'][str_replace(MlConstant::LANG_PREFIX, '', $lang)]['name'] ?? $lang,
             'category' => $category,

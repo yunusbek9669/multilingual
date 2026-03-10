@@ -70,9 +70,31 @@ class LanguageService
     {
         $table = (new Query())->select([$lang => 'value'])->from($lang)->where(['table_name' => $category, 'is_static' => true])->one();
         $data = json_decode($table[$lang], true);
-        $empty = array_filter($data, fn($v) => $v === '');
-        $nonEmpty = array_filter($data, fn($v) => $v !== '');
-        return [$lang => $empty + $nonEmpty];
+
+        $page = $params['page'] ?? 1;
+        $pageSize = 1000; // Form inputlari limitiga mos
+
+        $offset = ($page - 1) * $pageSize;
+        $total = count($data);
+
+        // Ma'lumotni bo'lish
+        $pagedData = array_slice($data, $offset, $pageSize, true);
+
+        $empty = array_filter($pagedData, fn($v) => $v === '');
+        $nonEmpty = array_filter($pagedData, fn($v) => $v !== '');
+
+        return [
+            $lang => $empty + $nonEmpty,
+            'pagination' => [
+                'page' => $page,
+                'pageBegin' => ((int)$page * $pageSize) - $pageSize,
+                'pageSize' => $pageSize,
+                'total' => $total,
+                'totalPages' => ceil($total / $pageSize),
+                'hasNext' => $page * $pageSize < $total,
+                'hasPrev' => $page > 1
+            ]
+        ];
     }
 
     /**  Umumiy extend olgan modellarning ma’lumotlari

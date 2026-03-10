@@ -3,9 +3,11 @@
 use yii\widgets\ActiveForm;
 use yii\db\ActiveRecord;
 use yii\helpers\Html;
+use Yunusbek\Multilingual\components\LanguageService;
 
 /* @var $this yii\web\View */
 /* @var $table array */
+/* @var $pagination array */
 /* @var $table_name string */
 /* @var $translating_language string */
 /* @var $category string */
@@ -32,6 +34,18 @@ $page = Yii::$app->request->get('page', 0);
             </div>
         </div>
 
+        <?php echo \yii\widgets\LinkPager::widget([
+            'options' => ['class' => 'justify-content-center pagination pagination-rounded'],
+            'pagination' => new \yii\data\Pagination([
+                'totalCount' => $pagination['total'],
+                'pageSize' => $pagination['pageSize'],
+                'page' => $pagination['page'] - 1,
+            ]),
+            'linkContainerOptions' => ['class' => 'page-item bg-transparent'],
+            'linkOptions' => ['class' => 'page-link shadow-sm'],
+            'disabledListItemSubTagOptions' => ['class' => 'page-link bg-light'],
+            'maxButtonCount' => 5,
+        ]); ?>
         <div class="ml-table-responsive">
             <table class="ml-table">
                 <thead>
@@ -42,11 +56,11 @@ $page = Yii::$app->request->get('page', 0);
                 </tr>
                 </thead>
                 <tbody class="ml-tbody">
-                <?php $iteration = 1; foreach ($table[$table_name] as $key => $value): ?>
+                <?php $iteration = 1; foreach ($table as $key => $value): ?>
                     <tr>
-                        <td><?php echo $iteration++ ?></td>
+                        <td><?php echo $pagination['pageBegin'] + $iteration++ ?></td>
                         <td style="font-style: italic; white-space: pre-wrap;"><span style="background-color: rgba(105,255,0,0.31); color: rgb(96,96,96);"><?php echo $key ?></span></td>
-                        <td><input type="text" name="<?php echo $table_name.'['.htmlspecialchars($key).']' ?>" value="<?php echo $value ?>" class="ml-form-control <?php echo empty($value) ? 'ml-danger' : '' ?>"></td>
+                        <td><input type="text" name="<?php echo $table_name.'['.LanguageService::msgId($key).']' ?>" value="<?php echo htmlspecialchars($value) ?>" class="ml-form-control <?php echo empty($value) ? 'ml-danger' : '' ?>"></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>
@@ -58,7 +72,27 @@ $page = Yii::$app->request->get('page', 0);
     </div>
 <?php
 $css = <<<CSS
-
+.pagination-rounded .page-link {
+    border-radius: 30px !important;
+    margin: 0 3px !important;
+    border: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    text-align: center;
+    line-height: 32px;
+}
+.page-link {
+    position: relative;
+    display: block;
+    color: #74788d;
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    -webkit-transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, -webkit-box-shadow 0.15s ease-in-out;
+}
 .ml-btn {
     display: inline-block;
     font-weight: 400;

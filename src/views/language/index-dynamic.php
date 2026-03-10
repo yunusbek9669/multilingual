@@ -46,6 +46,9 @@ foreach (MlHelper::getJson()['tables'] as $key => $value) {
                     <?php echo \yii\widgets\LinkPager::widget([
                         'options' => ['class' => 'justify-content-center pagination pagination-rounded mr-2 me-2 mb-0', 'style' => 'margin-top: 1px;'],
                         'pagination' => $translates['pagination'],
+                        'firstPageLabel' => true,
+                        'lastPageLabel' => true,
+                        'disabledListItemSubTagOptions' => ['class' => 'page-link bg-light'],
                         'linkContainerOptions' => ['class' => 'page-item'], // har bir <li> uchun class
                         'linkOptions' => ['class' => 'page-link shadow-sm'], // <a> tegiga class
                     ]); ?>
