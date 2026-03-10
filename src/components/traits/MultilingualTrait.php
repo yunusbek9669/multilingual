@@ -100,6 +100,7 @@ trait MultilingualTrait
     public function setAttributes($values, $safeOnly = true): self
     {
         if (is_array($values)) {
+            $defaultLangKey = key(Yii::$app->params['default_language']);
             $langKeys = implode('|', array_keys(Yii::$app->params['language_list']));
             $keysWithLang = array_filter(
                 $values,
@@ -109,8 +110,12 @@ trait MultilingualTrait
             if (!empty($keysWithLang)) {
                 foreach ($keysWithLang as $key => $value) {
                     if (preg_match('/\{(\w+)\}$/', $key, $matches)) {
-                        $newKey = str_replace('{'.$matches[1].'}', '_'.$matches[1], $key);
-                        $this->_mlAttributes[$newKey] = $value;
+                        if ($matches[1] === $defaultLangKey) {
+                            $values[str_replace('{'.$matches[1].'}', '', $key)] = $value;
+                        } else {
+                            $newKey = str_replace('{'.$matches[1].'}', '_'.$matches[1], $key);
+                            $this->_mlAttributes[$newKey] = $value;
+                        }
                         unset($values[$key]);
                     }
                 }
