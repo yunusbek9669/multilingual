@@ -133,7 +133,7 @@ trait MlSelectTrait
             }
         }
 
-        if (!isset($this->joinList[$alias_attribute])) {
+        if (!isset($this->joinList[$alias_attribute]) && isset(self::$jsonTables[$rootTable])) {
             if ($this->replaceMlAttributeWithCoalesce($column, $rootTable, $langTable, $this->customAlias)) {
                 $this->addSelect([$alias_attribute => $column]);
                 $this->selectColumns[$alias_attribute] = $column;
