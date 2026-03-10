@@ -15,7 +15,7 @@ use Yunusbek\Multilingual\components\LanguageService;
 
 $this->title = Yii::t('multilingual', 'Edit {{category}} category from i18n', ['category' => $category]);
 $this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'Translating static (i18n) messages in the application'), 'url' => ['index', 'is_static' => 1]];
-$this->params['breadcrumbs'][] = $this->title;
+$this->params['breadcrumbs'][] = ['label' => $this->title, 'url' => '#'];
 
 $is_all = Yii::$app->request->get('is_all', 0);
 $page = Yii::$app->request->get('page', 0);

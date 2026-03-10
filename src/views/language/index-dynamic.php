@@ -11,7 +11,7 @@ use yii\helpers\Url;
 /* @var $translates array */
 
 $this->title = Yii::t('multilingual', 'Translating column values in the database tables of the application');
-$this->params['breadcrumbs'][] = $this->title;
+$this->params['breadcrumbs'][] = ['label' => $this->title, 'url' => '#'];
 $page = Yii::$app->request->get();
 $per_page = $page['per-page'] ?? MlConstant::LIMIT;
 
