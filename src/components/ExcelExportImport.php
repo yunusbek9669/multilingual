@@ -77,7 +77,6 @@ class ExcelExportImport
 
             foreach ($data as $row) {
                 $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-                $sheet->getStyle('C2:C' . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
 
                 /** JSON qiymatlarini alohida qatorda chiqarish */
                 $jsonData = json_decode($row['value'], true);
@@ -110,9 +109,6 @@ class ExcelExportImport
             foreach ($data as $row) {
                 $sheet->getStyle("A{$rowNumber}:B{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
                 $sheet->getStyle("C{$rowNumber}")->getFont()->setItalic(true)->setColor(new Color('777777'));
-                $sheet->getStyle('C2:C' . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
-                $sheet->getStyle('B2:C' . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
-                $sheet->getStyle('D2:C' . $rowNumber)->getProtection()->setLocked(Protection::PROTECTION_UNPROTECTED);
 
                 $jsonData = json_decode($row['value'], true);
                 foreach ($jsonData[$default_lang['name']] as $attribute => $value) {
