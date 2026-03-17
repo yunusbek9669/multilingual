@@ -17,7 +17,7 @@ $page = Yii::$app->request->get('page');
 
 <div style="padding: 2rem 3rem; background-color: white">
 
-    <div style="margin-bottom: 2rem; border-bottom: 2px solid #999; font-weight: bold; font-size: 18px; display: flex; justify-content: space-between"><?php echo $this->title ?><?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true" style="display: inline-block; font-size: inherit; height: 1.3em; overflow: visible; vertical-align: -.25em; width: 1.3em" viewBox="0 0 24 24"><g><path d="M0 0h24v24H0z" fill="none"/><path d="M8 7v4L2 6l6-5v4h5a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H8z"/></g></svg> ' . Yii::t('multilingual', 'Back'), array_merge(['index'], json_decode($page, true)), ['class' => 'btn btn-outline-danger font-weight-bolder', 'style' => 'margin: -.5em 0 .5em']) ?></div>
+    <div style="margin-bottom: 2rem; border-bottom: 2px solid #999; font-weight: bold; font-size: 18px; display: flex; justify-content: space-between"><?php echo $this->title ?><?php echo Html::a('<svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true" style="display: inline-block; font-size: inherit; height: 1.3em; overflow: visible; vertical-align: -.25em; width: 1.3em" viewBox="0 0 24 24"><g><path d="M0 0h24v24H0z" fill="none"/><path d="M8 7v4L2 6l6-5v4h5a8 8 0 1 1 0 16H4v-2h9a6 6 0 1 0 0-12H8z"/></g></svg> ' . Yii::t('multilingual', 'Back'), array_merge(['index-table'], json_decode($page, true)), ['class' => 'btn btn-outline-danger font-weight-bolder', 'style' => 'margin: -.5em 0 .5em']) ?></div>
 
     <?php $form = ActiveForm::begin(); ?>
 

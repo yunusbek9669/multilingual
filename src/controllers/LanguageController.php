@@ -54,12 +54,29 @@ class LanguageController extends Controller
                 'searchParams' => $searchParams,
             ]);
         } else {
+            $languages = Yii::$app->params['language_list'];
             return $this->render('index-dynamic', [
-                'default_language' => current(array_filter(Yii::$app->params['language_list'], fn($lang) => empty($lang['table']))),
-                'translates' => LanguageService::getModelsData($searchParams),
-                'searchParams' => $searchParams,
+                'languages' => $languages,
+                'tables' => LanguageService::getTableList($languages)
             ]);
         }
+    }
+
+    /**
+     * Lists all BaseLanguageList models.
+     * @return string
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
+    public function actionIndexTable(): string
+    {
+        $searchParams = Yii::$app->request->queryParams;
+        $languages = Yii::$app->params['language_list'];
+        return $this->render('index-table-dynamic', [
+            'default_language' => current(array_filter($languages, fn($lang) => empty($lang['table']))),
+            'translates' => LanguageService::getModelsData($languages, $searchParams),
+            'searchParams' => $searchParams,
+        ]);
     }
 
     /**

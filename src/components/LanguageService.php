@@ -101,9 +101,8 @@ class LanguageService
      * @throws Exception
      * @throws InvalidConfigException
      */
-    public static function getModelsData(array $params): array
+    public static function getModelsData(array $languages, array $params): array
     {
-        $languages = Yii::$app->params['language_list'];
         $tableResult = [];
         $default_lang = '';
         foreach ($languages as $language) {

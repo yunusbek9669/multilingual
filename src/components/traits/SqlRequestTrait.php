@@ -31,7 +31,7 @@ trait SqlRequestTrait
         return Yii::$app->db->createCommand("SELECT to_regclass(:table) IS NOT NULL")->bindValue(':table', $table_name)->queryScalar();
     }
 
-    /** Bazadagi barcha tarjimon (lang_*) tablitsalar
+    /** Tanlangan tablitsaning tarjima qilinadigan barcha ustunlari bilan shakllangan barcha qiymati
      * @throws Exception
      * @throws InvalidConfigException
      */
@@ -100,6 +100,77 @@ trait SqlRequestTrait
             'totalCount' => $pagination->totalCount,
             'pagination' => $pagination,
         ]);
+    }
+
+    /** Bazadagi barcha tarjimon (lang_*) tablitsalar
+     * @throws Exception
+     * @throws InvalidConfigException
+     */
+    public static function getTableList(array $languages, bool $export = false): array
+    {
+        $jsonData = self::getJson();
+        if (empty($jsonData['tables'])) {
+            return [];
+        }
+
+        $defaultLangCode = array_keys(Yii::$app->params['default_language'])[0];
+        $summarySelect = [];
+
+        foreach ($jsonData['tables'] as $table_name => $attributes) {
+            $sqlHelper = self::sqlHelper($languages, $attributes, $table_name, 0, 0, $export);
+
+            // 1. Default til uchun shart
+            $defaultWhere = [];
+            foreach ($attributes as $attr) {
+                $defaultWhere[] = "NULLIF($table_name.$attr, '') IS NOT NULL";
+            }
+            $defaultWhereSql = implode(" OR ", $defaultWhere);
+
+            // 2. Boshqa tillar uchun count shartlari
+            $langCounts = [];
+            foreach ($languages as $key => $lang) {
+                if ($key === $defaultLangCode) continue;
+
+                $langAlias = "lang_{$key}";
+                $missingConditions = ["$langAlias.table_iteration IS NULL", "$langAlias.value::jsonb = '{}'"];
+
+                foreach ($attributes as $attr) {
+                    $missingConditions[] = "(NULLIF($table_name.$attr, '') IS NOT NULL AND COALESCE($langAlias.value->>'$attr', '') = '')";
+                }
+
+                $missingSql = implode(" OR ", $missingConditions);
+                $langCounts[] = "COUNT(CASE WHEN ($defaultWhereSql) AND ($missingSql) THEN 1 END) AS {$key}_count";
+            }
+
+            $langCountsSql = $langCounts ? ", " . implode(", ", $langCounts) : "";
+
+            // Har bir jadval nomi bilan birga natijani olish
+            $summarySelect[] = "
+                SELECT 
+                    '$table_name' AS table_name,
+                    COUNT(CASE WHEN $defaultWhereSql THEN 1 END) AS default_count
+                    $langCountsSql
+                FROM $table_name 
+                {$sqlHelper['joins']} 
+                WHERE $table_name.status = 1
+            ";
+        }
+
+        $finalSql = implode(" UNION ALL ", $summarySelect);
+        $rows = Yii::$app->db->createCommand($finalSql)->queryAll();
+
+        $result = [];
+        foreach ($rows as $row) {
+            $tableName = $row['table_name'];
+            unset($row['table_name']);
+
+            $result[] = [
+                'table_name' => $tableName,
+                'count_list' => $row
+            ];
+        }
+
+        return $result;
     }
 
 
