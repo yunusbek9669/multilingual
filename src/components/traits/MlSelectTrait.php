@@ -46,13 +46,20 @@ trait MlSelectTrait
 
     private function isPureSelectOperation(): bool
     {
-        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10) as $trace) {
-            // Agar bu update/delete operatsiyasi bo'lsa, false qaytarish
-            if (isset($trace['function']) && in_array($trace['function'], ['actionValidate', 'insert', 'update', 'delete', 'updateAll', 'deleteAll', 'save'])) {
-                return false;
+        static $isPure = null;
+        if ($isPure !== null) return $isPure;
+
+        $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 8);
+
+        $writeMethods = ['insert', 'update', 'delete', 'save', 'updateAll', 'deleteAll', 'actionValidate'];
+
+        foreach ($backtrace as $trace) {
+            if (isset($trace['function']) && in_array($trace['function'], $writeMethods)) {
+                return $isPure = false;
             }
         }
-        return true;
+
+        return $isPure = true;
     }
 
     /** Select turlariga qarab tarjimaga moslab chiqish
