@@ -28,7 +28,7 @@ $this->params['breadcrumbs'][] = ['label' => $this->title, 'url' => '#'];
                         <th><?php echo Yii::t('multilingual', 'Table List') ?></th>
                         <?php if (!empty($languages)): ?>
                             <?php foreach ($languages as $langugae): ?>
-                                <th><?php echo $langugae['name'] . (!isset($langugae['table']) ? ' '.MlConstant::STAR : '') ?></th>
+                                <th style="text-align: center"><?php echo $langugae['name'] . (!isset($langugae['table']) ? ' '.MlConstant::STAR : '') ?></th>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tr>
@@ -45,7 +45,7 @@ $this->params['breadcrumbs'][] = ['label' => $this->title, 'url' => '#'];
                                     <span style="color: #979aa6; font-style: italic;"><?php echo $table['table_name'] ?></span>
                                 </td>
                                 <?php foreach ($table['count_list'] as $count_key => $count): ?>
-                                    <td><span class="<?php echo $count_key === 'default_count' ? '' : ($count !== 0 ? 'ml-not-translated has' : 'ml-not-translated not'); ?>"><?php echo $count; ?></span></td>
+                                    <td style="text-align: center"><span class="<?php echo $count_key === 'default_count' ? '' : ($count !== 0 ? 'ml-not-translated has' : 'ml-not-translated not'); ?>"><?php echo $count; ?></span></td>
                                 <?php endforeach; ?>
                             </tr>
                         <?php endforeach; ?>
@@ -110,7 +110,7 @@ $css = <<<CSS
     caption-side: bottom;
     border-collapse: collapse;
 }
-.ml-table .ml-tbody:hover {
+.ml-table .ml-tbody tr:hover {
     background-color: #f8fafb;
 }
 .ml-table th, .ml-table td {
