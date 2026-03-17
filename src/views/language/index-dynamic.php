@@ -39,7 +39,11 @@ $this->params['breadcrumbs'][] = ['label' => $this->title, 'url' => '#'];
                             <tr>
                                 <td><?php echo $key + 1 ?></td>
                                 <td class="ml-click-cell"><a href="<?php echo Url::to(['index-table', 'table-name' => $table['table_name']]) ?>"><svg aria-hidden="true" style="display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em;width:1.125em" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path fill="currentColor" d="M573 241C518 136 411 64 288 64S58 136 3 241a32 32 0 000 30c55 105 162 177 285 177s230-72 285-177a32 32 0 000-30zM288 400a144 144 0 11144-144 144 144 0 01-144 144zm0-240a95 95 0 00-25 4 48 48 0 01-67 67 96 96 0 1092-71z"></path></svg></a></td>
-                                <td style="color: #979aa6; font-style: italic; font-weight: bold;"><?php echo $table['table_name'] ?></td>
+                                <td style="font-weight: bold;">
+                                    <?php echo MlHelper::tableTextFormat($table['table_name'], true) ?>
+                                    <br>
+                                    <span style="color: #979aa6; font-style: italic;"><?php echo $table['table_name'] ?></span>
+                                </td>
                                 <?php foreach ($table['count_list'] as $count_key => $count): ?>
                                     <td><span class="<?php echo $count_key === 'default_count' ? '' : ($count !== 0 ? 'ml-not-translated has' : 'ml-not-translated not'); ?>"><?php echo $count; ?></span></td>
                                 <?php endforeach; ?>
