@@ -134,9 +134,9 @@ class LanguageController extends Controller
                     return $response;
                 }
                 Yii::$app->session->setFlash($response['code'], $response['message']);
-                $url = ['index', 'is_static' => 0];
+                $url = ['index-table', 'is_static' => 0, 'table_name' => $table_name];
                 if (!empty($page)) {
-                    $url = array_merge(['index'], json_decode($page, true));
+                    $url = array_merge(['index-table', 'is_static' => 0], json_decode($page, true));
                 }
                 return $this->redirect($url);
             }
