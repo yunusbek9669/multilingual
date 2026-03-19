@@ -11,7 +11,7 @@ use yii\helpers\Url;
 /* @var $translates array */
 
 $page = Yii::$app->request->get();
-$table_name = MlHelper::tableTextFormat($page['table-name'] ?? '', true);
+$table_name = MlHelper::tableTextFormat($page['table_name'] ?? '', true);
 
 $this->title = Yii::t('multilingual', 'Translating column values in the "{table}" table', ['table' => $table_name]);
 $this->params['breadcrumbs'][] = ['label' => Yii::t('multilingual', 'Translating column values in the database tables of the application'), 'url' => 'index'];

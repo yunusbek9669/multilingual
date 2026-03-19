@@ -49,7 +49,7 @@ trait SqlRequestTrait
             $countSelect = [];
             foreach ($jsonData['tables'] as $table_name => $attributes)
             {
-                if (isset($params['table-name']) && $params['table-name'] !== $table_name) { continue; }
+                if (isset($params['table_name']) && $params['table_name'] !== $table_name) { continue; }
 
                 /** lang_* jadvallari bo‘yicha sql sozlamalar */
                 $sqlHelper = self::sqlHelper($languages, $attributes, $table_name, $isStatic, $isAll, $export);
