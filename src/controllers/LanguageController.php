@@ -75,7 +75,7 @@ class LanguageController extends Controller
         return $this->render('index-table-dynamic', [
             'default_language' => current(array_filter($languages, fn($lang) => empty($lang['table']))),
             'translates' => LanguageService::getModelsData($languages, $searchParams),
-            'searchParams' => $searchParams,
+            'searchParams' => array_merge(['is_static' => 0], $searchParams),
         ]);
     }
 
