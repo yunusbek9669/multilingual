@@ -5,6 +5,7 @@ namespace Yunusbek\Multilingual\components\traits;
 use Yii;
 use yii\base\InvalidConfigException;
 use Yunusbek\Multilingual\commands\Messages;
+use Yunusbek\Multilingual\components\MlConstant;
 
 trait JsonTrait
 {
@@ -18,7 +19,7 @@ trait JsonTrait
         $id = 'messages';
         $module = Yii::$app;
         $message = new Messages($id, $module);
-        $jsonFile = Yii::getAlias('@app') .'/'. $message->json_file_name.'.json';
+        $jsonFile = Yii::getAlias('@app') .'/'. MlConstant::MULTILINGUAL.'.json';
         if (file_exists($jsonFile)) {
             $jsonContent = file_get_contents($jsonFile);
             $decoded = json_decode($jsonContent, true);
