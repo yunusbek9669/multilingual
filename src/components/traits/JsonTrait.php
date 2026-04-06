@@ -16,9 +16,6 @@ trait JsonTrait
      */
     public static function getJson()
     {
-        $id = 'messages';
-        $module = Yii::$app;
-        $message = new Messages($id, $module);
         $jsonFile = Yii::getAlias('@app') .'/'. MlConstant::MULTILINGUAL.'.json';
         if (file_exists($jsonFile)) {
             $jsonContent = file_get_contents($jsonFile);
